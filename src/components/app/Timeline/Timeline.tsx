@@ -6,7 +6,7 @@ import { useApp } from '@/lib/store'
 import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { useT } from '@/lib/i18n'
 
-const LINE = 'hsl(348 85% 58%)'
+const LINE = '#F07A45'
 
 // Half the native range thumb, so the invisible slider's steps line up with the chart points.
 const THUMB_HALF = 8
@@ -46,7 +46,6 @@ export function Timeline() {
   }, [playing, maxIndex, setTimeIndex])
 
   const current = series[Math.min(timeIndex, maxIndex)]
-  const seriesTitle = selected ? selected.name : t('timeline.example')
   const valueText = `${current.date} · ${current.displacementMm.toFixed(2)} mm`
 
   return (
@@ -81,16 +80,7 @@ export function Timeline() {
         </Button>
       </div>
 
-      <div className="hidden min-w-0 max-w-[200px] shrink flex-col leading-tight sm:flex">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          {t('timeline.series')}
-        </span>
-        <span className="truncate text-[12px] text-foreground/90" title={seriesTitle}>
-          {seriesTitle}
-        </span>
-      </div>
-
-      <div className="relative h-10 min-w-[96px] flex-1 rounded-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
+<div className="relative h-10 min-w-[96px] flex-1 rounded-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={series} margin={{ top: 4, right: THUMB_HALF, bottom: 4, left: THUMB_HALF }}>
             <defs>

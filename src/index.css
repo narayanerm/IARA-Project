@@ -4,33 +4,33 @@
 
 @layer base {
   :root {
-    --background: 222 47% 5%;
-    --foreground: 210 40% 98%;
+    --background: 90 70% 4%;
+    --foreground: 0 0% 100%;
 
-    --card: 222 45% 8%;
+    --card: 152 25% 10%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 45% 8%;
+    --popover: 152 25% 10%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 190 95% 60%;
+    --primary: 19 85% 61%;
     --primary-foreground: 222 47% 5%;
 
-    --secondary: 222 32% 14%;
+    --secondary: 152 20% 14%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 222 32% 12%;
+    --muted: 152 18% 13%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 190 95% 60%;
+    --accent: 19 85% 61%;
     --accent-foreground: 222 47% 5%;
 
     --destructive: 348 85% 58%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 222 32% 16%;
-    --input: 222 32% 16%;
-    --ring: 190 95% 60%;
+    --border: 152 20% 18%;
+    --input: 152 20% 18%;
+    --ring: 19 85% 61%;
 
     --radius: 0.65rem;
   }
@@ -65,7 +65,67 @@
   padding: 0 !important;
 }
 .ti-popup .maplibregl-popup-tip {
-  border-top-color: hsl(28 85% 55% / 0.4) !important;
+  border-top-color: hsl(19 85% 61% / 0.4) !important;
+}
+
+/* Attribution control: the "i" is always a small orange circle. The sources list
+   only appears while the mouse is over the circle (floats above it, outside the DOM flow). */
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  position: relative;
+  overflow: visible !important;
+  min-height: 24px;
+  min-width: 24px;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button,
+.maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+  background-color: #F07A45 !important;
+  border: 1px solid rgba(240, 122, 69, 0.8);
+  border-radius: 999px !important;
+  width: 24px !important;
+  height: 24px !important;
+  margin: 0 !important;
+  display: block !important;
+  pointer-events: auto;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-inner,
+.maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show .maplibregl-ctrl-attrib-inner {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: #13201A;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 10px 14px;
+  border: 1px solid rgba(240, 122, 69, 0.4);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+  min-width: 320px;
+  max-width: 420px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact:hover .maplibregl-ctrl-attrib-inner {
+  opacity: 1;
+  pointer-events: auto;
+}
+.maplibregl-ctrl-attrib a {
+  color: #ffffff !important;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  text-underline-offset: 2px;
+}
+.maplibregl-ctrl-attrib a:hover {
+  text-decoration-color: #ffffff;
+}
+.maplibregl-ctrl-attrib strong {
+  color: #ffffff;
+  font-weight: 600;
 }
 
 @layer utilities {

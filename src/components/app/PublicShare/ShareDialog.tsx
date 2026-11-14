@@ -16,6 +16,7 @@ import { useApp } from '@/lib/store'
 import { REGIONS } from '@/lib/regions'
 import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { buildPermalink } from '@/lib/url-state'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 function download(filename: string, content: string, mime: string) {
@@ -29,6 +30,7 @@ function download(filename: string, content: string, mime: string) {
 }
 
 export function ShareDialog() {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const activeRegion = useApp((s) => s.activeRegion)
   const activeLayer = useApp((s) => s.activeLayer)
@@ -90,7 +92,7 @@ export function ShareDialog() {
             name: region.name,
             phenomenon: region.phenomenon,
             anchor_city: region.anchorCity,
-            source: 'IARA · AmazonSAR Explorer',
+            source: 'IARA',
             note: 'AOI bounding box for GIS tools (QGIS, ArcGIS).',
           },
           geometry: {
@@ -122,10 +124,10 @@ export function ShareDialog() {
           className={cn(
             'inline-flex items-center gap-1.5 rounded-md border border-sar-amber/40 bg-sar-amber/10 px-2.5 h-8 text-[13px] font-mono text-sar-amber hover:bg-sar-amber/20 transition-colors'
           )}
-          aria-label="Compartilhar e exportar"
+          aria-label={t('share.aria.openShare')}
         >
           <Share2 className="h-3.5 w-3.5" />
-          Compartilhar
+          {t('share.trigger')}
         </button>
       </Dialog.Trigger>
 
@@ -135,16 +137,16 @@ export function ShareDialog() {
           <div className="flex items-start justify-between border-b border-border/60 p-4">
             <div>
               <Dialog.Title className="text-base font-semibold">
-                Compartilhar e exportar
+                {t('share.title')}
               </Dialog.Title>
               <Dialog.Description className="text-[13px] text-muted-foreground mt-0.5">
-                Para jornalistas, pesquisadores, ONGs e órgãos públicos.
+                {t('share.description')}
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
               <button
                 className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted"
-                aria-label="Fechar"
+                aria-label={t('share.close')}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -153,13 +155,13 @@ export function ShareDialog() {
 
           <div className="p-4 space-y-4">
             <Badge variant="outline" className="font-mono text-[12px]">
-              AOI atual · {region.name} · {region.phenomenonLabel}
+              {t('share.currentAoi')} · {region.name} · {region.phenomenonLabel}
             </Badge>
 
             <ExportCard
               icon={<LinkIcon className="h-4 w-4" />}
-              title="Link de citação permanente"
-              description="URL com AOI, camada e frame temporal codificados. Compartilhe por e-mail, Slack, redes sociais. Quem abre vê exatamente a mesma visão."
+              title={t('share.permalink.title')}
+              description={t('share.permalink.description')}
             >
               <div className="flex gap-2">
                 <input
@@ -171,11 +173,11 @@ export function ShareDialog() {
                 <Button onClick={copy} size="sm" className="h-9 shrink-0">
                   {copied ? (
                     <>
-                      <Check className="h-3.5 w-3.5" /> Copiado
+                      <Check className="h-3.5 w-3.5" /> {t('share.copied')}
                     </>
                   ) : (
                     <>
-                      <Copy className="h-3.5 w-3.5" /> Copiar
+                      <Copy className="h-3.5 w-3.5" /> {t('share.copy')}
                     </>
                   )}
                 </Button>
@@ -184,11 +186,11 @@ export function ShareDialog() {
 
             <ExportCard
               icon={<TableProperties className="h-4 w-4" />}
-              title="Série temporal (CSV)"
+              title={t('share.csv.title')}
               description={
                 csvDisabled
-                  ? 'Selecione um polígono no mapa (AOI Yanomami) para baixar a série temporal daquele ponto.'
-                  : 'Para abrir em Excel, Google Sheets, pandas. Inclui data, valor, unidade, ID do polígono.'
+                  ? t('share.csv.descriptionDisabled')
+                  : t('share.csv.description')
               }
             >
               <Button
@@ -198,14 +200,14 @@ export function ShareDialog() {
                 className="w-full justify-start h-9"
                 disabled={csvDisabled}
               >
-                <Download className="h-3.5 w-3.5" /> Baixar CSV
+                <Download className="h-3.5 w-3.5" /> {t('share.csv.download')}
               </Button>
             </ExportCard>
 
             <ExportCard
               icon={<FileJson className="h-4 w-4" />}
-              title="AOI (GeoJSON)"
-              description="Bounding box da AOI atual. Abra em QGIS, ArcGIS, geopandas. Útil pra sobrepor com camadas próprias de desmatamento, hidrografia, etc."
+              title={t('share.geojson.title')}
+              description={t('share.geojson.description')}
             >
               <Button
                 onClick={downloadGeojson}
@@ -213,13 +215,12 @@ export function ShareDialog() {
                 size="sm"
                 className="w-full justify-start h-9"
               >
-                <Download className="h-3.5 w-3.5" /> Baixar GeoJSON
+                <Download className="h-3.5 w-3.5" /> {t('share.geojson.download')}
               </Button>
             </ExportCard>
 
             <div className="text-[11px] text-muted-foreground/70 leading-relaxed">
-              Todos os dados exportados carregam origem, unidade e incerteza quando aplicável.
-              Não rotulamos pixel bruto como garimpo / enchente / seca confirmados.
+              {t('share.disclaimer')}
             </div>
           </div>
         </Dialog.Content>

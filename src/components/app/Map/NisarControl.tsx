@@ -25,7 +25,7 @@ export function NisarControl() {
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const sel = useNisarSelection(region)
   const [playing, setPlaying] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
 
   const scenes = sel.track?.scenes ?? []
   const n = scenes.length
@@ -71,16 +71,16 @@ export function NisarControl() {
               : 'text-muted-foreground/60 hover:text-foreground'
           )}
           aria-label={t('nisar.show')}
-          title={visible ? 'Esconder imagem NISAR do mapa' : 'Mostrar imagem NISAR no mapa'}
+          title={visible ? t('nisarControl.hide') : t('nisarControl.show')}
         >
           {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
         </button>
         <button
           onClick={() => setCollapsed((v) => !v)}
           className="rounded p-1 text-muted-foreground hover:text-foreground"
-          aria-label={collapsed ? 'Expandir painel' : 'Colapsar painel'}
+          aria-label={collapsed ? t('nisarControl.expand') : t('nisarControl.collapse')}
           aria-expanded={!collapsed}
-          title={collapsed ? 'Expandir painel' : 'Colapsar painel'}
+          title={collapsed ? t('nisarControl.expand') : t('nisarControl.collapse')}
         >
           {collapsed ? (
             <ChevronDown className="h-3.5 w-3.5" />
@@ -166,7 +166,7 @@ export function NisarControl() {
             <button
               onClick={() => step(-1)}
               className="rounded-md border border-border/60 p-1 hover:bg-secondary/60"
-              aria-label="previous"
+              aria-label={t('nisarControl.previous')}
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
@@ -181,7 +181,7 @@ export function NisarControl() {
             <button
               onClick={() => step(1)}
               className="rounded-md border border-border/60 p-1 hover:bg-secondary/60"
-              aria-label="next"
+              aria-label={t('nisarControl.next')}
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
