@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import {
   fetchFlowForecast,
+  AMAZON_RIVER_PREVIEWS,
   findForecastReach,
   fetchFloodChance,
   FLOOD_ATTRIBUTION,
@@ -55,7 +56,9 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
       .then((signals) => {
         if (controller.signal.aborted) return
         setRegionalSignal({ layer: floodLayer, point: signals[0]?.point ?? null })
-        onFloodSignals(signals)
+        onFloodSignals(signals.length || floodLayer !== FLOOD_LAYER
+          ? signals
+          : AMAZON_RIVER_PREVIEWS.map((point) => ({ point, color: '#94a3b8' })))
       })
       .catch(() => { if (!controller.signal.aborted) setRegionalSignal({ layer: floodLayer, point: 'error' }) })
     return () => controller.abort()
@@ -133,12 +136,22 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
                 {pt ? 'Ir para um sinal previsto' : 'Zoom to a forecast signal'}
               </button>
             ) : (
-              pt ? 'A visão regional não mostra sinais para esta camada.' : 'The regional overview shows no signals for this layer.'
+              <>
+                {pt ? 'Sem sinais nesta camada dentro do contorno da Amazônia brasileira.' : 'No signals for this layer inside the Brazilian Amazon boundary.'}
+                {floodLayer === FLOOD_LAYER && AMAZON_RIVER_PREVIEWS.length > 0 && (
+                  <>
+                    <p className="mt-1">{pt ? 'Os pontos cinza abrem previsões de vazão.' : 'Gray dots open river-flow forecasts.'}</p>
+                    <button type="button" className="mt-1 rounded border border-border px-2 py-1 hover:bg-secondary" onClick={() => onFloodFocus(AMAZON_RIVER_PREVIEWS[0])}>
+                      {pt ? 'Ver previsão no Rio Negro' : 'View Rio Negro forecast'}
+                    </button>
+                  </>
+                )}
+              </>
             )}
           </div>
           {floodError && <p role="status" className="mt-2">{pt ? 'Parte do mapa de cheias não pôde ser carregada.' : 'Some flood forecast tiles could not be loaded.'}</p>}
           <a href={FLOOD_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{FLOOD_ATTRIBUTION}</a>
-          <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio para ver a previsão de vazão do trecho mais próximo.' : 'Click near a river to see the streamflow forecast for the closest modeled reach.'}</p>
+          <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio dentro do contorno para ver a previsão do trecho mais próximo.' : 'Click near a river inside the boundary to see the forecast for the closest modeled reach.'}</p>
           {selected && <p className="mt-1 text-xs text-muted-foreground">{pt
             ? 'A porcentagem indica quantos cenários GEOGLOWS superam o limiar de vazão diária de 2 anos ao menos uma vez em 7 dias (UTC).'
             : 'The percentage is the share of GEOGLOWS scenarios exceeding the 2-year daily flow threshold at least once over 7 days (UTC).'}

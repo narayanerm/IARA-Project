@@ -1,5 +1,4 @@
 import { AMAZON_BIOME } from '@/data/layers/indigenous-lands'
-import { gwisMapUrl } from '@/lib/predictive-models'
 
 const SIZE = 256
 const HALF_WORLD = 20037508.342789244
@@ -17,9 +16,9 @@ const east = Math.max(...vertices.map(([x]) => x))
 const north = Math.min(...vertices.map(([, y]) => y))
 const south = Math.max(...vertices.map(([, y]) => y))
 
-export async function drawAmazonFireTile(
+export async function drawAmazonForecastTile(
   canvas: HTMLCanvasElement,
-  date: string,
+  tileUrl: (bbox: string) => string,
   { x, y, z }: { x: number; y: number; z: number },
   signal: AbortSignal,
 ) {
@@ -28,7 +27,7 @@ export async function drawAmazonFireTile(
   if ((x + 1) / scale < west || x / scale > east || (y + 1) / scale < north || y / scale > south) return
 
   const context = canvas.getContext('2d')
-  if (!context) throw new Error('Could not create the fire tile canvas')
+  if (!context) throw new Error('Could not create the forecast tile canvas')
   const path = new Path2D()
   for (const polygon of polygons) {
     for (const ring of polygon) {
@@ -45,9 +44,9 @@ export async function drawAmazonFireTile(
   const span = 2 * HALF_WORLD / scale
   const left = x * span - HALF_WORLD
   const top = HALF_WORLD - y * span
-  const response = await fetch(gwisMapUrl(date, [left, top - span, left + span, top].join(',')), { signal })
+  const response = await fetch(tileUrl([left, top - span, left + span, top].join(',')), { signal })
   if (!response.ok || !response.headers.get('content-type')?.startsWith('image/png')) {
-    throw new Error('GWIS fire forecast image unavailable')
+    throw new Error('Forecast image unavailable')
   }
   const bitmap = await createImageBitmap(await response.blob())
   try {

@@ -39,8 +39,8 @@ import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { CommunityPin } from './CommunityPin'
 import { SarPreview } from './SarPreview'
 import { MapFallback } from './MapFallback'
-import { FLOOD_ATTRIBUTION, floodTiles, GWIS_ATTRIBUTION, type ForecastMapProps } from '@/lib/predictive-models'
-import { drawAmazonFireTile } from '@/lib/amazon-fire-tiles'
+import { FLOOD_ATTRIBUTION, floodTiles, gwisMapUrl, GWIS_ATTRIBUTION, type FloodLayer, type ForecastMapProps } from '@/lib/predictive-models'
+import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
 import { FloodProbability } from './FloodProbability'
 import { floodChanceColor } from '@/lib/predictive-models'
 import { NisarImagery } from './NisarImagery'
@@ -48,10 +48,11 @@ import { inAmazon } from '@/lib/amazon'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
-maplibregl.addProtocol('amazon-fire', async ({ url }, { signal }) => {
-  const [date, zoom, column, row] = url.slice('amazon-fire://'.length).split('/')
+maplibregl.addProtocol('amazon-forecast', async ({ url }, { signal }) => {
+  const [kind, value, zoom, column, row] = url.slice('amazon-forecast://'.length).split('/')
+  const tileUrl = (bbox: string) => kind === 'fire' ? gwisMapUrl(value, bbox) : floodTiles(value as FloodLayer, bbox)
   const canvas = document.createElement('canvas')
-  await drawAmazonFireTile(canvas, date, { z: Number(zoom), x: Number(column), y: Number(row) }, signal)
+  await drawAmazonForecastTile(canvas, tileUrl, { z: Number(zoom), x: Number(column), y: Number(row) }, signal)
   const blob = await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((image) => image ? resolve(image) : reject(new Error('Could not encode the fire tile'))))
   return { data: await blob.arrayBuffer() }
@@ -539,7 +540,7 @@ export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPo
           <Source
             id="gwis-fire"
             type="raster"
-            tiles={[`amazon-fire://${fireDate}/{z}/{x}/{y}`]}
+            tiles={[`amazon-forecast://fire/${fireDate}/{z}/{x}/{y}`]}
             tileSize={256}
             maxzoom={8}
             attribution={GWIS_ATTRIBUTION}
@@ -760,7 +761,7 @@ export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPo
         <CommunityPoints />
         <AoiLayersPopup />
         {floodLayer && (
-          <Source id="glofas-flood" type="raster" tiles={[floodTiles(floodLayer)]} tileSize={256} maxzoom={11} attribution={FLOOD_ATTRIBUTION}>
+          <Source id="glofas-flood" type="raster" tiles={[`amazon-forecast://flood/${floodLayer}/{z}/{x}/{y}`]} tileSize={256} maxzoom={11} attribution={FLOOD_ATTRIBUTION}>
             <Layer id="glofas-flood-overlay" type="raster" paint={{ 'raster-fade-duration': 0 }} />
           </Source>
         )}

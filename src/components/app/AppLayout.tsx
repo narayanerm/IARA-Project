@@ -19,6 +19,7 @@ import { useI18n, useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 import { PredictiveModels } from './Map/PredictiveModels'
 import { FLOOD_LAYER, gwisDates, type FloodChance, type FloodLayer, type FloodSignal, type ForecastPoint } from '@/lib/predictive-models'
+import { inAmazon } from '@/lib/amazon'
 
 export function AppLayout() {
   const t = useT()
@@ -130,7 +131,9 @@ export function AppLayout() {
             floodSignals={forecastMode === 'river' ? floodSignals : []}
             riverPoint={forecastMode === 'river' ? forecastPoint : null}
             riverChance={forecastMode === 'river' && forecastPoint ? (floodChance?.point === forecastPoint ? floodChance.chance : 'loading') : null}
-            onRiverSelect={forecastMode === 'river' ? setForecastPoint : undefined}
+            onRiverSelect={forecastMode === 'river' ? (point) => {
+              if (inAmazon(...point)) setForecastPoint(point)
+            } : undefined}
             onFireTileError={() => setFireError(true)}
             onFloodTileError={() => setFloodError(true)}
           />

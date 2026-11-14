@@ -1,4 +1,12 @@
+import { inAmazon } from '@/lib/amazon'
+
 export type ForecastPoint = [longitude: number, latitude: number]
+const RIVER_PREVIEW_POINTS: ForecastPoint[] = [
+  [-59.98, -3.15], // Rio Negro near Manaus
+  [-64.72, -3.35], // Solimões near Tefé
+  [-54.72, -2.38], // Amazon near Santarém
+]
+export const AMAZON_RIVER_PREVIEWS = RIVER_PREVIEW_POINTS.filter(([lon, lat]) => inAmazon(lon, lat))
 export type FloodSignal = { point: ForecastPoint; color: string }
 export type FloodChance = number | 'loading' | 'unavailable' | null
 
@@ -28,7 +36,7 @@ export const floodLegend = (layer: FloodLayer) => `${FLOOD_WMS}?service=WMS&vers
 export const floodTiles = (layer: FloodLayer, bbox = '{bbox-epsg-3857}') => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetMap&layers=${layer}&styles=&crs=EPSG:3857&bbox=${bbox}&width=256&height=256&format=image/png&transparent=true&exceptions=XML`
 
 export async function findRegionalFloodSignals(layer: FloodLayer, signal: AbortSignal): Promise<FloodSignal[]> {
-  // Include neighboring parts of the basin so nearby flood signals are discoverable.
+  // Enclose the biome, then test each sample against its actual boundary.
   const [west, south, east, north] = [-8240000, -1560000, -5030000, 615000]
   const response = await fetch(floodTiles(layer, [west, south, east, north].join(',')), { signal })
   if (!response.ok || !response.headers.get('content-type')?.startsWith('image/png')) {
@@ -56,9 +64,12 @@ export async function findRegionalFloodSignals(layer: FloodLayer, signal: AbortS
       if (samples.has(key)) continue
       const x = west + ((column + 0.5) / bitmap.width) * (east - west)
       const y = north - ((row + 0.5) / bitmap.height) * (north - south)
+      const lon = x / radius * 180 / Math.PI
+      const lat = Math.atan(Math.sinh(y / radius)) * 180 / Math.PI
+      if (!inAmazon(lon, lat)) continue
       const [r, g, b] = data.subarray(i * 4, i * 4 + 3)
       samples.set(key, {
-        point: [x / radius * 180 / Math.PI, Math.atan(Math.sinh(y / radius)) * 180 / Math.PI],
+        point: [lon, lat],
         color: `rgb(${r}, ${g}, ${b})`,
       })
     }
