@@ -79,7 +79,8 @@ function FloodFocus({ point }: { point: ForecastPoint }) {
   return null
 }
 
-export function MapFallback({ region, fireDate, floodLayer, floodFocus, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
+export function MapFallback({ region, fireDate, floodLayer, floodFocus, floodSignals, riverPoint, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
+  const selectedForecastPoint = riverPoint ?? floodFocus
   const setActiveRegion = useApp((s) => s.setActiveRegion)
   const focusedTi = useApp((s) => s.focusedTi)
   const localTiFeature = useMemo(
@@ -284,6 +285,17 @@ export function MapFallback({ region, fireDate, floodLayer, floodFocus, onRiverS
             </Popup>
           </CircleMarker>
         ))}
+        {floodLayer && floodSignals.map(({ point, color }) => (
+          <CircleMarker key={point.join(',')} center={[point[1], point[0]]} radius={6} bubblingMouseEvents={false}
+            pathOptions={{ color: '#fff', weight: 2, fillColor: color, fillOpacity: 1 }}
+            eventHandlers={{ click: () => onRiverSelect?.(point) }}
+          />
+        ))}
+        {floodLayer && selectedForecastPoint && (
+          <CircleMarker center={[selectedForecastPoint[1], selectedForecastPoint[0]]} radius={13}
+            interactive={false} pathOptions={{ color: '#67e8f9', weight: 3, fill: false }}
+          />
+        )}
       </MapContainer>
 
       {focusedTi && (

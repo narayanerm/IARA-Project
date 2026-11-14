@@ -7,7 +7,7 @@ import {
   FLOOD_EXTENT_LAYER,
   FLOOD_LAYER,
   floodLegend,
-  findRegionalFloodSignal,
+  findRegionalFloodSignals,
   FLOOD_VIEWER,
   GEOGLOWS_VIEWER,
   GWIS_ATTRIBUTION,
@@ -15,12 +15,13 @@ import {
   GWIS_VIEWER,
   type FlowForecast,
   type FloodLayer,
+  type FloodSignal,
   type ForecastPoint,
 } from '@/lib/predictive-models'
 
 type FlowResult = { point: ForecastPoint; data: FlowForecast | null } | { point: ForecastPoint; error: true }
 
-export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus }: {
+export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals }: {
   mode: 'river' | 'fire'
   onModeChange: (mode: 'river' | 'fire') => void
   onClose: () => void
@@ -33,6 +34,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   floodLayer: FloodLayer
   onFloodLayer: (layer: FloodLayer) => void
   onFloodFocus: (point: ForecastPoint) => void
+  onFloodSignals: (signals: FloodSignal[]) => void
 }) {
   const lang = useI18n((s) => s.lang)
   const pt = lang === 'pt'
@@ -44,11 +46,15 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   useEffect(() => {
     if (mode !== 'river') return
     const controller = new AbortController()
-    findRegionalFloodSignal(floodLayer, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
-      .then((point) => { if (!controller.signal.aborted) setRegionalSignal({ layer: floodLayer, point }) })
+    findRegionalFloodSignals(floodLayer, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
+      .then((signals) => {
+        if (controller.signal.aborted) return
+        setRegionalSignal({ layer: floodLayer, point: signals[0]?.point ?? null })
+        onFloodSignals(signals)
+      })
       .catch(() => { if (!controller.signal.aborted) setRegionalSignal({ layer: floodLayer, point: 'error' }) })
     return () => controller.abort()
-  }, [mode, floodLayer])
+  }, [mode, floodLayer, onFloodSignals])
 
   useEffect(() => {
     if (!selected) return
@@ -94,6 +100,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
             : (pt ? 'Estimativa experimental das áreas inundáveis em grandes bacias com sinal de cheia intensa.' : 'Experimental estimate of inundation in large basins with a severe flood signal.')}
           </p>
           <img src={floodLegend(floodLayer)} alt={pt ? 'Legenda da previsão de cheia' : 'Flood forecast legend'} className="mt-2 max-w-full rounded bg-white" />
+          <p className="mt-2 text-xs">{pt ? 'Os pontos coloridos indicam a localização aproximada dos sinais.' : 'Colored dots show approximate signal locations.'}</p>
           <div className="mt-2 text-xs" aria-live="polite">
             {regionalSignal?.layer !== floodLayer ? (
               pt ? 'Buscando sinais na região amazônica…' : 'Checking the Amazon region for signals…'

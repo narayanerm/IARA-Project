@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Map, {
   Layer,
+  Marker,
   Source,
   type MapLayerMouseEvent,
   type MapRef,
@@ -30,7 +31,7 @@ import { useApp } from '@/lib/store'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { useBrazilCoverage } from '@/lib/useBrazilCoverage'
 import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsMaxZoom, gibsTileUrl, type GibsLayer } from '@/lib/gibs'
-import { useT } from '@/lib/i18n'
+import { useI18n, useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { hasWebGL2 } from '@/lib/webgl-support'
 import { AoiLayersPopup } from './AoiLayersPopup'
@@ -125,7 +126,9 @@ function rasterFade(layer: GibsLayer, opacity: number) {
   ]
 }
 
-export function SarMap({ fireDate, floodLayer, floodFocus, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
+export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPoint, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
+  const signalLabel = useI18n((s) => s.lang === 'pt' ? 'Ver previsão de vazão neste ponto' : 'View river forecast at this point')
+  const selectedForecastPoint = riverPoint ?? floodFocus
   const mapRef = useRef<MapRef | null>(null)
   useEffect(() => {
     if (floodFocus) mapRef.current?.flyTo({ center: floodFocus, zoom: 7, pitch: 0, bearing: 0 })
@@ -327,7 +330,7 @@ export function SarMap({ fireDate, floodLayer, floodFocus, onRiverSelect, onFire
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
-        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} floodFocus={floodFocus} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
+        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} floodFocus={floodFocus} floodSignals={floodSignals} riverPoint={riverPoint} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
         <OverlayLegend {...counts} />
       </div>
     )
@@ -758,6 +761,24 @@ export function SarMap({ fireDate, floodLayer, floodFocus, onRiverSelect, onFire
           <Source id="glofas-flood" type="raster" tiles={[floodTiles(floodLayer)]} tileSize={256} maxzoom={11} attribution={FLOOD_ATTRIBUTION}>
             <Layer id="glofas-flood-overlay" type="raster" paint={{ 'raster-fade-duration': 0 }} />
           </Source>
+        )}
+        {floodLayer && floodSignals.map(({ point, color }) => (
+          <Marker key={point.join(',')} longitude={point[0]} latitude={point[1]}>
+            <button
+              type="button"
+              aria-label={signalLabel}
+              title={signalLabel}
+              onClick={(event) => { event.stopPropagation(); onRiverSelect?.(point) }}
+              className="grid size-6 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-white"
+            >
+              <span className="size-3.5 rounded-full border-2 border-white shadow-[0_0_0_2px_#172033]" style={{ backgroundColor: color }} />
+            </button>
+          </Marker>
+        ))}
+        {floodLayer && selectedForecastPoint && (
+          <Marker longitude={selectedForecastPoint[0]} latitude={selectedForecastPoint[1]} className="pointer-events-none">
+            <span aria-hidden="true" className="block size-7 rounded-full border-2 border-cyan-300 shadow-[0_0_0_2px_#172033]" />
+          </Marker>
         )}
       </Map>
 

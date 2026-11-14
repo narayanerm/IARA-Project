@@ -18,7 +18,7 @@ import { useApp } from '@/lib/store'
 import { useI18n, useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 import { PredictiveModels } from './Map/PredictiveModels'
-import { FLOOD_LAYER, gwisDates, type FloodLayer, type ForecastPoint } from '@/lib/predictive-models'
+import { FLOOD_LAYER, gwisDates, type FloodLayer, type FloodSignal, type ForecastPoint } from '@/lib/predictive-models'
 
 export function AppLayout() {
   const t = useT()
@@ -31,6 +31,7 @@ export function AppLayout() {
   const [floodError, setFloodError] = useState(false)
   const [floodLayer, setFloodLayer] = useState<FloodLayer>(FLOOD_LAYER)
   const [floodFocus, setFloodFocus] = useState<ForecastPoint | null>(null)
+  const [floodSignals, setFloodSignals] = useState<FloodSignal[]>([])
   const selectedFireDate = fireDate && forecastDates.includes(fireDate) ? fireDate : forecastDates[0]
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
@@ -101,6 +102,8 @@ export function AppLayout() {
               setForecastDates(gwisDates())
               setFireError(false)
               setFloodError(false)
+              setFloodSignals([])
+              setFloodFocus(null)
               setForecastMode('river')
             }}
             className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2 text-xs hover:bg-secondary aria-expanded:bg-primary/20"
@@ -123,6 +126,8 @@ export function AppLayout() {
             fireDate={forecastMode === 'fire' ? selectedFireDate : null}
             floodLayer={forecastMode === 'river' ? floodLayer : null}
             floodFocus={forecastMode === 'river' ? floodFocus : null}
+            floodSignals={forecastMode === 'river' ? floodSignals : []}
+            riverPoint={forecastMode === 'river' ? forecastPoint : null}
             onRiverSelect={forecastMode === 'river' ? setForecastPoint : undefined}
             onFireTileError={() => setFireError(true)}
             onFloodTileError={() => setFloodError(true)}
@@ -134,6 +139,8 @@ export function AppLayout() {
                 if (mode === forecastMode) return
                 setFireError(false)
                 setFloodError(false)
+                setFloodSignals([])
+                setFloodFocus(null)
                 setForecastMode(mode)
               }}
               onClose={() => setForecastMode(null)}
@@ -144,8 +151,9 @@ export function AppLayout() {
               fireError={fireError}
               floodError={floodError}
               floodLayer={floodLayer}
-              onFloodFocus={(point) => setFloodFocus([...point])}
-              onFloodLayer={(layer) => { setFloodError(false); setFloodLayer(layer) }}
+              onFloodFocus={(point) => { setForecastPoint(point); setFloodFocus([...point]) }}
+              onFloodSignals={setFloodSignals}
+              onFloodLayer={(layer) => { setFloodError(false); setFloodSignals([]); setFloodFocus(null); setFloodLayer(layer) }}
             />
           )}
           <div className="absolute left-3 top-3 xl:hidden">

@@ -1,9 +1,12 @@
 export type ForecastPoint = [longitude: number, latitude: number]
+export type FloodSignal = { point: ForecastPoint; color: string }
 
 export type ForecastMapProps = {
   fireDate: string | null
   floodLayer: FloodLayer | null
   floodFocus: ForecastPoint | null
+  floodSignals: FloodSignal[]
+  riverPoint: ForecastPoint | null
   onRiverSelect?: (point: ForecastPoint) => void
   onFireTileError: () => void
   onFloodTileError: () => void
@@ -18,7 +21,7 @@ export const FLOOD_VIEWER = 'https://global-flood.emergency.copernicus.eu/'
 export const floodLegend = (layer: FloodLayer) => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetLegendGraphic&sld_version=1.1.0&layer=${layer}&format=image/png&STYLE=default`
 export const floodTiles = (layer: FloodLayer, bbox = '{bbox-epsg-3857}') => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetMap&layers=${layer}&styles=&crs=EPSG:3857&bbox=${bbox}&width=256&height=256&format=image/png&transparent=true&exceptions=XML`
 
-export async function findRegionalFloodSignal(layer: FloodLayer, signal: AbortSignal): Promise<ForecastPoint | null> {
+export async function findRegionalFloodSignals(layer: FloodLayer, signal: AbortSignal): Promise<FloodSignal[]> {
   // Include neighboring parts of the basin so nearby flood signals are discoverable.
   const [west, south, east, north] = [-8240000, -1560000, -5030000, 615000]
   const response = await fetch(floodTiles(layer, [west, south, east, north].join(',')), { signal })
@@ -35,21 +38,26 @@ export async function findRegionalFloodSignal(layer: FloodLayer, signal: AbortSi
     if (!context) throw new Error('Could not read the GloFAS preview')
     context.drawImage(bitmap, 0, 0)
     const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height)
-    let best = -1
-    let bestDistance = Infinity
+    const samples = new Map<number, FloodSignal>()
+    const gridSize = 8
+    const columns = Math.ceil(bitmap.width / gridSize)
+    const radius = 6378137
     for (let i = 0; i < bitmap.width * bitmap.height; i++) {
       if (data[i * 4 + 3] < 128) continue
-      const distance = Math.hypot(i % bitmap.width - bitmap.width / 2, Math.floor(i / bitmap.width) - bitmap.height / 2)
-      if (distance < bestDistance) {
-        best = i
-        bestDistance = distance
-      }
+      const column = i % bitmap.width
+      const row = Math.floor(i / bitmap.width)
+      const key = Math.floor(row / gridSize) * columns + Math.floor(column / gridSize)
+      if (samples.has(key)) continue
+      const x = west + ((column + 0.5) / bitmap.width) * (east - west)
+      const y = north - ((row + 0.5) / bitmap.height) * (north - south)
+      const [r, g, b] = data.subarray(i * 4, i * 4 + 3)
+      samples.set(key, {
+        point: [x / radius * 180 / Math.PI, Math.atan(Math.sinh(y / radius)) * 180 / Math.PI],
+        color: `rgb(${r}, ${g}, ${b})`,
+      })
     }
-    if (best === -1) return null
-    const x = west + ((best % bitmap.width + 0.5) / bitmap.width) * (east - west)
-    const y = north - ((Math.floor(best / bitmap.width) + 0.5) / bitmap.height) * (north - south)
-    const radius = 6378137
-    return [x / radius * 180 / Math.PI, Math.atan(Math.sinh(y / radius)) * 180 / Math.PI]
+    return [...samples.values()].sort((a, b) =>
+      Math.hypot(a.point[0] + 60, a.point[1] + 4) - Math.hypot(b.point[0] + 60, b.point[1] + 4))
   } finally {
     bitmap.close()
   }
