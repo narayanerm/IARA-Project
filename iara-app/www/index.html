@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IARA</title>
+<meta name="description" content="Nível do rio, fogo perto de casa, onde denunciar e cursos gratuitos para comunidades ribeirinhas da Amazônia.">
+<meta name="theme-color" content="#102019">
+<meta property="og:title" content="IARA">
+<meta property="og:description" content="Nível do rio, fogo perto de casa, onde denunciar e cursos gratuitos para comunidades ribeirinhas da Amazônia.">
+<meta property="og:image" content="img/og.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="img/icone-192.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="IARA">
+<script>try { var t = localStorage.getItem("iara-tema"); if (t) document.documentElement.dataset.theme = t; var l = localStorage.getItem("iara-letra"); if (l) document.documentElement.dataset.letra = l; } catch (e) {}</script>
+<link rel="stylesheet" href="vendor/phosphor/style.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-linha">
+    <a class="voltar-topo" href="#inicio" aria-label="Voltar ao início"><i class="ph ph-arrow-left"></i></a>
+    <a class="marca" href="#inicio"><img src="img/logo-escuro.svg" alt="IARA" width="104" height="40"></a>
+    <h1 class="topo-titulo" id="topo-titulo"></h1>
+  </div>
+  <img class="faixa" src="img/faixa.svg" alt="" width="1500" height="30">
+</header>
+
+<main>
+
+<!-- INÍCIO -->
+<section class="tela" id="inicio" data-titulo="">
+  <div class="lugar" id="lugar">
+    <div id="lugar-vazio" hidden>
+      <h2 class="lugar-nome">Onde você está?</h2>
+      <p>Com o lugar, o app mostra o rio e o fogo perto de você.</p>
+      <button class="btn btn-cheio largo" type="button" data-acao="gps"><i class="ph ph-crosshair"></i>Usar minha localização</button>
+      <button class="link-texto" type="button" data-acao="escolher">Escolher cidade ou reserva na lista</button>
+    </div>
+    <div id="lugar-cheio" hidden>
+      <div class="lugar-cabeca">
+        <div>
+          <p class="lugar-rotulo">Você está em</p>
+          <h2 class="lugar-nome" id="lugar-nome"></h2>
+        </div>
+        <button class="trocar" type="button" data-acao="escolher">Trocar</button>
+      </div>
+      <a class="resumo" href="#rio" id="resumo-rio"></a>
+      <a class="resumo" href="#fogo" id="resumo-fogo"></a>
+      <p class="resumo-terr" id="resumo-terr" hidden></p>
+    </div>
+  </div>
+
+  <a class="ligar193" href="tel:193"><i class="ph ph-phone-call"></i>Ligar 193, Bombeiros</a>
+
+  <h2 class="secao">Serviços</h2>
+  <ul class="servicos">
+    <li><a href="#rio"><i class="ph ph-waves"></i>Nível do rio</a></li>
+    <li><a href="#fogo"><i class="ph ph-fire"></i>Fogo perto</a></li>
+    <li><a href="#mapa"><i class="ph ph-globe-hemisphere-west"></i>Mapa de satélite</a></li>
+    <li><a href="#denunciar"><i class="ph ph-megaphone"></i>Denunciar</a></li>
+    <li><a href="#denunciar/telefones"><i class="ph ph-phone"></i>Telefones e SMS</a></li>
+    <li><a href="#mais/guias"><i class="ph ph-book-open"></i>Guias sem internet</a></li>
+    <li><a href="#mais/cursos"><i class="ph ph-graduation-cap"></i>Cursos gratuitos</a></li>
+    <li><a href="#mais/funai"><i class="ph ph-users-three"></i>Funai</a></li>
+    <li><a href="#mais/beneficios"><i class="ph ph-hand-coins"></i>Benefícios</a></li>
+  </ul>
+
+  <p class="rodape-dados" id="inicio-datas"></p>
+</section>
+
+<!-- RIO -->
+<section class="tela" id="rio" data-titulo="Nível do rio" hidden>
+  <label class="campo">
+    <span>Estação da ANA</span>
+    <select id="rio-estacao"></select>
+  </label>
+
+  <div class="rio-painel">
+    <svg class="regua" id="regua" viewBox="0 0 120 320" role="img" aria-labelledby="regua-desc"><desc id="regua-desc"></desc></svg>
+    <div>
+      <p class="rio-nome" id="rio-nome"></p>
+      <p class="cota" id="rio-cota"></p>
+      <p id="rio-variacao"></p>
+      <p class="situacao" id="rio-situacao"></p>
+      <p class="nota" id="rio-data"></p>
+    </div>
+  </div>
+
+  <h2 class="secao">Outras estações</h2>
+  <ul class="lista-estacoes" id="lista-estacoes"></ul>
+
+  <a class="ver-mapa" href="#mapa"><i class="ph ph-globe-hemisphere-west"></i>Ver o rio no mapa de satélite</a>
+
+  <h2 class="secao">O rio visto pelo radar</h2>
+  <div class="radar-par">
+    <figure><img src="img/radar-cheia.jpg" width="520" height="520" loading="lazy" alt="Imagem de radar de Manaus na cheia: o rio aparece escuro e a mata alagada aparece clara."><figcaption>Cheia. Manaus, 10.07.2026. NISAR, banda L.</figcaption></figure>
+    <figure><img src="img/radar-seca.jpg" width="520" height="520" loading="lazy" alt="Imagem de radar de Manaus na seca, com menos mata alagada nas margens."><figcaption>Seca. Manaus, 26.10.2026. NISAR, banda L.</figcaption></figure>
+  </div>
+  <p class="nota">No radar, o rio aberto fica escuro e a mata alagada fica clara. É assim que o projeto IARA acompanha a cheia.</p>
+
+  <h2 class="secao">O que fazer</h2>
+  <ul class="linhas" id="rio-guias"></ul>
+
+  <h2 class="secao">Boletins oficiais</h2>
+  <ul class="linhas" id="rio-fontes"></ul>
+</section>
+
+<!-- FOGO -->
+<section class="tela" id="fogo" data-titulo="Fogo perto" hidden>
+  <div class="controles">
+    <div class="segmento" role="radiogroup" aria-label="Mês" id="fogo-mes"></div>
+    <div class="segmento" role="radiogroup" aria-label="Distância" id="fogo-raio"></div>
+  </div>
+
+  <div class="fogo-painel">
+    <canvas id="radar" width="640" height="640" aria-describedby="fogo-resumo"></canvas>
+    <div class="fogo-texto">
+      <p class="grande" id="fogo-resumo"></p>
+      <p id="fogo-perto"></p>
+      <p id="fogo-risco"></p>
+      <p id="fogo-desmate"></p>
+    </div>
+  </div>
+  <p class="nota" id="fogo-nota"></p>
+  <a class="ver-mapa" href="#mapa"><i class="ph ph-globe-hemisphere-west"></i>Ver os focos no mapa de satélite</a>
+
+  <h2 class="secao">O que fazer</h2>
+  <ul class="linhas" id="fogo-guias"></ul>
+
+  <h2 class="secao">Mais informação</h2>
+  <ul class="linhas" id="fogo-fontes"></ul>
+</section>
+
+<!-- MAPA -->
+<section class="tela tela-mapa" id="mapa" data-titulo="Mapa de satélite" hidden>
+  <div class="segmento" role="radiogroup" aria-label="Imagem do mapa" id="mapa-fundo"></div>
+  <div class="mapa-caixa">
+    <div id="mapa-leaflet" role="region" aria-label="Mapa de satélite do lugar escolhido"></div>
+    <p class="mapa-sem" id="mapa-sem" hidden></p>
+  </div>
+  <p class="nota" id="mapa-data"></p>
+
+  <h2 class="secao">O que aparece no mapa</h2>
+  <ul class="legenda">
+    <li><span class="simb simb-voce"></span>O lugar que você escolheu</li>
+    <li><span class="simb simb-foco"></span>Focos de calor do INPE no mês escolhido na tela Fogo</li>
+    <li><span class="simb simb-terr"></span>Limite de terra indígena ou reserva</li>
+    <li><span class="simb simb-estacao"></span>Estação da ANA que mede o rio</li>
+  </ul>
+  <p class="nota">O mapa precisa de internet para baixar as imagens. Sem internet, o radar da tela Fogo e a régua da tela Rio continuam funcionando.</p>
+</section>
+
+<!-- DENUNCIAR -->
+<section class="tela" id="denunciar" data-titulo="Denunciar" hidden>
+  <div id="den-lista">
+    <p class="grande">O que está acontecendo?</p>
+    <ul class="situacoes" id="situacoes"></ul>
+
+    <h2 class="secao" id="telefones-titulo">Telefones e SMS</h2>
+    <ul class="telefones" id="telefones"></ul>
+
+    <h2 class="secao">Minhas anotações</h2>
+    <ul class="linhas" id="notas-lista"></ul>
+  </div>
+
+  <div id="den-detalhe" hidden>
+    <h2 class="den-titulo" id="den-titulo"></h2>
+    <ol class="passos" id="den-passos"></ol>
+    <h3 class="secao">Onde denunciar</h3>
+    <div class="canais" id="den-canais"></div>
+
+    <form class="anotar" id="anotar" autocomplete="off">
+      <h3>Anote antes de denunciar</h3>
+      <p class="nota">Fica guardado no celular, mesmo sem internet. Depois é só copiar ou mandar.</p>
+      <label class="campo"><span>O que você viu</span><textarea id="n-oque" rows="3" required></textarea></label>
+      <label class="campo"><span>Onde</span><input id="n-onde" type="text"></label>
+      <label class="campo"><span>Quando</span><input id="n-quando" type="datetime-local"></label>
+      <label class="campo"><span>Barco, placa, nomes (se souber)</span><input id="n-quem" type="text"></label>
+      <div class="botoes">
+        <button class="btn btn-cheio" type="submit"><i class="ph ph-floppy-disk"></i>Guardar</button>
+        <button class="link-texto" type="button" id="n-enviar">Mandar o texto</button>
+      </div>
+      <p class="aviso" id="n-aviso" role="status"></p>
+    </form>
+  </div>
+</section>
+
+<!-- MAIS -->
+<section class="tela" id="mais" data-titulo="Mais" hidden>
+  <div id="mais-lista">
+    <h2 class="secao primeiro" id="sec-guias">Guias para ler sem internet</h2>
+    <ul class="linhas" id="guias"></ul>
+    <div id="links-mais"></div>
+
+    <h2 class="secao" id="sec-ajustes">Ajustes</h2>
+    <ul class="linhas">
+      <li><button type="button" id="btn-tema"><i class="ph ph-circle-half"></i><span class="txt">Tema claro ou escuro</span></button></li>
+      <li><button type="button" id="btn-letra"><i class="ph ph-text-aa"></i><span class="txt" id="letra-txt">Letra maior</span></button></li>
+      <li><button type="button" data-acao="escolher"><i class="ph ph-map-pin"></i><span class="txt">Trocar o lugar</span></button></li>
+      <li hidden id="li-instalar"><button type="button" id="btn-instalar"><i class="ph ph-download-simple"></i><span class="txt">Instalar no celular</span></button></li>
+    </ul>
+
+    <h2 class="secao">Sobre o IARA</h2>
+    <div class="sobre">
+      <p>IARA quer dizer Imageamento de Áreas Ribeirinhas Alagadas. É um projeto do NASA Space Apps Challenge 2026 que usa radar de satélite e dados públicos para avisar comunidades sobre cheia, seca e fogo.</p>
+      <p>Os números vêm da ANA (rio), do INPE (focos de calor e desmatamento) e da Funai e do ICMBio (territórios). O risco de fogo é um cálculo da equipe, não uma previsão oficial.</p>
+    </div>
+  </div>
+
+  <article class="guia" id="guia" hidden>
+    <h2 class="den-titulo" id="guia-titulo"></h2>
+    <div id="guia-corpo"></div>
+  </article>
+</section>
+
+</main>
+
+<nav class="abas" aria-label="Telas">
+  <a href="#inicio" data-aba="inicio"><i class="ph ph-house"></i><span>Início</span></a>
+  <a href="#rio" data-aba="rio"><i class="ph ph-waves"></i><span>Rio</span></a>
+  <a href="#fogo" data-aba="fogo"><i class="ph ph-fire"></i><span>Fogo</span></a>
+  <a href="#denunciar" data-aba="denunciar"><i class="ph ph-megaphone"></i><span>Denunciar</span></a>
+  <a href="#mais" data-aba="mais"><i class="ph ph-list"></i><span>Mais</span></a>
+</nav>
+
+<div class="folha-fundo" id="folha-fundo"></div>
+<div class="folha" id="folha-lugar" role="dialog" aria-modal="true" aria-labelledby="folha-titulo" hidden>
+  <div class="folha-cabeca">
+    <h2 id="folha-titulo">Onde você está?</h2>
+    <button class="icone" type="button" id="folha-fechar" aria-label="Fechar"><i class="ph ph-x"></i></button>
+  </div>
+  <button class="btn btn-cheio largo" type="button" data-acao="gps"><i class="ph ph-crosshair"></i>Usar minha localização</button>
+  <label class="campo"><span>Ou procure uma cidade, terra indígena ou reserva</span>
+    <input id="busca" type="search" placeholder="Tefé, Mamirauá, Yanomami"></label>
+  <ul class="resultados" id="resultados"></ul>
+</div>
+
+<div class="aviso-flutuante" id="aviso" role="status"></div>
+
+<script src="js/base.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
