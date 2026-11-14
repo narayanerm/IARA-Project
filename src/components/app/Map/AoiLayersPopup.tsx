@@ -6,7 +6,6 @@ import { useApp, useAoiPopup } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
 import type { ProductLayer } from '@/lib/types'
 import { GIBS_BY_REGION } from '@/lib/gibs'
-import { useAsfGranules } from '@/lib/useAsfGranules'
 import { cn } from '@/lib/utils'
 
 const SAR_LAYERS: Array<{ id: ProductLayer; labelKey: TKey; icon: LucideIcon; color: string }> = [
@@ -25,7 +24,6 @@ export function AoiLayersPopup() {
   const setActiveLayer = useApp((s) => s.setActiveLayer)
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const gibs = GIBS_BY_REGION[activeRegion]
-  const asf = useAsfGranules(region)
 
   if (!open) return null
 
@@ -103,13 +101,6 @@ export function AoiLayersPopup() {
                 <span className="ml-auto text-[13px] tabular-nums text-muted-foreground">{gibs.sensor}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-md bg-background/40 border border-border/60 px-2 py-1 text-[13px]">
-              <span className="h-2 w-2 rounded-full shrink-0 bg-sar-cyan" />
-              <span className="text-foreground">{t('popup.footprints')}</span>
-              <span className="ml-auto text-[13px] tabular-nums text-muted-foreground">
-                {asf.loading ? '…' : asf.data.length}
-              </span>
-            </div>
           </div>
         </div>
       </div>

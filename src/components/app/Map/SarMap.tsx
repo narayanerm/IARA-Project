@@ -7,20 +7,21 @@ import Map, {
 } from 'react-map-gl/maplibre'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import type { Feature, FeatureCollection, Polygon } from 'geojson'
+import type { FeatureCollection } from 'geojson'
 import { REGIONS } from '@/lib/regions'
 import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { INDIGENOUS_LANDS, AMAZON_BIOME, polygonCentroid } from '@/data/layers/indigenous-lands'
 import { AFFECTED_AREAS } from '@/data/layers/affected-areas'
+import { worldWithHoleFC } from '@/lib/polygon-bbox'
 import { useApp } from '@/lib/store'
-import { useAsfGranules } from '@/lib/useAsfGranules'
-import { useBrazilCoverage } from '@/lib/useBrazilCoverage'
 import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsTileUrl } from '@/lib/gibs'
 import { useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
 import { AoiLayersPopup } from './AoiLayersPopup'
 import { TiTargets } from './TiTargets'
 import { MapFallback } from './MapFallback'
+import { NisarImagery } from './NisarImagery'
+import { inAmazon } from '@/lib/amazon'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
@@ -30,13 +31,18 @@ export function SarMap() {
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
   const selectPolygon = useApp((s) => s.selectPolygon)
+  const setNisarPoint = useApp((s) => s.setNisarPoint)
+  const setNisarNotice = useApp((s) => s.setNisarNotice)
+  const t = useT()
 
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
-  const asf = useAsfGranules(region)
-  const coverage = useBrazilCoverage()
   const gibs = GIBS_BY_REGION[activeRegion]
 
   const focusedTi = useApp((s) => s.focusedTi)
+  const focusedTiFeature = useMemo(
+    () => INDIGENOUS_LANDS.features.find((f) => f.properties.name === focusedTi) ?? null,
+    [focusedTi]
+  )
 
   useEffect(() => {
     const m = mapRef.current
@@ -78,47 +84,14 @@ export function SarMap() {
     []
   )
 
-  const coverageFC: FeatureCollection = useMemo(
-    () => ({
-      type: 'FeatureCollection',
-      features: coverage.data.map<Feature<Polygon>>((g, i) => ({
-        type: 'Feature',
-        geometry: g.footprint,
-        properties: {
-          id: g.id,
-          dataset: g.dataset,
-          startTime: g.startTime,
-          polarization: g.polarization.join('+'),
-          ageIdx: Math.min(i, 100),
-        },
-      })),
-    }),
-    [coverage.data]
-  )
-
-  const footprintsFC: FeatureCollection = useMemo(
-    () => ({
-      type: 'FeatureCollection',
-      features: asf.data.slice(0, 8).map<Feature<Polygon>>((g, i) => ({
-        type: 'Feature',
-        geometry: g.footprint,
-        properties: {
-          id: g.id,
-          dataset: g.dataset,
-          startTime: g.startTime,
-          polarization: g.polarization.join('+'),
-          flightDirection: g.flightDirection,
-          age: i,
-        },
-      })),
-    }),
-    [asf.data]
-  )
-
   const onClick = (e: MapLayerMouseEvent) => {
     const f = e.features?.[0]
     if (!f) {
       selectPolygon(null)
+      // Click on the map → every NISAR image of that spot (Amazon biome only).
+      const { lng, lat } = e.lngLat
+      if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
+      else setNisarNotice(t('nisar.outsideAmazon'))
       return
     }
     const id = (f.properties as { id?: string })?.id
@@ -223,44 +196,6 @@ export function SarMap() {
             }}
           />
         </Source>
-        {coverage.data.length > 0 && (
-          <Source id="br-coverage" type="geojson" data={coverageFC}>
-            <Layer
-              id="br-coverage-fill"
-              type="fill"
-              paint={{
-                'fill-color': 'hsl(198 51% 57%)',
-                'fill-opacity': [
-                  'interpolate',
-                  ['linear'],
-                  ['get', 'ageIdx'],
-                  0,
-                  0.32,
-                  100,
-                  0.08,
-                ],
-              }}
-            />
-            <Layer
-              id="br-coverage-outline"
-              type="line"
-              paint={{
-                'line-color': 'hsl(198 60% 75%)',
-                'line-opacity': [
-                  'interpolate',
-                  ['linear'],
-                  ['get', 'ageIdx'],
-                  0,
-                  0.85,
-                  100,
-                  0.18,
-                ],
-                'line-width': 1.0,
-              }}
-            />
-          </Source>
-        )}
-
         {trueColorOverlay && (
           <Source
             id="gibs-truecolor"
@@ -315,28 +250,7 @@ export function SarMap() {
           </Source>
         )}
 
-        {asf.data.length > 0 && (
-          <Source id="asf-footprints" type="geojson" data={footprintsFC}>
-            <Layer
-              id="asf-footprints-fill"
-              type="fill"
-              paint={{
-                'fill-color': 'hsl(198 51% 57%)',
-                'fill-opacity': ['interpolate', ['linear'], ['get', 'age'], 0, 0.18, 8, 0.04],
-              }}
-            />
-            <Layer
-              id="asf-footprints-line"
-              type="line"
-              paint={{
-                'line-color': 'hsl(198 55% 70%)',
-                'line-opacity': ['interpolate', ['linear'], ['get', 'age'], 0, 0.95, 8, 0.2],
-                'line-width': 1.2,
-                'line-dasharray': [2, 1.5],
-              }}
-            />
-          </Source>
-        )}
+        <NisarImagery />
 
         {activeRegion === 'YANO' && (
           <Source id="yano-change" type="geojson" data={changeFC}>
@@ -430,6 +344,38 @@ export function SarMap() {
             }}
           />
         </Source>
+        {focusedTi && focusedTiFeature && (
+          <>
+            <Source
+              id="focused-ti-mask"
+              key={`mask-${focusedTi}`}
+              type="geojson"
+              data={worldWithHoleFC(focusedTiFeature.geometry.coordinates[0])}
+            >
+              <Layer
+                id="focused-ti-mask-fill"
+                type="fill"
+                paint={{ 'fill-color': 'hsl(222 47% 5%)', 'fill-opacity': 0.75 }}
+              />
+            </Source>
+            <Source
+              id="focused-ti-outline-src"
+              key={`outline-${focusedTi}`}
+              type="geojson"
+              data={focusedTiFeature}
+            >
+              <Layer
+                id="focused-ti-outline"
+                type="line"
+                paint={{
+                  'line-color': 'hsl(190 95% 70%)',
+                  'line-width': 2.5,
+                  'line-opacity': 1,
+                }}
+              />
+            </Source>
+          </>
+        )}
         <TiTargets />
         <AoiLayersPopup />
       </Map>
@@ -443,28 +389,10 @@ function OverlayLegend() {
   const t = useT()
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
-  const asfCount = useAsfGranules(REGIONS.find((r) => r.id === activeRegion)!).data.length
-  const coverage = useBrazilCoverage()
   const gibs = GIBS_BY_REGION[activeRegion]
 
   return (
     <div className="pointer-events-none absolute top-4 right-4 flex flex-col items-end gap-2">
-      <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground min-w-[200px] text-right">
-        <div>
-          <span className="text-sar-cyan">▭</span> {t('coverage.title')}
-        </div>
-        <div className="mt-0.5 text-[13px] opacity-70">
-          {coverage.loading
-            ? t('coverage.loading')
-            : `${coverage.data.length} passes, ${t('coverage.footer')}`}
-        </div>
-      </div>
-
-      {asfCount > 0 && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground">
-          <span className="text-sar-cyan">▭</span> {asfCount} on AOI, ASF
-        </div>
-      )}
       {nasaOverlay && gibs && (
         <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground max-w-[260px] text-right">
           <span

@@ -10,17 +10,17 @@ interface Result {
 }
 
 const FALLBACK_CHAIN: Array<{ platform: AsfPlatform; processingLevel?: string }> = [
-  { platform: 'NISAR' },
+  { platform: 'NISAR', processingLevel: 'GCOV' },
   { platform: 'Sentinel-1', processingLevel: 'GRD_HD' },
   { platform: 'ALOS-2' },
   { platform: 'ALOS', processingLevel: 'L1.5' },
 ]
 
 const DAYS_WINDOW = 180
-const MAX_RESULTS = 12
+const MAX_RESULTS = 100
 
 function windowDates() {
-  const end = new Date()
+  const end = new Date(Math.ceil(Date.now() / 3600_000) * 3600_000)
   const start = new Date(end.getTime() - DAYS_WINDOW * 86400_000)
   return {
     start: start.toISOString(),
