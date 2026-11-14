@@ -15,31 +15,110 @@ concurrency:
 jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, linux, iara-deploy]
-    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: production
-      url: http://52.38.210.2/
     steps:
-      - uses: actions/checkout@v6
+      - uses: aws-actions/configure-aws-credentials@v5
         with:
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - name: Deploy and verify through Caddy
-        shell: bash
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Deploy and verify through SSM
         env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
         run: |
-          umask 077
-          credentials=$(mktemp -d)
-          trap 'rm -rf -- "$credentials"' EXIT
-          printf '%s\n' "${DEPLOY_SSH_KEY:?Set the production DEPLOY_SSH_KEY secret}" > "$credentials/key"
-          printf '%s\n' "${DEPLOY_KNOWN_HOSTS:?Set the production DEPLOY_KNOWN_HOSTS secret}" > "$credentials/known_hosts"
-          unset DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS
-          bash scripts/deploy.sh dist "$credentials/key" "$credentials/known_hosts"
+          set -euo pipefail
+          : "${INSTANCE_ID:?Set the production EC2_INSTANCE_ID variable}"
+          # SSM starts as root. Publish under the site owner account.
+          parameters=$(jq -n --rawfile script /dev/stdin --arg sha "$GITHUB_SHA" --arg source "git@github.com:$GITHUB_REPOSITORY.git" '
+            {commands: [
+              ("runuser -u ubuntu -- bash -s -- " + ($sha | @sh) + " " + ($source | @sh) + " <<\u0027IARA_DEPLOY_SCRIPT\u0027\n" + $script + "IARA_DEPLOY_SCRIPT")
+            ], executionTimeout: ["900"]}' <<'DEPLOY_SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          if [[ $# != 2 || ! $1 =~ ^[0-9a-f]{40}$ ]]; then
+              echo "Usage: bash scripts/deploy.sh COMMIT_SHA SOURCE_REPOSITORY" >&2
+              exit 2
+          fi
+
+          root=/var/www/curupira
+          base_url=http://127.0.0.1
+          exec 9>"$root/.deploy.lock"
+          flock -w 60 9
+
+          stage=$(mktemp -d "$root/.deploy.XXXXXXXX")
+          published=false
+          cleanup() {
+              result=$?
+              if (( result != 0 )) && "$published"; then
+                  mv -fT "$stage/previous.html" "$root/index.html"
+                  echo "Deploy check failed. Restored the previous index.html." >&2
+              fi
+              rm -rf -- "$stage" "${build:-}"
+              exit "$result"
+          }
+          trap cleanup EXIT
+          trap 'exit 1' HUP INT TERM
+
+          export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+          export GIT_SSH_COMMAND='ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -i /home/ubuntu/.ssh/iara_deploy'
+          build=$(mktemp -d)
+          git -C "$build" init -q
+          git -C "$build" fetch --depth=1 "$2" "$1"
+          git -C "$build" checkout -q --detach FETCH_HEAD
+          test "$(git -C "$build" rev-parse HEAD)" = "$1"
+          (cd "$build"; npm ci --include=dev; npm run build)
+          cp -R -- "$build/dist/." "$stage/"
+          test -s "$stage/index.html"
+          asset=$(sed -nE 's/.*<script[^>]*src="(\/assets\/[a-zA-Z0-9_.-]+\.js)".*/\1/p' "$stage/index.html" | head -n 1)
+          test -n "$asset"
+          test -s "$stage$asset"
+          cp "$root/index.html" "$stage/previous.html"
+
+          # Keep earlier hashed assets available to clients with an older HTML page.
+          # Move each file into place so simultaneous requests never see a partial file.
+          while IFS= read -r -d '' file; do
+              relative=${file#"$stage/"}
+              mkdir -p -- "$root/$(dirname -- "$relative")"
+              mv -fT -- "$file" "$root/$relative"
+          done < <(find "$stage" -type f ! -path "$stage/index.html" ! -path "$stage/previous.html" -print0)
+
+          cp "$stage/index.html" "$stage/next.html"
+          published=true
+          mv -fT "$stage/next.html" "$root/index.html"
+
+          curl -fsS --max-time 10 "$base_url/" -o "$stage/served.html"
+          cmp "$stage/index.html" "$stage/served.html"
+          curl -fsS --max-time 15 "$base_url$asset" -o "$stage/served.js"
+          cmp "$root$asset" "$stage/served.js"
+          echo "Verified the deployed HTML and $asset through Caddy on port 80."
+          DEPLOY_SCRIPT
+          )
+          command_id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript --parameters "$parameters" \
+            --timeout-seconds 120 --query Command.CommandId --output text)
+          echo "SSM command: $command_id"
+
+          for attempt in {1..100}; do
+            if result=$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" --output json 2>ssm-error.log); then
+              status=$(jq -r '.Status' <<< "$result")
+              case "$status" in
+                Pending|InProgress|Delayed|Cancelling) ;;
+                *)
+                  jq -r '.StandardOutputContent, .StandardErrorContent' <<< "$result"
+                  echo "SSM status: $status"
+                  test "$status" = Success
+                  exit 0
+                  ;;
+              esac
+            elif ! grep -q InvocationDoesNotExist ssm-error.log; then
+              cat ssm-error.log >&2
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for SSM command $command_id" >&2
+          exit 1
