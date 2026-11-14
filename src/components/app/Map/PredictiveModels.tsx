@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
+import { ForecastLegend } from './ForecastLegend'
 import {
   fetchFlowForecast,
   AMAZON_RIVER_PREVIEWS,
@@ -19,14 +20,11 @@ import {
   isObservedFlood,
   observedFloodStart,
   NASA_FLOOD_ATTRIBUTION,
-  NASA_FLOOD_LEGEND,
   NASA_FLOOD_VIEWER,
-  floodLegend,
   findRegionalFloodSignals,
   FLOOD_VIEWER,
   GEOGLOWS_VIEWER,
   GWIS_ATTRIBUTION,
-  GWIS_LEGEND,
   GWIS_VIEWER,
   type FlowForecast,
   type FloodLayer,
@@ -165,7 +163,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
             ? (pt ? 'Trechos com sinal de cheia nos próximos 15 dias. As cores comparam a vazão prevista com o histórico.' : 'River reaches with a flood signal over the next 15 days. Colors compare forecast discharge with historical flows.')
             : (pt ? 'Estimativa experimental das áreas inundáveis em grandes bacias com sinal de cheia intensa.' : 'Experimental estimate of inundation in large basins with a severe flood signal.')}
           </p>
-          <img src={floodLegend(floodLayer)} alt={pt ? 'Legenda da previsão de cheia' : 'Flood forecast legend'} className="mt-2 max-w-full rounded bg-white" />
+          <ForecastLegend layer={floodLayer} pt={pt} />
           <p className="mt-2 text-xs">{pt ? 'Os pontos coloridos indicam a localização aproximada dos sinais.' : 'Colored dots show approximate signal locations.'}</p>
           {floodLayer === FLOOD_LAYER && <p className="mt-1 text-xs">{pt ? 'Os pontos cinza abrem previsões de vazão.' : 'Gray dots open river-flow forecasts.'}</p>}
           <div className="mt-2 text-xs" aria-live="polite">
@@ -267,7 +265,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
             </select>
           </label>
           <p className="mt-2 text-xs">{pt ? 'Condições meteorológicas favoráveis a incêndios. Áreas sem cor podem estar sem dados.' : 'Weather conditions favorable to wildfires. Uncolored areas may have no data.'}</p>
-          <img src={GWIS_LEGEND} alt={pt ? 'Legenda das classes do índice meteorológico de perigo de fogo' : 'Fire Weather Index danger class legend'} className="mt-2 rounded bg-white" />
+          <ForecastLegend layer="fire" pt={pt} />
           {fireError && <p role="status" className="mt-2">{pt ? 'Parte da camada de previsão não pôde ser carregada.' : 'Some forecast tiles could not be loaded.'}</p>}
           <a href={GWIS_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{GWIS_ATTRIBUTION}</a>
         </>
@@ -298,8 +296,8 @@ function WaterOutlook({ layer, date, onDate, pt, error }: {
             }} className="rounded border border-border bg-background p-1" />
           </label>
           <p>{pt
-            ? 'Imagem óptica composta de três dias. Nuvens podem ocultar áreas inundadas.'
-            : 'Three-day optical composite. Cloud cover can hide flooded areas.'}</p>
+            ? 'Imagem óptica composta de três dias. Áreas com dados insuficientes ficam transparentes.'
+            : 'Three-day optical composite. Areas with insufficient data are transparent.'}</p>
         </>
       ) : (
         <p>{layer === SUBSEASONAL_RIVERS
@@ -307,7 +305,7 @@ function WaterOutlook({ layer, date, onDate, pt, error }: {
           : (pt ? 'Perspectiva mensal de vazão nas bacias em relação ao normal para a época.' : 'Monthly outlook for basin flow relative to what is normal for the season.')}
         </p>
       )}
-      <img src={observed ? NASA_FLOOD_LEGEND : floodLegend(layer)} alt={pt ? 'Legenda da camada' : 'Layer legend'} className="max-w-full rounded bg-white" />
+      <ForecastLegend layer={layer} pt={pt} />
       {error && <p role="status">{pt ? 'Parte da camada não pôde ser carregada.' : 'Some map tiles could not be loaded.'}</p>}
       <a href={observed ? NASA_FLOOD_VIEWER : FLOOD_VIEWER} target="_blank" rel="noreferrer" className="block underline">
         {observed ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}

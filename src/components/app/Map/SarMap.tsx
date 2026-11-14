@@ -51,7 +51,8 @@ maplibregl.addProtocol('amazon-forecast', async ({ url }, { signal }) => {
   const [kind, value, date, zoom, column, row] = url.slice('amazon-forecast://'.length).split('/')
   const tileUrl = kind === 'fire' ? gwisMapUrl(date, '{bbox}') : waterTileTemplate(value as WaterLayer, date)
   const canvas = document.createElement('canvas')
-  await drawAmazonForecastTile(canvas, tileUrl, { z: Number(zoom), x: Number(column), y: Number(row) }, signal)
+  const hideInsufficientData = kind === 'flood' && isObservedFlood(value as WaterLayer)
+  await drawAmazonForecastTile(canvas, tileUrl, { z: Number(zoom), x: Number(column), y: Number(row) }, signal, hideInsufficientData)
   const blob = await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((image) => image ? resolve(image) : reject(new Error('Could not encode the fire tile'))))
   return { data: await blob.arrayBuffer() }

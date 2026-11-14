@@ -20,7 +20,7 @@ export type FloodSignal = { point: ForecastPoint; color: string; glofas?: Glofas
 export type FloodChance = number | GlofasSignal | 'loading' | 'unavailable' | null
 
 // Swatches from the GloFAS FloodSummary1_30 WMS legend, ordered by exceedance band.
-const GLOFAS_SWATCHES = [
+export const GLOFAS_SWATCHES = [
   { threshold: 2, colors: [[255, 255, 193], [255, 255, 139], [255, 254, 0]] },
   { threshold: 5, colors: [[255, 115, 115], [255, 67, 67], [230, 0, 0]] },
   { threshold: 20, colors: [[225, 117, 255], [212, 55, 255], [168, 0, 214]] },
@@ -75,7 +75,6 @@ export const WATER_LAYERS: readonly WaterLayer[] = [
 ]
 export const NASA_FLOOD_ATTRIBUTION = 'NASA EOSDIS · GIBS'
 export const NASA_FLOOD_VIEWER = 'https://worldview.earthdata.nasa.gov/?tr=flood-product'
-export const NASA_FLOOD_LEGEND = 'https://gibs.earthdata.nasa.gov/legends/MODIS_Flood_H.svg'
 export const isFloodLayer = (layer: WaterLayer): layer is FloodLayer => layer === FLOOD_LAYER || layer === FLOOD_EXTENT_LAYER
 export const isObservedFlood = (layer: WaterLayer): layer is ObservedFloodLayer => layer === MODIS_FLOOD || layer === VIIRS_FLOOD
 export const isWaterOutlook = (layer: WaterLayer | null): layer is OutlookLayer => layer === SUBSEASONAL_RIVERS || layer === SEASONAL_BASINS
@@ -83,7 +82,6 @@ export const AMAZON_WATER_BOUNDS: [number, number, number, number] = [-74, -13.8
 export const observedFloodStart = (layer: WaterLayer) => layer === VIIRS_FLOOD ? '2025-06-01' : '2021-01-01'
 export const FLOOD_ATTRIBUTION = '© European Union · Copernicus EMS / GloFAS'
 export const FLOOD_VIEWER = 'https://global-flood.emergency.copernicus.eu/'
-export const floodLegend = (layer: FloodLayer | OutlookLayer) => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetLegendGraphic&sld_version=1.1.0&layer=${layer}&format=image/png&STYLE=default`
 export const floodTiles = (layer: FloodLayer | OutlookLayer, bbox = '{bbox}') => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetMap&layers=${layer}&styles=&crs=EPSG:3857&bbox=${bbox}&width=256&height=256&format=image/png&transparent=true&exceptions=XML`
 
 export function waterTileTemplate(layer: WaterLayer, date: string) {
@@ -143,7 +141,6 @@ export const GWIS_VIEWER = 'https://gwis.jrc.ec.europa.eu/apps/gwis_current_situ
 const GWIS_WMS = 'https://maps.effis.emergency.copernicus.eu/gwis'
 const FIRE_LAYER = 'nasa_geos5.fwi'
 export const GWIS_ATTRIBUTION = '© European Union · Copernicus EMS / GWIS · NASA GEOS-5'
-export const GWIS_LEGEND = `${GWIS_WMS}?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=${FIRE_LAYER}&format=image/png&STYLE=default`
 export const GEOGLOWS_VIEWER = 'https://geoglows.ecmwf.int/'
 const GEOGLOWS_API = `${GEOGLOWS_VIEWER}api/v2`
 const DAY_MS = 86_400_000

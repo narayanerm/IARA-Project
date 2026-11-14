@@ -21,6 +21,7 @@ export async function drawAmazonForecastTile(
   urlTemplate: string,
   { x, y, z }: { x: number; y: number; z: number },
   signal: AbortSignal,
+  hideInsufficientData = false,
 ) {
   canvas.width = canvas.height = SIZE
   const scale = 2 ** z
@@ -55,6 +56,15 @@ export async function drawAmazonForecastTile(
     signal.throwIfAborted()
     context.clip(path, 'evenodd')
     context.drawImage(bitmap, 0, 0, SIZE, SIZE)
+    if (hideInsufficientData) {
+      // NASA GIBS MODIS_Flood palette: source class 255 is RGB 175/175/175.
+      const image = context.getImageData(0, 0, SIZE, SIZE)
+      const { data } = image
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] === 175 && data[i + 1] === 175 && data[i + 2] === 175) data[i + 3] = 0
+      }
+      context.putImageData(image, 0, 0)
+    }
   } finally {
     bitmap.close()
   }

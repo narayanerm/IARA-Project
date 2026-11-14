@@ -48,8 +48,8 @@ function RiverSelection({ onSelect }: { onSelect: (point: ForecastPoint) => void
   return null
 }
 
-function AmazonForecastLayer({ url, attribution, maxZoom, opacity, onError }: {
-  url: string; attribution: string; maxZoom: number; opacity: number; onError: () => void
+function AmazonForecastLayer({ url, attribution, maxZoom, opacity, onError, hideInsufficientData = false }: {
+  url: string; attribution: string; maxZoom: number; opacity: number; onError: () => void; hideInsufficientData?: boolean
 }) {
   const map = useMap()
   const onErrorRef = useRef(onError)
@@ -62,7 +62,7 @@ function AmazonForecastLayer({ url, attribution, maxZoom, opacity, onError }: {
         const tile = document.createElement('canvas')
         const controller = new AbortController()
         requests.set(tile, controller)
-        drawAmazonForecastTile(tile, url, coords, controller.signal)
+        drawAmazonForecastTile(tile, url, coords, controller.signal, hideInsufficientData)
           .then(() => { if (!controller.signal.aborted) done(undefined, tile) })
           .catch((error: Error) => { if (!controller.signal.aborted) done(error, tile) })
         return tile
@@ -72,7 +72,7 @@ function AmazonForecastLayer({ url, attribution, maxZoom, opacity, onError }: {
     layer.on('tileunload', ({ tile }) => requests.get(tile)?.abort())
     layer.addTo(map)
     return () => { layer.remove() }
-  }, [map, url, attribution, maxZoom, opacity])
+  }, [map, url, attribution, maxZoom, opacity, hideInsufficientData])
   return null
 }
 
@@ -154,6 +154,7 @@ export function MapFallback({ region, fireDate, floodLayer, observedDate, floodF
             attribution={isObservedFlood(floodLayer) ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}
             maxZoom={isObservedFlood(floodLayer) ? 9 : 11}
             opacity={1}
+            hideInsufficientData={isObservedFlood(floodLayer)}
             onError={onFloodTileError}
           />
         )}
