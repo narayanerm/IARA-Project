@@ -16,7 +16,7 @@ const WELCOME: Message = {
   id: 'welcome',
   role: 'assistant',
   text:
-    'Oi. Sou o assistente do **AmazonSAR Explorer**. Me diz um fenômeno ou lugar e eu dou zoom no mapa + puxo a série temporal.\n\nTente uma das sugestões abaixo.',
+    'Oi. Sou o assistente do **IARA**. Me diz um fenômeno ou lugar e eu dou zoom no mapa + puxo a série temporal.\n\nTente uma das sugestões abaixo.',
 }
 
 export function Chatbot() {
@@ -28,6 +28,11 @@ export function Chatbot() {
   const setTimeIndex = useApp((s) => s.setTimeIndex)
   const toggleNasaOverlay = useApp((s) => s.toggleNasaOverlay)
   const toggleTrueColorOverlay = useApp((s) => s.toggleTrueColorOverlay)
+  const setFocusedTi = useApp((s) => s.setFocusedTi)
+  const requestFlyTo = useApp((s) => s.requestFlyTo)
+  const setActiveLayer = useApp((s) => s.setActiveLayer)
+  const setNisarVisible = useApp((s) => s.setNisarVisible)
+  const setNisarOpacity = useApp((s) => s.setNisarOpacity)
 
   useEffect(() => {
     const el = scrollRef.current
@@ -61,11 +66,14 @@ export function Chatbot() {
       case 'focus':
         setActiveRegion(intent.region)
         break
+      case 'focus-ti':
+        setFocusedTi(intent.tiName)
+        requestFlyTo(intent.center, intent.zoom)
+        break
       case 'timeline':
         if (intent.action === 'start') setTimeIndex(0)
         if (intent.action === 'end') setTimeIndex(23)
         if (intent.action === 'play') {
-          // slide through frames 0 → 23
           let i = 0
           const int = window.setInterval(() => {
             setTimeIndex(i)
@@ -78,6 +86,30 @@ export function Chatbot() {
         if (intent.action === 'toggle-nasa') toggleNasaOverlay()
         if (intent.action === 'toggle-truecolor') toggleTrueColorOverlay()
         break
+      case 'layer-set':
+        setActiveLayer(intent.layer)
+        break
+      case 'nisar': {
+        const current = useApp.getState()
+        switch (intent.action) {
+          case 'show':
+            setNisarVisible(true)
+            break
+          case 'hide':
+            setNisarVisible(false)
+            break
+          case 'toggle':
+            setNisarVisible(!current.nisarVisible)
+            break
+          case 'opacity-up':
+            setNisarOpacity(Math.min(1, current.nisarOpacity + 0.15))
+            break
+          case 'opacity-down':
+            setNisarOpacity(Math.max(0.1, current.nisarOpacity - 0.15))
+            break
+        }
+        break
+      }
       default:
         break
     }
@@ -91,7 +123,7 @@ export function Chatbot() {
           <Sparkles className="h-3.5 w-3.5 text-primary" />
         </div>
         <div className="flex-1 leading-tight">
-          <div className="text-xs font-semibold">Assistente AmazonSAR</div>
+          <div className="text-xs font-semibold">Assistente IARA</div>
           <div className="text-[13px] font-mono text-muted-foreground uppercase tracking-wider">
             roteador determinístico · stub Claude
           </div>

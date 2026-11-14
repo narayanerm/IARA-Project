@@ -30,7 +30,7 @@ function polygonBbox(poly: Polygon): [number, number, number, number] {
   return [minX, minY, maxX, maxY]
 }
 
-const STORAGE_KEY = 'curupira.briefing-dismissed'
+const STORAGE_KEY = 'iara.briefing-dismissed'
 
 type DismissedMap = Partial<Record<string, boolean>>
 
@@ -49,6 +49,7 @@ function writeDismissed(d: DismissedMap) {
 }
 
 export function PhenomenonBriefing() {
+  const aoiActive = useApp((s) => s.aoiActive)
   const activeRegion = useApp((s) => s.activeRegion)
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const briefing = BRIEFINGS[activeRegion]
@@ -61,11 +62,13 @@ export function PhenomenonBriefing() {
   const [selectedEventId, setSelectedEventId] = useState<string>(peakEvent(activeRegion).id)
 
   useEffect(() => {
-    setOpen(true)
+    // Only auto-open the drawer when the user explicitly activates an AOI,
+    // never on page load (even when tutorial was seen before).
+    if (aoiActive) setOpen(true)
     setSource('sar')
     setOpticalLayerKey(BRIEFINGS[activeRegion].opticalLayers[0]?.key ?? 'modis-terra')
     setSelectedEventId(peakEvent(activeRegion).id)
-  }, [activeRegion])
+  }, [activeRegion, aoiActive])
 
   const events = HISTORICAL_EVENTS[activeRegion]
   const selectedEvent =
@@ -108,6 +111,8 @@ export function PhenomenonBriefing() {
   const afterBadge = showSar
     ? sarGranuleLabel(pair.after, pair.platform, selectedEvent.afterDate)
     : `${activeOptical.label} · ${selectedEvent.afterDate}`
+
+  if (!aoiActive) return null
 
   if (!open) {
     return (

@@ -11,6 +11,7 @@ interface AppState {
   trueColorOverlay: boolean
   focusedTi: string | null
   flyTarget: { center: [number, number]; zoom?: number; ts: number } | null
+  aoiActive: boolean
   // Live NISAR imagery (browse images from the ASF/Vertex API, no download)
   nisarVisible: boolean
   nisarTrack: string | null
@@ -28,6 +29,7 @@ interface AppState {
   toggleTrueColorOverlay: () => void
   setFocusedTi: (name: string | null) => void
   requestFlyTo: (center: [number, number], zoom?: number) => void
+  clearAoi: () => void
   setNisarVisible: (v: boolean) => void
   setNisarTrack: (k: string | null) => void
   setNisarScene: (id: string | null) => void
@@ -51,6 +53,7 @@ export const useApp = create<AppState>((set, get) => ({
   trueColorOverlay: false,
   focusedTi: null,
   flyTarget: null,
+  aoiActive: false,
   nisarVisible: true,
   nisarTrack: null,
   nisarSceneId: null,
@@ -60,14 +63,15 @@ export const useApp = create<AppState>((set, get) => ({
   setActiveRegion: (id) => {
     set({
       activeRegion: id,
+      aoiActive: true,
       focusedTi: null,
       nisarTrack: null,
       nisarSceneId: null,
       nisarPoint: null,
       nisarNotice: null,
     })
-    useAoiPopup.setState({ open: true })
   },
+  clearAoi: () => set({ aoiActive: false, focusedTi: null }),
   setActiveLayer: (l) => {
     const changed = nisarProductFor(l) !== nisarProductFor(get().activeLayer)
     set(changed ? { activeLayer: l, nisarTrack: null, nisarSceneId: null } : { activeLayer: l })

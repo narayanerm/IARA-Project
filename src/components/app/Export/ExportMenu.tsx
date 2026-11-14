@@ -4,7 +4,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
@@ -45,10 +44,6 @@ export function ExportMenu() {
             <div className="text-[12px] text-muted-foreground">{t('export.hotSub')}</div>
           </div>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-[12px] text-muted-foreground font-normal leading-snug">
-          {t('export.disclaimer')}
-        </DropdownMenuLabel>
       </DropdownMenuContent>
     </DropdownMenu>
   )

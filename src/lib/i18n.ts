@@ -4,7 +4,7 @@ export type Lang = 'pt' | 'en'
 
 export const DICT = {
   pt: {
-    'app.name': 'AmazonSAR Explorer',
+    'app.name': 'IARA',
     'app.subtitle': 'NASA Space Apps · Dancing with the SARs 2026',
 
     'nav.enterDashboard': 'Entrar no dashboard',
@@ -206,7 +206,7 @@ export const DICT = {
     'overlay.zoomOut': 'Afastar para ver',
   },
   en: {
-    'app.name': 'AmazonSAR Explorer',
+    'app.name': 'IARA',
     'app.subtitle': 'NASA Space Apps · Dancing with the SARs 2026',
 
     'nav.enterDashboard': 'Enter dashboard',
