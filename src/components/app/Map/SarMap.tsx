@@ -20,6 +20,7 @@ import { hasWebGL2 } from '@/lib/webgl-support'
 import { AoiLayersPopup } from './AoiLayersPopup'
 import { TiTargets } from './TiTargets'
 import { MapFallback } from './MapFallback'
+import { NisarImagery } from './NisarImagery'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
@@ -312,6 +313,8 @@ export function SarMap() {
             />
           </Source>
         )}
+
+        <NisarImagery />
 
         {asf.data.length > 0 && (
           <Source id="asf-footprints" type="geojson" data={footprintsFC}>

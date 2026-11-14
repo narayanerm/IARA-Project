@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { searchGranules, type AsfGranule } from './asf'
 
 const BRAZIL_BBOX: [number, number, number, number] = [-74, -34, -34, 6]
-const DAYS_WINDOW = 10
-const MAX_RESULTS = 400
+// One full NISAR repeat cycle (12 days)
+const DAYS_WINDOW = 12
+const MAX_RESULTS = 2000
 
-const CACHE_KEY = 'sarbrasil.coverage.v2'
+const CACHE_KEY = 'sarbrasil.coverage.nisar.v1'
 const CACHE_TTL_MS = 30 * 60 * 1000
 
 interface CacheEntry {
@@ -53,13 +54,13 @@ export function useBrazilCoverage(): Result {
     if (state.data.length > 0 && !state.loading) return
     const ctrl = new AbortController()
     let cancelled = false
-    const end = new Date()
+    const end = new Date(Math.ceil(Date.now() / 3600_000) * 3600_000)
     const start = new Date(end.getTime() - DAYS_WINDOW * 86400_000)
 
     searchGranules(
       {
-        platform: 'Sentinel-1',
-        processingLevel: 'GRD_HD',
+        platform: 'NISAR',
+        processingLevel: 'GCOV',
         bbox: BRAZIL_BBOX,
         start: start.toISOString(),
         end: end.toISOString(),

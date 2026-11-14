@@ -26,6 +26,7 @@ export interface AsfGranuleRaw {
   sizeMB: number | null
   browse: string[] | null
   thumb: string | null
+  nisar?: { mainBandPolarization?: string[] } | null
 }
 
 export interface AsfGranule {
@@ -66,7 +67,7 @@ const PLATFORM_DEFAULTS: Record<
   AsfPlatform,
   { processingLevel?: string; band: 'L' | 'S' | 'C' }
 > = {
-  NISAR: { band: 'L' },
+  NISAR: { processingLevel: 'GCOV', band: 'L' },
   'Sentinel-1': { processingLevel: 'GRD_HD', band: 'C' },
   'ALOS-2': { band: 'L' },
   ALOS: { processingLevel: 'L1.5', band: 'L' },
@@ -74,6 +75,7 @@ const PLATFORM_DEFAULTS: Record<
 }
 
 const cache = new Map<string, { at: number; data: AsfGranule[] }>()
+const inflight = new Map<string, Promise<AsfGranule[]>>()
 const TTL_MS = 10 * 60 * 1000
 
 function cacheKey(p: AsfSearchParams) {
@@ -117,7 +119,9 @@ function normalize(r: AsfGranuleRaw): AsfGranule | null {
     orbit,
     path: r.path,
     frame: r.frame,
-    polarization: normalizePolarization(r.polarization),
+    polarization: r.polarization
+      ? normalizePolarization(r.polarization)
+      : (r.nisar?.mainBandPolarization ?? []),
     productType: r.productType ?? '—',
     productTypeDisplay: r.productTypeDisplay,
     startTime: r.startTime,
@@ -125,7 +129,8 @@ function normalize(r: AsfGranuleRaw): AsfGranule | null {
     sizeMB: r.sizeMB,
     downloadUrl: r.downloadUrl,
     vertexUrl: `https://search.asf.alaska.edu/#/?zoom=8&granule=${encodeURIComponent(r.granuleName)}`,
-    browseUrl: r.browse?.[0] ?? null,
+    browseUrl:
+      r.browse?.find((u) => u.endsWith('_LATLON_thumbnail.png')) ?? r.browse?.[0] ?? null,
     thumbUrl: r.thumb ?? null,
     footprint,
   }
@@ -147,6 +152,21 @@ export async function searchGranules(
   const key = cacheKey(params)
   const hit = cache.get(key)
   if (hit && Date.now() - hit.at < TTL_MS) return hit.data
+  const pending = inflight.get(key)
+  if (pending) return pending
+  // Not tied to the caller's AbortSignal: other components may be awaiting the same request.
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+  const p = fetchGranules(params)
+  inflight.set(key, p)
+  try {
+    return await p
+  } finally {
+    inflight.delete(key)
+  }
+}
+
+async function fetchGranules(params: AsfSearchParams): Promise<AsfGranule[]> {
+  const key = cacheKey(params)
 
   const defaults = PLATFORM_DEFAULTS[params.platform]
   const url = new URL(BASE_URL)
@@ -171,7 +191,7 @@ export async function searchGranules(
     )
   }
 
-  const res = await fetch(url.toString(), { signal, headers: { Accept: 'application/json' } })
+  const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`ASF search ${res.status}`)
   const body = (await res.json()) as { results?: AsfGranuleRaw[] }
   const raw = body.results ?? []

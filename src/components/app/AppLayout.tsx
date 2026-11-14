@@ -10,6 +10,7 @@ import { Timeline } from './Timeline/Timeline'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
 import { SarPreview } from './Map/SarPreview'
+import { NisarControl } from './Map/NisarControl'
 import { Layers3, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { REGIONS } from '@/lib/regions'
@@ -89,6 +90,9 @@ export function AppLayout() {
           <SarMap />
           <div className="absolute left-4 top-4 md:hidden">
             <LayerToggle />
+          </div>
+          <div className="absolute left-4 top-4 hidden md:block">
+            <NisarControl />
           </div>
           <div className="absolute left-4 bottom-4">
             <Legend />
