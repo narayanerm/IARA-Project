@@ -6,7 +6,7 @@ import Map, {
   type MapRef,
 } from 'react-map-gl/maplibre'
 import * as maplibregl from 'maplibre-gl'
-import { Mountain } from 'lucide-react'
+import { Mountain, Satellite, type LucideIcon } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import { REGIONS } from '@/lib/regions'
@@ -35,6 +35,52 @@ const MAP_ATTRIBUTION = 'Comunidades: IBGE, FUNAI, MMA via INPE TerraBrasilis'
 const PITCH = 40
 const BEARING = -12
 const TERRAIN: maplibregl.TerrainSpecification = { source: 'terrain-dem', exaggeration: 1.4 }
+
+// Cloud-free Sentinel-2 mosaic at 10 m: stays sharp at the zooms where the NASA rasters run out.
+// EOX publishes it under CC BY-NC-SA 4.0 (non-commercial use with credit).
+const SATELLITE_TILES =
+  'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg'
+const SATELLITE_ATTRIBUTION =
+  'Sentinel-2 cloudless 2025 by <a href="https://cloudless.eox.at" target="_blank" rel="noopener">EOX IT Services GmbH</a> (Contains modified Copernicus Sentinel data 2025), CC BY-NC-SA 4.0'
+// Basemap (OpenMapTiles schema) geometry that would cover the imagery; names and borders stay on top.
+const HIDDEN_UNDER_SATELLITE = new Set(['transportation', 'building', 'aeroway', 'park', 'landuse', 'landcover', 'water'])
+
+const isBasemapLayer = (map: maplibregl.Map, layer: maplibregl.LayerSpecification) =>
+  'source' in layer &&
+  typeof layer.source === 'string' &&
+  !layer.source.startsWith('gibs') &&
+  map.getSource(layer.source)?.type === 'vector'
+
+// Restyles the basemap for imagery and returns a function that undoes it. The dark style interleaves
+// labels with roads and buildings, so no single insertion point keeps those under the satellite layer:
+// they are hidden instead. Its labels are dark-on-dark, so they switch to light text with a dark halo.
+function adaptBasemapToImagery(map: maplibregl.Map): () => void {
+  const undo: Array<() => void> = []
+  for (const layer of map.getStyle().layers) {
+    if (!isBasemapLayer(map, layer)) continue
+    if (layer.type === 'symbol') {
+      const color = map.getPaintProperty(layer.id, 'text-color')
+      const halo = map.getPaintProperty(layer.id, 'text-halo-color')
+      const width = map.getPaintProperty(layer.id, 'text-halo-width')
+      map.setPaintProperty(layer.id, 'text-color', 'hsl(0 0% 94%)')
+      map.setPaintProperty(layer.id, 'text-halo-color', 'hsl(222 47% 6% / 0.85)')
+      map.setPaintProperty(layer.id, 'text-halo-width', 1.4)
+      undo.push(() => {
+        map.setPaintProperty(layer.id, 'text-color', color)
+        map.setPaintProperty(layer.id, 'text-halo-color', halo)
+        map.setPaintProperty(layer.id, 'text-halo-width', width)
+      })
+      continue
+    }
+    if (!('source-layer' in layer) || !HIDDEN_UNDER_SATELLITE.has(layer['source-layer'] ?? '')) continue
+    if (map.getLayoutProperty(layer.id, 'visibility') === 'none') continue
+    map.setLayoutProperty(layer.id, 'visibility', 'none')
+    undo.push(() => map.setLayoutProperty(layer.id, 'visibility', 'visible'))
+  }
+  return () => {
+    for (const fn of undo) fn()
+  }
+}
 
 // Coarse NASA rasters (km-scale pixels) fade out past their native zoom instead of smearing over the map.
 function rasterFade(layer: GibsLayer, opacity: number) {
@@ -66,6 +112,9 @@ export function SarMap() {
 
   const [mapLoaded, setMapLoaded] = useState(false)
   const [terrainOn, setTerrainOn] = useState(false)
+  const [satelliteOn, setSatelliteOn] = useState(false)
+  // First label layer of the basemap: imagery goes under it so place and river names stay readable.
+  const [labelLayerId, setLabelLayerId] = useState<string>()
   const [zoom, setZoom] = useState(region.zoom)
 
   useEffect(() => {
@@ -91,6 +140,12 @@ export function SarMap() {
     if (terrainOn && !m.getSource(TERRAIN.source)) return
     m.setTerrain(terrainOn ? TERRAIN : null)
   }, [terrainOn, mapLoaded])
+
+  useEffect(() => {
+    const m = mapRef.current?.getMap()
+    if (!m || !mapLoaded || !satelliteOn) return
+    return adaptBasemapToImagery(m)
+  }, [satelliteOn, mapLoaded])
 
   const changeFC: FeatureCollection = useMemo(
     () => ({
@@ -192,7 +247,10 @@ export function SarMap() {
         interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
         onClick={onClick}
         onZoomEnd={(e) => setZoom(e.viewState.zoom)}
-        onLoad={() => setMapLoaded(true)}
+        onLoad={(e) => {
+          setLabelLayerId(e.target.getStyle().layers.find((l) => l.type === 'symbol')?.id ?? 'amazon-biome-fill')
+          setMapLoaded(true)
+        }}
         attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
         <Source
@@ -204,6 +262,24 @@ export function SarMap() {
           maxzoom={15}
           attribution="AWS Terrain Tiles"
         />
+
+        {satelliteOn && labelLayerId && (
+          <Source
+            id="satellite"
+            type="raster"
+            tiles={[SATELLITE_TILES]}
+            tileSize={256}
+            maxzoom={14}
+            attribution={SATELLITE_ATTRIBUTION}
+          >
+            <Layer
+              id="satellite-layer"
+              type="raster"
+              beforeId={labelLayerId}
+              paint={{ 'raster-brightness-max': 0.88, 'raster-saturation': -0.05 }}
+            />
+          </Source>
+        )}
 
         <Source id="amazon-biome" type="geojson" data={AMAZON_BIOME}>
           <Layer
@@ -425,6 +501,8 @@ export function SarMap() {
         onZoomToData={(z) => mapRef.current?.getMap().easeTo({ zoom: z, duration: 900, essential: true })}
         terrainOn={terrainOn}
         onToggleTerrain={() => setTerrainOn((v) => !v)}
+        satelliteOn={satelliteOn}
+        onToggleSatellite={() => setSatelliteOn((v) => !v)}
       />
     </div>
   )
@@ -438,6 +516,8 @@ function OverlayLegend({
   onZoomToData,
   terrainOn,
   onToggleTerrain,
+  satelliteOn,
+  onToggleSatellite,
 }: {
   asfCount: number
   coverageCount: number
@@ -446,6 +526,8 @@ function OverlayLegend({
   onZoomToData?: (zoom: number) => void
   terrainOn?: boolean
   onToggleTerrain?: () => void
+  satelliteOn?: boolean
+  onToggleSatellite?: () => void
 }) {
   const t = useT()
   const activeRegion = useApp((s) => s.activeRegion)
@@ -511,28 +593,21 @@ function OverlayLegend({
           {activeRegion === 'YANO' && nasaOverlay && !gibs && <div>{t('overlay.none')}</div>}
         </div>
 
-        {onToggleTerrain && (
-          <button
-            type="button"
-            onClick={onToggleTerrain}
-            aria-pressed={terrainOn}
-            className={cn(
-              'mt-2.5 flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              terrainOn
-                ? 'border-sar-cyan/60 bg-sar-cyan/15 text-foreground'
-                : 'border-border/70 text-foreground/70 hover:bg-muted/60 hover:text-foreground'
+        {(onToggleSatellite || onToggleTerrain) && (
+          <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+            {onToggleSatellite && (
+              <MapToggle
+                icon={Satellite}
+                label={t('map.satellite')}
+                hint={t('map.satelliteHint')}
+                on={!!satelliteOn}
+                onToggle={onToggleSatellite}
+              />
             )}
-          >
-            <Mountain className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {t('map.terrain')}
-            <span
-              className={cn(
-                'ml-auto h-1.5 w-1.5 rounded-full',
-                terrainOn ? 'bg-sar-cyan' : 'bg-foreground/25'
-              )}
-            />
-          </button>
+            {onToggleTerrain && (
+              <MapToggle icon={Mountain} label={t('map.terrain')} on={!!terrainOn} onToggle={onToggleTerrain} />
+            )}
+          </div>
         )}
       </div>
 
@@ -540,5 +615,39 @@ function OverlayLegend({
         <SarPreview />
       </div>
     </div>
+  )
+}
+
+function MapToggle({
+  icon: Icon,
+  label,
+  hint,
+  on,
+  onToggle,
+}: {
+  icon: LucideIcon
+  label: string
+  hint?: string
+  on: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={on}
+      title={hint}
+      className={cn(
+        'flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[12px] font-medium transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        on
+          ? 'border-sar-cyan/60 bg-sar-cyan/15 text-foreground'
+          : 'border-border/70 text-foreground/70 hover:bg-muted/60 hover:text-foreground'
+      )}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span className="truncate">{label}</span>
+      <span className={cn('ml-auto h-1.5 w-1.5 shrink-0 rounded-full', on ? 'bg-sar-cyan' : 'bg-foreground/25')} />
+    </button>
   )
 }

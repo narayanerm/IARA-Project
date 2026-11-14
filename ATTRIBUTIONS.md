@@ -56,6 +56,7 @@ OpenFreeMap vector tiles · https://openfreemap.org/
 OpenMapTiles schema · https://openmaptiles.org/ · © OpenMapTiles
 Map data © OpenStreetMap contributors · https://www.openstreetmap.org/copyright · ODbL
 AWS Open Terrain Tiles · https://registry.opendata.aws/terrain-tiles/
+Sentinel-2 cloudless 2025 by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025) · https://cloudless.eox.at · CC BY-NC-SA 4.0. Optional satellite layer (10 m, cloud-free); the license allows non-commercial use only, so a commercial deployment needs an EOX license or another imagery source.
 
 ## Software / AI Disclosure (NASA Space Apps 2026)
 
