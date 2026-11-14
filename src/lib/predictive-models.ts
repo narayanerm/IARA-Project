@@ -1,12 +1,16 @@
 import { inAmazon } from '@/lib/amazon'
 
 export type ForecastPoint = [longitude: number, latitude: number]
-const RIVER_PREVIEW_POINTS: ForecastPoint[] = [
-  [-59.98, -3.15], // Rio Negro near Manaus
-  [-64.72, -3.35], // Solimões near Tefé
-  [-54.72, -2.38], // Amazon near Santarém
+const RIVER_PREVIEW_POINTS: { name: string; point: ForecastPoint }[] = [
+  { name: 'Rio Negro · Manaus', point: [-59.98, -3.15] },
+  { name: 'Solimões · Tefé', point: [-64.72, -3.35] },
+  { name: 'Amazonas · Santarém', point: [-54.72, -2.38] },
+  { name: 'Amazonas · Itacoatiara', point: [-58.46, -3.15] },
+  { name: 'Amazonas · Parintins', point: [-56.74, -2.62] },
+  { name: 'Amazonas · Óbidos', point: [-55.52, -1.94] },
 ]
-export const AMAZON_RIVER_PREVIEWS = RIVER_PREVIEW_POINTS.filter(([lon, lat]) => inAmazon(lon, lat))
+export const AMAZON_RIVER_SITES = RIVER_PREVIEW_POINTS.filter(({ point }) => inAmazon(...point))
+export const AMAZON_RIVER_PREVIEWS = AMAZON_RIVER_SITES.map(({ point }) => point)
 export type FloodSignal = { point: ForecastPoint; color: string }
 export type FloodChance = number | 'loading' | 'unavailable' | null
 
@@ -153,6 +157,32 @@ export function gwisDates() {
 export type FlowForecast = {
   riverId: number
   days: { date: string; median: number; lower: number; upper: number }[]
+}
+
+export type SavedFloodForecast = {
+  name: string
+  point: ForecastPoint
+  flow: FlowForecast
+  chance: number
+}
+
+export type FloodForecastSnapshot = {
+  generatedAt: string
+  forecasts: SavedFloodForecast[]
+}
+
+export async function loadFloodForecastSnapshot(signal: AbortSignal): Promise<FloodForecastSnapshot | null> {
+  try {
+    const response = await fetch(`${import.meta.env.BASE_URL}data/flood-forecasts.json`, { signal, cache: 'no-cache' })
+    if (!response.ok) return null
+    const snapshot: FloodForecastSnapshot = await response.json()
+    const now = new Date().toISOString()
+    if (typeof snapshot.generatedAt !== 'string' || snapshot.generatedAt > now
+      || snapshot.generatedAt.slice(0, 10) !== now.slice(0, 10) || !Array.isArray(snapshot.forecasts)) return null
+    return snapshot
+  } catch {
+    return null
+  }
 }
 
 export async function findForecastReach([longitude, latitude]: ForecastPoint, signal: AbortSignal): Promise<number | null> {

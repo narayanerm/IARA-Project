@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "data:flood-forecasts": "node --experimental-strip-types scripts/build-flood-forecasts.mjs",
     "data:communities": "node scripts/build-community-data.mjs ../dados_comunidades_amazonia/dados_comunidades_amazonia"
   },
   "dependencies": {

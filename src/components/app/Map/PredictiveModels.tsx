@@ -6,6 +6,7 @@ import {
   AMAZON_RIVER_PREVIEWS,
   findForecastReach,
   fetchFloodChance,
+  loadFloodForecastSnapshot,
   FLOOD_ATTRIBUTION,
   FLOOD_EXTENT_LAYER,
   FLOOD_LAYER,
@@ -52,13 +53,15 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   useEffect(() => {
     if (mode !== 'river') return
     const controller = new AbortController()
+    const referencePoints = floodLayer === FLOOD_LAYER
+      ? AMAZON_RIVER_PREVIEWS.map((point) => ({ point, color: '#94a3b8' }))
+      : []
+    onFloodSignals(referencePoints)
     findRegionalFloodSignals(floodLayer, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
       .then((signals) => {
         if (controller.signal.aborted) return
         setRegionalSignal({ layer: floodLayer, point: signals[0]?.point ?? null })
-        onFloodSignals(signals.length || floodLayer !== FLOOD_LAYER
-          ? signals
-          : AMAZON_RIVER_PREVIEWS.map((point) => ({ point, color: '#94a3b8' })))
+        onFloodSignals([...referencePoints, ...signals])
       })
       .catch(() => { if (!controller.signal.aborted) setRegionalSignal({ layer: floodLayer, point: 'error' }) })
     return () => controller.abort()
@@ -74,14 +77,21 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
       onFloodChance(next)
     }
     updateChance('loading')
-    const reach = findForecastReach(selected, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
-    reach.then((id) => id === null ? null : fetchFlowForecast(id, AbortSignal.any([controller.signal, AbortSignal.timeout(20000)])))
+    const selection = loadFloodForecastSnapshot(AbortSignal.any([controller.signal, AbortSignal.timeout(3000)]))
+      .then(async (snapshot) => {
+        controller.signal.throwIfAborted()
+        const saved = snapshot?.forecasts.find(({ point }) => point[0] === selected[0] && point[1] === selected[1])
+        if (saved) return { id: saved.flow.riverId, saved }
+        const id = await findForecastReach(selected, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
+        return { id, saved: snapshot?.forecasts.find(({ flow }) => flow.riverId === id) }
+      })
+    selection.then(({ id, saved }) => saved?.flow ?? (id === null ? null : fetchFlowForecast(id, AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]))))
       .then((data) => { if (!controller.signal.aborted) setResult({ point: selected, data }) })
       .catch(() => {
         if (controller.signal.aborted) return
         setResult({ point: selected, error: true })
       })
-    reach.then((id) => id === null ? 'unavailable' as const : fetchFloodChance(id, AbortSignal.any([controller.signal, AbortSignal.timeout(45000)])))
+    selection.then(({ id, saved }) => saved?.chance ?? (id === null ? 'unavailable' as const : fetchFloodChance(id, AbortSignal.any([controller.signal, AbortSignal.timeout(45000)]))))
       .then(updateChance)
       .catch(() => updateChance('unavailable'))
     return () => controller.abort()
@@ -124,6 +134,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
           </p>
           <img src={floodLegend(floodLayer)} alt={pt ? 'Legenda da previsão de cheia' : 'Flood forecast legend'} className="mt-2 max-w-full rounded bg-white" />
           <p className="mt-2 text-xs">{pt ? 'Os pontos coloridos indicam a localização aproximada dos sinais.' : 'Colored dots show approximate signal locations.'}</p>
+          {floodLayer === FLOOD_LAYER && <p className="mt-1 text-xs">{pt ? 'Os pontos cinza abrem previsões de vazão.' : 'Gray dots open river-flow forecasts.'}</p>}
           <div className="mt-2 text-xs" aria-live="polite">
             {regionalSignal?.layer !== floodLayer ? (
               pt ? 'Buscando sinais na região amazônica…' : 'Checking the Amazon region for signals…'
@@ -140,7 +151,6 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
                 {pt ? 'Sem sinais nesta camada dentro do contorno da Amazônia brasileira.' : 'No signals for this layer inside the Brazilian Amazon boundary.'}
                 {floodLayer === FLOOD_LAYER && AMAZON_RIVER_PREVIEWS.length > 0 && (
                   <>
-                    <p className="mt-1">{pt ? 'Os pontos cinza abrem previsões de vazão.' : 'Gray dots open river-flow forecasts.'}</p>
                     <button type="button" className="mt-1 rounded border border-border px-2 py-1 hover:bg-secondary" onClick={() => onFloodFocus(AMAZON_RIVER_PREVIEWS[0])}>
                       {pt ? 'Ver previsão no Rio Negro' : 'View Rio Negro forecast'}
                     </button>
