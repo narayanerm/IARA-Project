@@ -42,6 +42,7 @@ import { MapFallback } from './MapFallback'
 import { FLOOD_ATTRIBUTION, floodTiles, GWIS_ATTRIBUTION, type ForecastMapProps } from '@/lib/predictive-models'
 import { drawAmazonFireTile } from '@/lib/amazon-fire-tiles'
 import { FloodProbability } from './FloodProbability'
+import { floodChanceColor } from '@/lib/predictive-models'
 import { NisarImagery } from './NisarImagery'
 import { inAmazon } from '@/lib/amazon'
 
@@ -777,8 +778,9 @@ export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPo
           </Marker>
         ))}
         {floodLayer && selectedForecastPoint && (
-          <Marker longitude={selectedForecastPoint[0]} latitude={selectedForecastPoint[1]} className="pointer-events-none">
-            <span className="relative block size-7 rounded-full border-2 border-cyan-300 shadow-[0_0_0_2px_#172033]">
+          <Marker longitude={selectedForecastPoint[0]} latitude={selectedForecastPoint[1]} className="pointer-events-none z-10">
+            <span className="relative grid size-7 place-items-center rounded-full border-2 border-cyan-300 shadow-[0_0_0_2px_#172033]" style={{ borderColor: floodChanceColor(riverChance) }}>
+              {typeof riverChance === 'number' && <span aria-hidden="true" className="size-3.5 rounded-full border-2 border-white" style={{ backgroundColor: floodChanceColor(riverChance) }} />}
               <FloodProbability chance={riverChance} />
             </span>
           </Marker>

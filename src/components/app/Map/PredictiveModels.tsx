@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import {
   fetchFlowForecast,
+  findForecastReach,
   fetchFloodChance,
   FLOOD_ATTRIBUTION,
   FLOOD_EXTENT_LAYER,
@@ -43,6 +44,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   const pt = lang === 'pt'
   const [result, setResult] = useState<FlowResult | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [chanceResult, setChanceResult] = useState<{ point: ForecastPoint; chance: FloodChance } | null>(null)
   const [regionalSignal, setRegionalSignal] = useState<{ layer: FloodLayer; point: ForecastPoint | null | 'error' } | null>(null)
   const selected = mode === 'river' ? point : null
 
@@ -62,25 +64,28 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   useEffect(() => {
     if (!selected) return
     const controller = new AbortController()
-    onFloodChance({ point: selected, chance: 'loading' })
-    fetchFlowForecast(selected, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
-      .then(async (data) => {
-        if (controller.signal.aborted) return
-        setResult({ point: selected, data })
-        const chance = data
-          ? await fetchFloodChance(data.riverId, AbortSignal.any([controller.signal, AbortSignal.timeout(20000)])).catch(() => 'unavailable' as const)
-          : 'unavailable'
-        if (!controller.signal.aborted) onFloodChance({ point: selected, chance })
-      })
+    const updateChance = (chance: FloodChance) => {
+      if (controller.signal.aborted) return
+      const next = { point: selected, chance }
+      setChanceResult(next)
+      onFloodChance(next)
+    }
+    updateChance('loading')
+    const reach = findForecastReach(selected, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
+    reach.then((id) => id === null ? null : fetchFlowForecast(id, AbortSignal.any([controller.signal, AbortSignal.timeout(20000)])))
+      .then((data) => { if (!controller.signal.aborted) setResult({ point: selected, data }) })
       .catch(() => {
         if (controller.signal.aborted) return
         setResult({ point: selected, error: true })
-        onFloodChance({ point: selected, chance: 'unavailable' })
       })
+    reach.then((id) => id === null ? 'unavailable' as const : fetchFloodChance(id, AbortSignal.any([controller.signal, AbortSignal.timeout(45000)])))
+      .then(updateChance)
+      .catch(() => updateChance('unavailable'))
     return () => controller.abort()
   }, [selected, attempt, onFloodChance])
 
   const current = result?.point === selected ? result : null
+  const chance = chanceResult?.point === selected ? chanceResult?.chance : 'loading'
   const dateFormat = new Intl.DateTimeFormat(pt ? 'pt-BR' : 'en', { month: 'short', day: 'numeric', timeZone: 'UTC' })
   const formatDate = (date: string) => dateFormat.format(new Date(date))
   const flowFormat = new Intl.NumberFormat(pt ? 'pt-BR' : 'en', { maximumFractionDigits: 1 })
@@ -138,6 +143,16 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
             ? 'A porcentagem indica quantos cenários GEOGLOWS superam o limiar de vazão diária de 2 anos ao menos uma vez em 7 dias (UTC).'
             : 'The percentage is the share of GEOGLOWS scenarios exceeding the 2-year daily flow threshold at least once over 7 days (UTC).'}
           </p>}
+          {selected && (
+            <div className="mt-2 text-xs" aria-live="polite">
+              {typeof chance === 'number'
+                ? <strong>{pt ? 'Chance em 7 dias' : '7-day chance'} · {chance}%</strong>
+                : chance === 'unavailable'
+                  ? <>{pt ? 'Chance indisponível.' : 'Chance unavailable.'}{' '}
+                    <button type="button" className="underline" onClick={() => setAttempt((n) => n + 1)}>{pt ? 'Tentar novamente' : 'Retry'}</button></>
+                  : (pt ? 'Calculando a chance de vazão alta…' : 'Calculating high-flow chance…')}
+            </div>
+          )}
           <div aria-live="polite" className="mt-2">
             {selected && !current && <p>{pt ? 'Carregando previsão…' : 'Loading forecast…'}</p>}
             {current && 'error' in current && (

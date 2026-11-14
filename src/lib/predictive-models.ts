@@ -2,6 +2,10 @@ export type ForecastPoint = [longitude: number, latitude: number]
 export type FloodSignal = { point: ForecastPoint; color: string }
 export type FloodChance = number | 'loading' | 'unavailable' | null
 
+export function floodChanceColor(chance: FloodChance) {
+  return typeof chance === 'number' ? `hsl(${120 * (1 - chance / 100)} 76% 60%)` : undefined
+}
+
 export type ForecastMapProps = {
   fireDate: string | null
   floodLayer: FloodLayer | null
@@ -140,7 +144,7 @@ export type FlowForecast = {
   days: { date: string; median: number; lower: number; upper: number }[]
 }
 
-export async function fetchFlowForecast([longitude, latitude]: ForecastPoint, signal: AbortSignal): Promise<FlowForecast | null> {
+export async function findForecastReach([longitude, latitude]: ForecastPoint, signal: AbortSignal): Promise<number | null> {
   const lon = ((longitude + 180) % 360 + 360) % 360 - 180
   const reach = await fetch(`${GEOGLOWS_API}/getriverid?lat=${latitude.toFixed(5)}&lon=${lon.toFixed(5)}`, { signal })
   if (reach.status === 404) return null
@@ -148,7 +152,10 @@ export async function fetchFlowForecast([longitude, latitude]: ForecastPoint, si
   const { river_id: riverId } = await reach.json()
   if (riverId == null || riverId === 0 || riverId === -1) return null
   if (!Number.isSafeInteger(riverId) || riverId < 1) throw new Error('Invalid GEOGLOWS reach ID')
+  return riverId
+}
 
+export async function fetchFlowForecast(riverId: number, signal: AbortSignal): Promise<FlowForecast> {
   const response = await fetch(`${GEOGLOWS_API}/ForecastStats/${riverId}?format=csv`, { signal })
   if (!response.ok) throw new Error(`GEOGLOWS forecast: ${response.status}`)
   const [header, ...rows] = (await response.text()).trim().split(/\r?\n/)
