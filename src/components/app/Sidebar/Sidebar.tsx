@@ -7,13 +7,13 @@ import { useT } from '@/lib/i18n'
 
 export function Sidebar() {
   const t = useT()
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1440)
 
   return (
     <aside
       className={cn(
         'relative z-10 h-full border-r border-border/60 bg-card/40 backdrop-blur-xl transition-[width] duration-300',
-        open ? 'w-[336px]' : 'w-12'
+        open ? 'w-[300px] 2xl:w-[336px]' : 'w-12'
       )}
     >
       <div className="flex h-12 items-center justify-between border-b border-border/60 px-3">

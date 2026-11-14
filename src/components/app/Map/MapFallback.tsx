@@ -19,6 +19,7 @@ import type { Region } from '@/lib/types'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
 import { useAsfGranules } from '@/lib/useAsfGranules'
+import { FUNAI_TI_URL, tiProfileUrl } from '@/lib/links'
 
 export function MapFallback({ region }: { region: Region }) {
   const setActiveRegion = useApp((s) => s.setActiveRegion)
@@ -191,9 +192,6 @@ export function MapFallback({ region }: { region: Region }) {
 
 function buildTiPopupHtml(p: TiProps): string {
   const ethn = p.ethnicities?.slice(0, 5).join(', ') ?? ''
-  const funai = `https://sistemas.funai.gov.br/sici/busca.php?nome=${encodeURIComponent(
-    p.name.replace(/^TI\s+/, '')
-  )}`
   return `
     <div style="min-width:220px; font-family:Inter,sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.name}</div>
@@ -203,7 +201,8 @@ function buildTiPopupHtml(p: TiProps): string {
         ${p.population ? `<div><strong>População:</strong><br/>${p.population.toLocaleString('pt-BR')}</div>` : ''}
       </div>
       ${ethn ? `<div style="font-size:11px; margin-top:6px;"><strong>Etnias:</strong> ${ethn}</div>` : ''}
-      <a href="${funai}" target="_blank" rel="noopener" style="display:inline-block; margin-top:8px; font-size:12px; color:hsl(28, 95%, 50%);">Consultar na FUNAI →</a>
+      <a href="${tiProfileUrl(p.isaId)}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:8px; font-size:12px; color:hsl(28, 95%, 50%);">Ficha da TI →</a>
+      <a href="${FUNAI_TI_URL}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:4px; font-size:12px; color:hsl(28, 95%, 50%);">Dados oficiais FUNAI →</a>
     </div>
   `
 }
