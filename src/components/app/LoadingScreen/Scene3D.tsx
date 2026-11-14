@@ -1,15 +1,15 @@
 /*
- * Capa 3D na identidade IARA.
- * Um trecho de rio à noite. A passagem do radar varre a cena da esquerda para a direita:
- * antes dela tudo é mosaico de pixels da marca (grade com folga de 12% e canto de 16%),
- * na frente dela uma faixa azul, e depois dela a floresta e os bichos aparecem com volume.
+ * 3D loading screen in the IARA identity.
+ * A stretch of river at night. The radar pass sweeps the scene from left to right:
+ * ahead of it everything is the brand pixel mosaic (grid with 12% gap and 16% corner radius),
+ * at its front a blue band, and behind it the forest and the animals appear in full 3D.
  */
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
-/* paleta do guia, tema escuro */
+/* brand guide palette, dark theme */
 export const IARA = {
   bg: '#0a110e',
   superficie: '#13201a',
@@ -24,7 +24,7 @@ export const IARA = {
   laranjaFundo: '#b9481a',
 }
 
-/* ---------- varredura do radar, compartilhada por todos os materiais ---------- */
+/* ---------- radar sweep, shared by all materials ---------- */
 type Varredura = {
   uScan: { value: number }
   uCell: { value: number }
@@ -46,15 +46,15 @@ function criarVarredura(): Varredura {
 }
 
 const FRAG_VARREDURA = /* glsl */ `
-  // posição do fragmento na grade de pixels da marca
+  // fragment position on the brand pixel grid
   vec2 iaraCel = gl_FragCoord.xy / uCell;
   vec2 iaraL = fract(iaraCel) - 0.5;
   float iaraH = fract(sin(dot(floor(iaraCel), vec2(12.9898, 78.233))) * 43758.5453);
   float iaraR = 0.16 * 0.88;
   float iaraSd = length(max(abs(iaraL) - (0.44 - iaraR), 0.0)) - iaraR;
-  // borda irregular: cada pixel tem um atraso próprio, a frente fica serrilhada como no mosaico
+  // jagged edge: each pixel has its own delay, so the front is stepped like the mosaic
   float iaraFrente = uScan - iaraH * 0.9;
-  float iaraAntes = step(iaraFrente, vIaraPos.x);          // 1 = o radar ainda não passou
+  float iaraAntes = step(iaraFrente, vIaraPos.x);          // 1 = the radar has not passed yet
   float iaraFaixa = (1.0 - iaraAntes) * (1.0 - smoothstep(0.0, 1.4, iaraFrente - vIaraPos.x));
   float iaraPulso = 1.0 - smoothstep(0.0, 0.9, abs(vIaraPos.x - uPulse));
   if (iaraAntes > 0.5) {
@@ -100,12 +100,12 @@ function aplicarVarredura<T extends THREE.Material>(mat: T, v: Varredura, mosaic
   return mat
 }
 
-/* ---------- bichos ---------- */
+/* ---------- animals ---------- */
 type Comportamento = 'andar' | 'pastar' | 'enrolar' | 'saltar' | 'voar' | 'pousar' | 'pendurar' | 'balancar'
 
 interface BichoProps {
   url: string
-  tamanho: number // maior dimensão, em metros da cena
+  tamanho: number // largest dimension, in scene meters
   posicao: [number, number, number]
   giro?: [number, number, number]
   jeito: Comportamento
@@ -131,7 +131,7 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, v }: B
       })
       m.material = aplicarVarredura(novo, v, mosaico)
     })
-    // normaliza o tamanho e assenta no chão
+    // normalize the size and rest it on the ground
     const caixa = new THREE.Box3().setFromObject(c)
     const dim = caixa.getSize(new THREE.Vector3())
     const k = tamanho / Math.max(dim.x, dim.y, dim.z)
@@ -151,7 +151,7 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, v }: B
     const [x, y, z] = posicao
     switch (jeito) {
       case 'andar': {
-        // vai e volta pela margem, devagar
+        // walks back and forth along the bank, slowly
         const f = Math.sin(t * 0.18)
         g.position.set(x + f * 2.6, y + Math.abs(Math.sin(t * 2.4)) * 0.025, z)
         g.rotation.y = giro[1] + (Math.cos(t * 0.18) > 0 ? 0 : Math.PI)
@@ -166,7 +166,7 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, v }: B
         g.scale.setScalar(1 + Math.sin(t * 0.9) * 0.015)
         break
       case 'saltar': {
-        // boto: nada sob a água e salta a cada ciclo
+        // river dolphin: swims under the water and jumps every cycle
         const ciclo = 7
         const f = (t % ciclo) / ciclo
         const pulo = f > 0.62 && f < 0.82 ? (f - 0.62) / 0.2 : -1
@@ -201,12 +201,12 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, v }: B
   return (
     <group ref={ref} position={posicao} rotation={giro}>
       {jeito === 'pendurar' ? (
-        // preguiça: patas no galho, corpo de cabeça para baixo
+        // sloth: paws on the branch, body hanging upside down
         <group rotation={[0, 0, Math.PI]}>
           <primitive object={modelo} />
         </group>
       ) : jeito === 'balancar' ? (
-        // o ponto de giro fica no galho, acima do bicho
+        // the pivot sits on the branch, above the animal
         <group position={[0, -tamanho * 0.95, 0]}>
           <primitive object={modelo} />
         </group>
@@ -217,7 +217,7 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, v }: B
   )
 }
 
-/* ---------- floresta em pixels: árvores simples, instanciadas ---------- */
+/* ---------- pixel forest: simple instanced trees ---------- */
 function rnd(seed: number) {
   let s = seed >>> 0 || 1
   return () => {
@@ -244,9 +244,9 @@ function Floresta({ v }: { v: Varredura }) {
         copas.push({ m: new THREE.Matrix4().compose(p, q, new THREE.Vector3(s * 1.3, s * 0.85, s * 1.3)), c: new THREE.Color(tons[Math.floor(r() * tons.length)]) })
       }
     }
-    // margem do fundo: mata fechada
+    // far bank: dense forest
     for (let i = 0; i < 170; i++) plantar(-24 + r() * 48, -6.6 - r() * 15, 3.2 + r() * 4.2)
-    // margem da frente: poucas árvores emoldurando
+    // near bank: a few trees framing the view
     for (let i = 0; i < 8; i++) {
       const lado = r() < 0.5 ? -1 : 1
       plantar(lado * (9.5 + r() * 6), 1.5 + r() * 3, 4 + r() * 3)
@@ -284,10 +284,10 @@ function Floresta({ v }: { v: Varredura }) {
   )
 }
 
-/* ---------- rio e margens ---------- */
+/* ---------- river and banks ---------- */
 function Rio({ v }: { v: Varredura }) {
   const geo = useMemo(() => {
-    // faixa de água que serpenteia da esquerda para a direita
+    // strip of water winding from left to right
     const g = new THREE.PlaneGeometry(60, 4.6, 120, 1)
     const p = g.attributes.position as THREE.BufferAttribute
     for (let i = 0; i < p.count; i++) {
@@ -337,7 +337,7 @@ function Galho({ de, ate, v }: { de: [number, number, number]; ate: [number, num
   )
 }
 
-/* ---------- partículas: pixels de cinza e brasa subindo ---------- */
+/* ---------- particles: ash and ember pixels rising ---------- */
 function Brasas({ n = 70 }: { n?: number }) {
   const ref = useRef<THREE.Points>(null)
   const { pos, vel } = useMemo(() => {
@@ -374,7 +374,7 @@ function Brasas({ n = 70 }: { n?: number }) {
   )
 }
 
-/* ---------- céu: escuro em cima, brilho de queimada no horizonte ---------- */
+/* ---------- sky: dark above, wildfire glow on the horizon ---------- */
 function Ceu() {
   const mat = useMemo(
     () =>
@@ -395,7 +395,7 @@ function Ceu() {
   )
 }
 
-/* ---------- câmera e relógio da varredura ---------- */
+/* ---------- camera and sweep clock ---------- */
 type Avisos = { aoTerminar: () => void; aoProgredir?: (p: number) => void; reduz: boolean }
 
 function Direcao({ v, aoTerminar, aoProgredir, reduz }: Avisos & { v: Varredura }) {
@@ -418,12 +418,12 @@ function Direcao({ v, aoTerminar, aoProgredir, reduz }: Avisos & { v: Varredura 
   const INICIO = 0.35
   const DURACAO = 4.2
   useFrame((_, dt) => {
-    // o relógio só começa quando os bichos terminaram de carregar (este componente fica no mesmo Suspense)
-    // e anda no máximo 1/20 s por quadro, para a passagem não pular quando o primeiro quadro demora
+    // the clock only starts once the animals have finished loading (this component sits in the same Suspense)
+    // and advances at most 1/20 s per frame, so the pass does not skip ahead when the first frame is slow
     relogio.current += Math.min(dt, 0.05)
     const t = relogio.current
     v.uTime.value = t
-    // passagem principal: da esquerda para a direita, uma vez
+    // main pass: left to right, once
     const f = reduz ? 1 : Math.min(1, Math.max(0, (t - INICIO) / DURACAO))
     const e = f < 0.5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2
     v.uScan.value = -24 + e * 50
@@ -432,12 +432,12 @@ function Direcao({ v, aoTerminar, aoProgredir, reduz }: Avisos & { v: Varredura 
       fim.current = true
       aoTerminar()
     }
-    // depois, um eco fraco do radar a cada 9 s
+    // afterwards, a faint radar echo every 9 s
     if (!reduz && f >= 1) {
       const k = ((t - INICIO - DURACAO) % 9) / 9
       v.uPulse.value = -24 + k * 50
     }
-    // câmera: deriva lenta sobre o rio, com leve paralaxe do cursor
+    // camera: slow drift over the river, with slight cursor parallax
     const estreita = size.width < 700
     const drift = reduz ? 0 : Math.sin(t * 0.07) * 0.8
     const alvoX = drift + mouse.current.x * 0.6 + (estreita ? 0.6 : 0)
@@ -450,7 +450,7 @@ function Direcao({ v, aoTerminar, aoProgredir, reduz }: Avisos & { v: Varredura 
   return null
 }
 
-/* posições: margem de lá do rio (z perto de -4,5), o boto no meio da água, e os bichos de árvore nos galhos do fundo */
+/* positions: far bank of the river (z near -4.5), the dolphin mid-river, and the tree animals on the back branches */
 const BICHOS: Omit<BichoProps, 'v'>[] = [
   { url: '/models/jaguar.glb', tamanho: 2.3, posicao: [-3.4, 0, -4.3], giro: [0, Math.PI / 2, 0], jeito: 'andar', mosaico: '#b9481a' },
   { url: '/models/capybara.glb', tamanho: 1.7, posicao: [5.4, 0, -4.9], giro: [0, -0.9, 0], jeito: 'pastar', mosaico: '#3b6447' },
