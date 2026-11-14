@@ -3,10 +3,8 @@ import Map, { Layer, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/m
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { REGIONS } from '@/lib/regions'
-import { YANO_MINING } from '@/data/mocks/yanomami-mining'
-import { useApp } from '@/lib/store'
+import { useApp, useUi } from '@/lib/store'
 import { useDeterAlerts } from '@/lib/useDeterAlerts'
-import { useIbgeMunicipios, UF_CODE_BY_REGION } from '@/lib/useIbgeMunicipios'
 import { GIBS_BY_REGION } from '@/lib/gibs'
 import { useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
@@ -25,14 +23,11 @@ import { TerrainSource } from './layers/TerrainSource'
 import { SatelliteLayer } from './layers/SatelliteLayer'
 import { AmazonBiomeLayer } from './layers/AmazonBiomeLayer'
 import { GibsTrueColorLayer, GibsOverlayLayer } from './layers/GibsLayers'
-import { YanoChangeLayer } from './layers/YanoChangeLayer'
-import { AffectedAreasLayer } from './layers/AffectedAreasLayer'
 import { FocusedTiMask } from './layers/FocusedTiMask'
 import { DeterLayer } from './layers/DeterLayer'
-import { IbgeMunicipiosLayer } from './layers/IbgeMunicipiosLayer'
 
-import { OverlayLegend } from './overlays/OverlayLegend'
-import { FocusedTiBadge } from './overlays/FocusedTiBadge'
+import { CaseMarkers } from './layers/CaseMarkers'
+import { YANO_DETER_BBOX } from '../Cases/CaseAlerts'
 
 export function SarMap() {
   const mapRef = useRef<MapRef | null>(null)
@@ -40,7 +35,6 @@ export function SarMap() {
   const aoiActive = useApp((s) => s.aoiActive)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
-  const selectPolygon = useApp((s) => s.selectPolygon)
   const setNisarPoint = useApp((s) => s.setNisarPoint)
   const setNisarNotice = useApp((s) => s.setNisarNotice)
   const t = useT()
@@ -49,14 +43,13 @@ export function SarMap() {
   const gibs = GIBS_BY_REGION[activeRegion]
 
   const focused = useFocusedTi()
-  const deter = useDeterAlerts(focused.bbox)
-
-  const [municipiosOn, setMunicipiosOn] = useState(false)
-  const ibge = useIbgeMunicipios(UF_CODE_BY_REGION[activeRegion] ?? null, municipiosOn)
+  // Near-real-time DETER alerts follow the Yanomami case; a focused TI still takes precedence.
+  const yanoCase = aoiActive && activeRegion === 'YANO'
+  const deter = useDeterAlerts(focused.bbox ?? (yanoCase ? YANO_DETER_BBOX : null))
 
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [reliefOn, setReliefOn] = useState(false)
-  const [satelliteOn, setSatelliteOn] = useState(false)
+  const reliefOn = useUi((s) => s.reliefOn)
+  const satelliteOn = useUi((s) => s.satelliteOn)
   // First label layer of the basemap: imagery goes under it so place and river names stay readable.
   const [labelLayerId, setLabelLayerId] = useState<string>()
   useMapCamera(mapRef, region, mapLoaded)
@@ -82,26 +75,17 @@ export function SarMap() {
     }
   }, [reliefOn, mapLoaded])
 
+  // A click on the map points the live NISAR catalogue at that spot.
   const onClick = (e: MapLayerMouseEvent) => {
-    const f = e.features?.[0]
-    if (!f) {
-      selectPolygon(null)
-      const { lng, lat } = e.lngLat
-      if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
-      else setNisarNotice(t('nisar.outsideAmazon'))
-      return
-    }
-    const id = (f.properties as { id?: string })?.id
-    if (!id) return
-    const found = YANO_MINING.find((p) => p.id === id) ?? null
-    selectPolygon(found)
+    const { lng, lat } = e.lngLat
+    if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
+    else setNisarNotice(t('nisar.outsideAmazon'))
   }
 
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
         <MapFallback region={region} />
-        <OverlayLegend />
       </div>
     )
   }
@@ -122,8 +106,7 @@ export function SarMap() {
         }}
         maxPitch={60}
         mapStyle={BASEMAP_URL}
-        interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
-        onClick={onClick}
+                onClick={onClick}
         onLoad={(e) => {
           setLabelLayerId(
             e.target.getStyle().layers.find((l) => l.type === 'symbol')?.id ?? 'amazon-biome-fill'
@@ -137,7 +120,7 @@ export function SarMap() {
 
         <AmazonBiomeLayer />
 
-        <CommunityAreas />
+        {aoiActive && <CommunityAreas />}
         {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
         <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
 
@@ -145,36 +128,13 @@ export function SarMap() {
         <GibsOverlayLayer on={nasaOverlay} gibs={gibs} />
 
         <NisarImagery />
-        <YanoChangeLayer activeRegion={activeRegion} />
-        <AffectedAreasLayer activeRegion={activeRegion} />
         <FocusedTiMask focused={focused} />
-        <IbgeMunicipiosLayer on={municipiosOn} data={ibge.data} />
-        <DeterLayer focusedTi={focused.name} deter={deter} />
+        <DeterLayer focusedTi={focused.name ?? (yanoCase ? 'TI Yanomami' : null)} deter={deter} />
 
-        <CommunityPoints />
+        {aoiActive && <CommunityPoints />}
+        <CaseMarkers />
       </Map>
 
-      <OverlayLegend
-        reliefOn={reliefOn}
-        onToggleRelief={() => setReliefOn((v) => !v)}
-        satelliteOn={satelliteOn}
-        onToggleSatellite={() => setSatelliteOn((v) => !v)}
-        municipiosOn={municipiosOn}
-        onToggleMunicipios={() => setMunicipiosOn((v) => !v)}
-        municipiosLoading={ibge.loading}
-      />
-      {focused.name && (
-        <FocusedTiBadge
-          tiName={focused.name}
-          funaiProps={focused.funaiProps}
-          localProps={focused.localProps}
-          sourceLabel={focused.sourceLabel}
-          loading={focused.funaiLoading}
-          error={focused.funaiError}
-          deterCount={deter.count}
-          deterLoading={deter.loading}
-        />
-      )}
     </div>
   )
 }

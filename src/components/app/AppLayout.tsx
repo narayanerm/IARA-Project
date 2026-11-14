@@ -1,104 +1,127 @@
-import { Sidebar } from './Sidebar/Sidebar'
+import { HelpCircle, Mountain, Radar, Satellite, type LucideIcon } from 'lucide-react'
 import { SarMap } from './Map/SarMap'
 import { RightPanel } from './RightPanel/RightPanel'
-import { AskBar } from './Chatbot/AskBar'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
 import { triggerTutorial } from './Tutorial/Tutorial'
-import { HelpCircle } from 'lucide-react'
-import { PhenomenonBriefing } from './Briefing/PhenomenonBriefing'
-import { NisarControl } from './Map/NisarControl'
-import { CommunitySearch } from './Explore/CommunitySearch'
-import { Layers3, Sun } from 'lucide-react'
+import { CasePicker } from './Cases/CasePicker'
+import { CaseView } from './Cases/CaseView'
 import { cn } from '@/lib/utils'
 import { useApp, useUi } from '@/lib/store'
 import { useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 
-export function AppLayout() {
+export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const t = useT()
-  const nasaOverlay = useApp((s) => s.nasaOverlay)
-  const trueColorOverlay = useApp((s) => s.trueColorOverlay)
-  const toggleNasaOverlay = useApp((s) => s.toggleNasaOverlay)
-  const toggleTrueColorOverlay = useApp((s) => s.toggleTrueColorOverlay)
-  const rightOpen = useUi((s) => s.rightOpen)
-  const popupOpen = useUi((s) => s.popupOpen)
+  const satelliteOn = useUi((s) => s.satelliteOn)
+  const reliefOn = useUi((s) => s.reliefOn)
+  const toggleSatellite = useUi((s) => s.toggleSatellite)
+  const toggleRelief = useUi((s) => s.toggleRelief)
+  const nisarVisible = useApp((s) => s.nisarVisible)
+  const setNisarVisible = useApp((s) => s.setNisarVisible)
+  const clearAoi = useApp((s) => s.clearAoi)
 
   return (
     <section id="app" className="h-[100svh] w-full flex flex-col bg-background">
-      <div className="flex h-12 items-center justify-between border-b border-border/60 bg-card/40 backdrop-blur-xl px-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <img
-            src="/marca/iara-simbolo-escuro.svg"
-            alt=""
-            aria-hidden="true"
-            className="h-7 w-7 shrink-0"
-          />
-          <div className="min-w-0 leading-tight">
-            <div className="truncate text-sm font-semibold">{t('app.name')}</div>
-          </div>
-        </div>
+      <div className="flex h-12 items-center justify-between gap-2 border-b border-border/60 bg-card/40 backdrop-blur-xl px-3 sm:px-4">
+        <button
+          type="button"
+          onClick={clearAoi}
+          className="flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`${t('app.name')}: ${t('case.home')}`}
+          title={t('case.home')}
+        >
+          <img src="/marca/iara-simbolo-escuro.svg" alt="" aria-hidden="true" className="h-7 w-7 shrink-0" />
+          <span className="hidden text-sm font-semibold sm:inline">{t('app.name')}</span>
+        </button>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            onClick={toggleNasaOverlay}
-            className={cn(
-              'hidden sm:inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 h-8 text-[13px] font-mono transition-colors',
-              nasaOverlay
-                ? 'bg-primary/15 border-primary/40 text-primary'
-                : 'bg-background/40 border-border text-muted-foreground hover:text-foreground'
-            )}
-            aria-pressed={nasaOverlay}
-          >
-            <Layers3 className="h-3.5 w-3.5" />
-            {t('overlay.nasa')}
-          </button>
-          <button
-            onClick={toggleTrueColorOverlay}
-            className={cn(
-              'hidden xl:inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 h-8 text-[13px] font-mono transition-colors',
-              trueColorOverlay
-                ? 'bg-primary/15 border-primary/40 text-primary'
-                : 'bg-background/40 border-border text-muted-foreground hover:text-foreground'
-            )}
-            aria-pressed={trueColorOverlay}
-          >
-            <Sun className="h-3.5 w-3.5" />
-            {t('overlay.trueColor')}
-          </button>
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <HeaderToggle
+            icon={Satellite}
+            label={t('map.satellite')}
+            hint={t('map.satelliteHint')}
+            on={satelliteOn}
+            onToggle={toggleSatellite}
+          />
+          <HeaderToggle
+            icon={Mountain}
+            label={t('map.relief')}
+            hint={t('map.reliefHint')}
+            on={reliefOn}
+            onToggle={toggleRelief}
+            className="hidden sm:inline-flex"
+          />
+          <HeaderToggle
+            icon={Radar}
+            label={t('map.radar')}
+            hint={t('map.radarHint')}
+            on={nisarVisible}
+            onToggle={() => setNisarVisible(!nisarVisible)}
+          />
           <button
             onClick={() => triggerTutorial()}
-            className="hidden sm:inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-background/40 px-2.5 h-8 text-[13px] font-mono text-muted-foreground hover:text-foreground transition-colors"
+            className="hidden lg:inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-background/40 px-2.5 h-8 text-[13px] font-mono text-muted-foreground hover:text-foreground transition-colors"
             title={t('appLayout.tour')}
           >
             <HelpCircle className="h-3.5 w-3.5" />
             tour
           </button>
           <LanguageToggle compact />
-          <span data-tour="share"><ShareDialog /></span>
-          <ExportMenu />
+          <span data-tour="share">
+            <ShareDialog />
+          </span>
+          <span className="hidden sm:inline-flex">
+            <ExportMenu />
+          </span>
         </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
-        <Sidebar />
-        <div data-tour="map" className="relative flex-1 min-w-0">
+        <div data-tour="map" className="relative flex-1 min-w-0 overflow-hidden">
           <SarMap />
-          <div className="pointer-events-none absolute left-3 right-3 top-3 z-10 flex flex-col items-start gap-2 md:right-auto">
-            <div className="pointer-events-auto w-full md:w-auto">
-              <CommunitySearch />
-            </div>
-            <div data-tour="nisar" className="pointer-events-auto hidden md:block">
-              <NisarControl />
-            </div>
-          </div>
-          <div className="pointer-events-none absolute inset-x-3 bottom-9 flex flex-col items-center gap-2">
-            {!rightOpen && !popupOpen && <AskBar className="pointer-events-auto" />}
-          </div>
-          <PhenomenonBriefing />
+          <CaseView />
+          <CasePicker introDone={introDone} />
         </div>
-        <RightPanel />
+        <div className="hidden md:block">
+          <RightPanel />
+        </div>
       </div>
     </section>
+  )
+}
+
+function HeaderToggle({
+  icon: Icon,
+  label,
+  hint,
+  on,
+  onToggle,
+  className,
+}: {
+  icon: LucideIcon
+  label: string
+  hint: string
+  on: boolean
+  onToggle: () => void
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={on}
+      aria-label={label}
+      title={hint}
+      className={cn(
+        'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 text-[13px] transition-colors xl:px-2.5',
+        on
+          ? 'border-primary/40 bg-primary/15 text-primary'
+          : 'border-border bg-background/40 text-muted-foreground hover:text-foreground',
+        className
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      <span className="hidden xl:inline">{label}</span>
+    </button>
   )
 }
