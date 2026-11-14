@@ -25,14 +25,6 @@ export function inAmazon(lon: number, lat: number): boolean {
   return RINGS.some((r) => inRing(lon, lat, r))
 }
 
-/** Bounding box of the Amazon biome: [west, south, east, north]. */
-export const AMAZON_BBOX: [number, number, number, number] = (() => {
-  const pts = RINGS.flat()
-  const lons = pts.map((p) => p[0])
-  const lats = pts.map((p) => p[1])
-  return [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)]
-})()
-
 /** True if a footprint overlaps the Amazon biome (vertex, centre or biome vertex inside). */
 export function footprintInAmazon(footprint: Polygon): boolean {
   const ring = footprint.coordinates[0]

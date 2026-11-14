@@ -7,13 +7,11 @@ import Map, {
 } from 'react-map-gl/maplibre'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import type { Feature, FeatureCollection, Polygon } from 'geojson'
+import type { FeatureCollection } from 'geojson'
 import { REGIONS } from '@/lib/regions'
 import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { INDIGENOUS_LANDS, AMAZON_BIOME } from '@/data/layers/indigenous-lands'
 import { useApp } from '@/lib/store'
-import { useAsfGranules } from '@/lib/useAsfGranules'
-import { useBrazilCoverage } from '@/lib/useBrazilCoverage'
 import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsTileUrl } from '@/lib/gibs'
 import { useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
@@ -36,8 +34,6 @@ export function SarMap() {
   const t = useT()
 
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
-  const asf = useAsfGranules(region)
-  const coverage = useBrazilCoverage()
   const gibs = GIBS_BY_REGION[activeRegion]
 
   useEffect(() => {
@@ -68,43 +64,6 @@ export function SarMap() {
       })),
     }),
     []
-  )
-
-  const coverageFC: FeatureCollection = useMemo(
-    () => ({
-      type: 'FeatureCollection',
-      features: coverage.data.map<Feature<Polygon>>((g, i) => ({
-        type: 'Feature',
-        geometry: g.footprint,
-        properties: {
-          id: g.id,
-          dataset: g.dataset,
-          startTime: g.startTime,
-          polarization: g.polarization.join('+'),
-          ageIdx: Math.min(i, 100),
-        },
-      })),
-    }),
-    [coverage.data]
-  )
-
-  const footprintsFC: FeatureCollection = useMemo(
-    () => ({
-      type: 'FeatureCollection',
-      features: asf.data.slice(0, 8).map<Feature<Polygon>>((g, i) => ({
-        type: 'Feature',
-        geometry: g.footprint,
-        properties: {
-          id: g.id,
-          dataset: g.dataset,
-          startTime: g.startTime,
-          polarization: g.polarization.join('+'),
-          flightDirection: g.flightDirection,
-          age: i,
-        },
-      })),
-    }),
-    [asf.data]
   )
 
   const onClick = (e: MapLayerMouseEvent) => {
@@ -219,44 +178,6 @@ export function SarMap() {
             }}
           />
         </Source>
-        {coverage.data.length > 0 && (
-          <Source id="br-coverage" type="geojson" data={coverageFC}>
-            <Layer
-              id="br-coverage-fill"
-              type="fill"
-              paint={{
-                'fill-color': 'hsl(190 95% 55%)',
-                'fill-opacity': [
-                  'interpolate',
-                  ['linear'],
-                  ['get', 'ageIdx'],
-                  0,
-                  0.32,
-                  100,
-                  0.08,
-                ],
-              }}
-            />
-            <Layer
-              id="br-coverage-outline"
-              type="line"
-              paint={{
-                'line-color': 'hsl(190 100% 75%)',
-                'line-opacity': [
-                  'interpolate',
-                  ['linear'],
-                  ['get', 'ageIdx'],
-                  0,
-                  0.85,
-                  100,
-                  0.18,
-                ],
-                'line-width': 1.0,
-              }}
-            />
-          </Source>
-        )}
-
         {trueColorOverlay && (
           <Source
             id="gibs-truecolor"
@@ -324,29 +245,6 @@ export function SarMap() {
 
         <NisarImagery />
 
-        {asf.data.length > 0 && (
-          <Source id="asf-footprints" type="geojson" data={footprintsFC}>
-            <Layer
-              id="asf-footprints-fill"
-              type="fill"
-              paint={{
-                'fill-color': 'hsl(190 95% 60%)',
-                'fill-opacity': ['interpolate', ['linear'], ['get', 'age'], 0, 0.18, 8, 0.04],
-              }}
-            />
-            <Layer
-              id="asf-footprints-line"
-              type="line"
-              paint={{
-                'line-color': 'hsl(190 95% 70%)',
-                'line-opacity': ['interpolate', ['linear'], ['get', 'age'], 0, 0.95, 8, 0.2],
-                'line-width': 1.2,
-                'line-dasharray': [2, 1.5],
-              }}
-            />
-          </Source>
-        )}
-
         {activeRegion === 'YANO' && (
           <Source id="yano-change" type="geojson" data={changeFC}>
             <Layer
@@ -392,28 +290,10 @@ function OverlayLegend() {
   const t = useT()
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
-  const asfCount = useAsfGranules(REGIONS.find((r) => r.id === activeRegion)!).data.length
-  const coverage = useBrazilCoverage()
   const gibs = GIBS_BY_REGION[activeRegion]
 
   return (
     <div className="pointer-events-none absolute top-4 right-4 flex flex-col items-end gap-2">
-      <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground min-w-[200px] text-right">
-        <div>
-          <span className="text-sar-cyan">▭</span> {t('coverage.title')}
-        </div>
-        <div className="mt-0.5 text-[13px] opacity-70">
-          {coverage.loading
-            ? t('coverage.loading')
-            : `${coverage.data.length} passes · ${t('coverage.footer')}`}
-        </div>
-      </div>
-
-      {asfCount > 0 && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground">
-          <span className="text-sar-cyan">▭</span> {asfCount} on AOI · ASF
-        </div>
-      )}
       {nasaOverlay && gibs && (
         <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground max-w-[260px] text-right">
           <span
