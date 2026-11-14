@@ -9,6 +9,7 @@ import { RightPanel } from './RightPanel/RightPanel'
 import { Timeline } from './Timeline/Timeline'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
+import { PhenomenonBriefing } from './Briefing/PhenomenonBriefing'
 import { SarPreview } from './Map/SarPreview'
 import { Layers3, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -96,6 +97,7 @@ export function AppLayout() {
           <div className="absolute left-4 right-4 bottom-4 md:left-[280px] md:right-[380px]">
             <Timeline />
           </div>
+          <PhenomenonBriefing />
           <div className="absolute right-4 top-20 hidden md:block">
             <SarPreview />
           </div>

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
   MapContainer,
   TileLayer,
@@ -7,14 +7,21 @@ import {
   Popup,
   ImageOverlay,
   LayersControl,
+  useMap,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { AlertTriangle, MapPin } from 'lucide-react'
 import {
   AMAZON_BIOME,
   INDIGENOUS_LANDS,
+  polygonCentroid,
   type TiProps,
 } from '@/data/layers/indigenous-lands'
+import {
+  AFFECTED_AREAS,
+  affectedAreaColor,
+  type AffectedAreaProps,
+} from '@/data/layers/affected-areas'
 import type { Region } from '@/lib/types'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
@@ -30,6 +37,7 @@ export function MapFallback({ region }: { region: Region }) {
     [s, w],
     [n, e],
   ]
+
 
   const biomeStyle = useMemo(
     () => ({
@@ -62,6 +70,7 @@ export function MapFallback({ region }: { region: Region }) {
         style={{ background: 'hsl(222 47% 5%)' }}
         attributionControl
       >
+        <TiFocusController />
         <LayersControl position="bottomright">
           <LayersControl.BaseLayer checked name="NASA GIBS satellite (MODIS)">
             <TileLayer
@@ -120,6 +129,34 @@ export function MapFallback({ region }: { region: Region }) {
               />
             </LayersControl.Overlay>
           )}
+
+
+          <LayersControl.Overlay checked name={`Área afetada · ${region.phenomenonLabel}`}>
+            <GeoJSON
+              key={region.id}
+              data={AFFECTED_AREAS[region.id]}
+              style={(f) => {
+                const p = (f?.properties as AffectedAreaProps) ?? { kind: 'mining' }
+                const c = affectedAreaColor(p.kind)
+                const isOriginal = p.kind === 'drought-original'
+                return {
+                  color: c,
+                  weight: isOriginal ? 1.5 : 2,
+                  fillColor: c,
+                  fillOpacity: isOriginal ? 0.06 : 0.42,
+                  dashArray: isOriginal ? '4 3' : undefined,
+                }
+              }}
+              onEachFeature={(f, layer) => {
+                const p = f.properties as AffectedAreaProps
+                layer.bindTooltip(
+                  `${p.label} · ${p.area_km2.toLocaleString('pt-BR')} km²`,
+                  { sticky: true, direction: 'top' }
+                )
+                layer.bindPopup(buildAffectedPopupHtml(p))
+              }}
+            />
+          </LayersControl.Overlay>
         </LayersControl>
 
         {REGIONS.map((r) => (
@@ -187,6 +224,38 @@ export function MapFallback({ region }: { region: Region }) {
       </div>
     </div>
   )
+}
+
+function buildAffectedPopupHtml(p: AffectedAreaProps): string {
+  const kindLabel = {
+    mining: 'Garimpo',
+    flood: 'Cheia',
+    'drought-shrink': 'Retração da seca',
+    'drought-original': 'Espelho original',
+  }[p.kind]
+  return `
+    <div style="min-width:200px; font-family:Inter,sans-serif;">
+      <div style="font-weight:600; margin-bottom:4px;">${p.label}</div>
+      <div style="font-size:11px; color:#888; font-family:monospace; text-transform:uppercase;">${kindLabel} · ${p.year}</div>
+      <div style="font-size:16px; font-weight:600; margin-top:6px; color:${affectedAreaColor(p.kind)};">
+        ${p.area_km2.toLocaleString('pt-BR')} km²
+      </div>
+      <div style="font-size:11px; color:#666; margin-top:4px;">Fonte: ${p.source}</div>
+    </div>
+  `
+}
+
+function TiFocusController() {
+  const map = useMap()
+  const focusedTi = useApp((s) => s.focusedTi)
+  useEffect(() => {
+    if (!focusedTi) return
+    const f = INDIGENOUS_LANDS.features.find((x) => x.properties.name === focusedTi)
+    if (!f) return
+    const [lon, lat] = polygonCentroid(f.geometry)
+    map.flyTo([lat, lon], 7, { duration: 1.4 })
+  }, [focusedTi, map])
+  return null
 }
 
 function buildTiPopupHtml(p: TiProps): string {

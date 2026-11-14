@@ -30,7 +30,7 @@ export const GIBS_BY_REGION: Record<RegionId, GibsLayer | null> = {
     kind: 'raster',
     tileMatrixSet: 'GoogleMapsCompatible_Level9',
     format: 'png',
-    time: '2026-11-12',
+    time: '2025-09-14',
     legendLabel: 'MODIS · NDVI 8-dias',
     sensor: 'MODIS',
     explanation:
@@ -42,7 +42,7 @@ export const GIBS_BY_REGION: Record<RegionId, GibsLayer | null> = {
     kind: 'raster',
     tileMatrixSet: 'GoogleMapsCompatible_Level6',
     format: 'png',
-    time: '2026-11-11',
+    time: '2024-05-24',
     legendLabel: 'IMERG · precipitação',
     sensor: 'GPM IMERG',
     explanation:
@@ -54,7 +54,7 @@ export const GIBS_BY_REGION: Record<RegionId, GibsLayer | null> = {
     kind: 'raster',
     tileMatrixSet: 'GoogleMapsCompatible_Level6',
     format: 'png',
-    time: '2025-09-01',
+    time: '2023-10-15',
     legendLabel: 'AMSR2 · umidade de solo',
     sensor: 'AMSR2',
     explanation:
@@ -68,7 +68,7 @@ export const TRUE_COLOR_LAYER: GibsLayer = {
   kind: 'raster',
   tileMatrixSet: 'GoogleMapsCompatible_Level9',
   format: 'jpg',
-  time: '2026-11-13',
+  time: '2025-09-15',
   legendLabel: 'MODIS · true color',
   sensor: 'MODIS',
   explanation:
