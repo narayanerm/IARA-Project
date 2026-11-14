@@ -41,11 +41,11 @@ export function AppLayout() {
       <header className="flex h-14 shrink-0 items-stretch gap-3 border-b border-border bg-card px-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-3">
           <img
-            src="/marca/iara-horizontal-sem-subtitulo-escuro.svg"
+            src={`${import.meta.env.BASE_URL}marca/iara-horizontal-sem-subtitulo-escuro.svg`}
             alt={t('app.name')}
             className="hidden lg:block h-6 w-auto shrink-0"
           />
-          <img src="/marca/iara-simbolo-escuro.svg" alt={t('app.name')} className="lg:hidden h-7 w-7 shrink-0" />
+          <img src={`${import.meta.env.BASE_URL}marca/iara-simbolo-escuro.svg`} alt={t('app.name')} className="lg:hidden h-7 w-7 shrink-0" />
           <CaseCrumb />
         </div>
 
