@@ -74,8 +74,8 @@ export function AoiLayersPopup() {
                   className={cn(
                     'flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[13px] font-medium transition-colors text-left',
                     isActive
-                      ? 'border-primary/50 bg-primary/10 text-foreground'
-                      : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground hover:bg-background/60'
+                      ? 'border-transparent bg-raised text-foreground'
+                      : 'border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-raised'
                   )}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" style={{ color }} />
@@ -92,7 +92,7 @@ export function AoiLayersPopup() {
           </div>
           <div className="space-y-1">
             {gibs && (
-              <div className="flex items-center gap-2 rounded-md bg-background/40 border border-border/60 px-2 py-1 text-[13px]">
+              <div className="flex items-center gap-2 rounded-md bg-transparent border border-border px-2 py-1 text-[13px]">
                 <span
                   className="h-2 w-2 rounded-full shrink-0"
                   style={{ background: gibs.paintColor }}

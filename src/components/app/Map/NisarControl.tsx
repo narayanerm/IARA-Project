@@ -56,9 +56,9 @@ export function NisarControl() {
     : '—'
 
   return (
-    <div className="glass rounded-lg w-[300px] p-2.5 text-[12px] shadow-xl border border-border/60">
+    <div className="glass rounded-lg w-[300px] p-2.5 text-[12px] border border-border">
       <div className="flex items-center gap-2">
-        <Satellite className="h-3.5 w-3.5 text-primary" />
+        <Satellite className="h-3.5 w-3.5 text-muted-foreground" />
         <div className="font-semibold text-[14px] text-foreground">{t('nisar.title')}</div>
         {sel.loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
         <button
@@ -79,8 +79,8 @@ export function NisarControl() {
             className={cn(
               'rounded-md border px-2 py-1 text-left font-medium transition-colors',
               sel.product === p
-                ? 'border-primary/50 bg-primary/10 text-foreground'
-                : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
+                ? 'border-transparent bg-raised text-foreground'
+                : 'border-border bg-transparent text-muted-foreground hover:text-foreground'
             )}
           >
             {t(p === 'GCOV' ? 'nisar.gcov.label' : 'nisar.gunw.label')}
@@ -88,12 +88,12 @@ export function NisarControl() {
         ))}
       </div>
 
-      <div className="mt-2 flex items-start gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 leading-snug text-foreground">
-        <MousePointerClick className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+      <div className="mt-2 flex items-start gap-1.5 rounded-md border border-border bg-raised px-2 py-1.5 leading-snug text-foreground">
+        <MousePointerClick className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span>{t('nisar.clickHint')}</span>
       </div>
       {notice && <div className="mt-1.5 leading-snug text-sar-amber">{notice}</div>}
-      <div className="mt-1.5 flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+      <div className="mt-1.5 flex items-center gap-1 tabular-nums text-[12px] text-muted-foreground">
         <span className="flex-1">
           {sel.point
             ? `${t('nisar.pointMode')} ${formatPoint(sel.point)}`
@@ -119,13 +119,13 @@ export function NisarControl() {
 
       {sel.tracks.length > 0 && (
         <>
-          <label className="mt-2 block text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+          <label className="mt-2 block text-[12px] font-medium text-muted-foreground">
             {t('nisar.track')}
           </label>
           <select
             value={sel.track?.key ?? ''}
             onChange={(e) => setTrack(e.target.value)}
-            className="mt-1 w-full rounded-md border border-border/60 bg-background/60 px-2 py-1 font-mono text-foreground"
+            className="mt-1 w-full rounded-md border border-border bg-raised px-2 py-1 tabular-nums text-foreground"
           >
             {sel.tracks.map((tr) =>
               tr.key === ALL_TRACKS ? (
@@ -144,14 +144,14 @@ export function NisarControl() {
           <div className="mt-2 flex items-center gap-1">
             <button
               onClick={() => step(-1)}
-              className="rounded-md border border-border/60 p-1 hover:bg-secondary/60"
+              className="rounded-md border border-border p-1 hover:bg-secondary/60"
               aria-label="previous"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => setPlaying((v) => !v)}
-              className="rounded-md border border-primary/50 bg-primary/15 p-1 text-primary"
+              className="rounded-md bg-raised p-1 text-foreground"
               aria-label={t('nisar.play')}
               title={t('nisar.play')}
             >
@@ -159,13 +159,13 @@ export function NisarControl() {
             </button>
             <button
               onClick={() => step(1)}
-              className="rounded-md border border-border/60 p-1 hover:bg-secondary/60"
+              className="rounded-md border border-border p-1 hover:bg-secondary/60"
               aria-label="next"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
-            <div className="ml-2 font-mono text-foreground">{dateLabel}</div>
-            <div className="ml-auto font-mono text-muted-foreground">
+            <div className="ml-2 tabular-nums text-foreground">{dateLabel}</div>
+            <div className="ml-auto tabular-nums text-muted-foreground">
               {sel.index + 1}/{n}
             </div>
           </div>
@@ -176,7 +176,7 @@ export function NisarControl() {
             max={Math.max(0, n - 1)}
             value={Math.max(0, sel.index)}
             onChange={(e) => setScene(scenes[Number(e.target.value)]?.id ?? null)}
-            className="mt-1.5 w-full accent-primary"
+            className="mt-1.5 w-full accent-water"
             aria-label={t('nisar.scene')}
           />
 
@@ -189,7 +189,7 @@ export function NisarControl() {
               step={0.05}
               value={opacity}
               onChange={(e) => setOpacity(Number(e.target.value))}
-              className="flex-1 accent-primary"
+              className="flex-1 accent-water"
             />
           </div>
 
@@ -198,7 +198,7 @@ export function NisarControl() {
               {scene.product === 'GUNW'
                 ? t('nisar.captionPair', { date: brandDate(scene.date), date2: brandDate(scene.date2) })
                 : t('nisar.caption', { date: brandDate(scene.date) })}
-              <span className="ml-1 font-mono text-[11px] text-muted-foreground">
+              <span className="ml-1 tabular-nums text-[12px] text-muted-foreground">
                 {trackLabel(trackKey(scene))}
                 {scene.beta ? ' · BETA' : ''}
               </span>

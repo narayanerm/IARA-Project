@@ -71,20 +71,20 @@ function TargetReticle({ active }: { active: boolean }) {
       <div
         className={cn(
           'absolute inset-0 rounded-md border',
-          active ? 'border-sar-amber/90' : 'border-sar-amber/60'
+          active ? 'border-foreground/90' : 'border-foreground/60'
         )}
       />
       <div
         className={cn(
           'absolute rounded-md border',
-          active ? 'border-sar-amber/90' : 'border-sar-amber/50'
+          active ? 'border-foreground/90' : 'border-foreground/50'
         )}
         style={{ inset: 7 }}
       />
       <Crosshair
         className={cn(
           'relative',
-          active ? 'text-sar-amber' : 'text-sar-amber/85'
+          active ? 'text-foreground' : 'text-foreground/80'
         )}
         style={{ width: 14, height: 14 }}
       />
@@ -98,9 +98,9 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
   )}`
 
   return (
-    <div className="bg-card/95 border border-sar-amber/40 rounded-lg overflow-hidden min-w-[280px]">
-      <div className="bg-sar-amber/10 px-3 py-2 border-b border-sar-amber/30 flex items-start gap-2">
-        <MapPin className="h-4 w-4 text-sar-amber shrink-0 mt-0.5" />
+    <div className="bg-card border border-border rounded-lg overflow-hidden min-w-[280px]">
+      <div className="px-3 py-2 border-b border-border flex items-start gap-2">
+        <MapPin className="h-4 w-4 text-foreground shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-foreground leading-tight">{props.name}</div>
           <div className="text-[13px] tabular-nums text-muted-foreground mt-0.5">
@@ -122,7 +122,7 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
           <StatBlock label="Status" value={props.status} />
         </div>
         {props.population && (
-          <div className="flex items-center gap-2 bg-background/60 border border-border/60 rounded-md px-2.5 py-1.5">
+          <div className="flex items-center gap-2 bg-raised border border-border rounded-md px-2.5 py-1.5">
             <Users className="h-3.5 w-3.5 text-muted-foreground" />
             <div className="flex-1 text-[13px] text-foreground">
               {props.population.toLocaleString('en-US')} inhabitants
@@ -138,7 +138,7 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
               {props.ethnicities.map((e) => (
                 <span
                   key={e}
-                  className="rounded-full bg-background/60 border border-border/60 px-2 py-0.5 text-[12px] text-foreground/90"
+                  className="rounded-sm bg-raised border border-border px-2 py-0.5 text-[12px] text-foreground/90"
                 >
                   {e}
                 </span>
@@ -151,12 +151,12 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
           href={funaiHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between rounded-md bg-sar-amber/10 hover:bg-sar-amber/15 border border-sar-amber/30 px-2.5 py-1.5 text-[13px] text-sar-amber tabular-nums transition-colors"
+          className="flex items-center justify-between rounded-md border border-border hover:bg-raised px-2.5 py-1.5 text-[13px] text-foreground tabular-nums transition-colors"
         >
           <span>View on FUNAI</span>
           <ExternalLink className="h-3 w-3" />
         </a>
-        <div className="text-[11px] text-muted-foreground/70 leading-snug">
+        <div className="text-[12px] text-muted-foreground/70 leading-snug">
           Simplified outline for display. Official source: FUNAI Indigenous GIS.
         </div>
       </div>
@@ -166,8 +166,8 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
 
 function StatBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-background/60 border border-border/60 px-2 py-1.5">
-      <div className="text-[11px] font-medium text-muted-foreground">
+    <div className="rounded-md bg-raised border border-border px-2 py-1.5">
+      <div className="text-[12px] font-medium text-muted-foreground">
         {label}
       </div>
       <div className="text-[13px] text-foreground mt-0.5 capitalize">{value}</div>

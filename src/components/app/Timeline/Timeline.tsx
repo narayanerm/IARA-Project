@@ -66,7 +66,7 @@ export function Timeline() {
             <SkipBack className="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="default"
+            variant="outline"
             size="icon"
             className="h-8 w-8"
             onClick={() => setPlaying((v) => !v)}
@@ -85,12 +85,12 @@ export function Timeline() {
           </Button>
         </div>
 
-        <div className="flex-1">
-          <div className="flex items-baseline justify-between mb-1">
-            <div className="text-[13px] font-medium text-muted-foreground">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex min-w-0 items-baseline justify-between gap-3">
+            <div className="min-w-0 truncate text-[13px] font-medium text-muted-foreground" title={`${t('timeline.series')}, ${seriesTitle}`}>
               {t('timeline.series')}, {seriesTitle}
             </div>
-            <div className="text-xs tabular-nums text-foreground">
+            <div className="shrink-0 text-xs tabular-nums text-foreground">
               {current.date}, {current.displacementMm.toFixed(2)} mm
             </div>
           </div>
@@ -134,7 +134,7 @@ export function Timeline() {
                 />
                 <ReferenceLine
                   x={current.date}
-                  stroke="hsl(var(--primary))"
+                  stroke="hsl(var(--water))"
                   strokeWidth={1.2}
                   strokeDasharray="3 2"
                 />
@@ -157,7 +157,7 @@ export function Timeline() {
         max={maxIndex}
         value={timeIndex}
         onChange={(e) => setTimeIndex(Number(e.target.value))}
-        className="mt-2 w-full accent-primary"
+        className="mt-2 w-full accent-water"
         aria-label={t('timeline.scrubber')}
       />
     </div>

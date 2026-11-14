@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpen, ChevronDown, ChevronUp, ExternalLink, Info, Loader2, Radar, Satellite, X } from 'lucide-react'
-import { useApp } from '@/lib/store'
+import { ArrowRight, ChevronDown, ExternalLink, Info, Loader2, Radar, Satellite, X } from 'lucide-react'
+import { useApp, useUi } from '@/lib/store'
+import { useT } from '@/lib/i18n'
+import { showRadar } from '@/lib/story'
 import { REGIONS } from '@/lib/regions'
 import { BRIEFINGS, worldviewSnapshot } from '@/data/phenomena-briefing'
 import { AFFECTED_AREAS } from '@/data/layers/affected-areas'
@@ -53,7 +55,10 @@ export function PhenomenonBriefing() {
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const briefing = BRIEFINGS[activeRegion]
 
-  const [open, setOpen] = useState(false)
+  const t = useT()
+  const open = useUi((s) => s.briefingOpen)
+  const setOpen = useUi((s) => s.setBriefingOpen)
+  const stage = useUi((s) => s.stage)
   const [source, setSource] = useState<Source>('sar')
   const [opticalLayerKey, setOpticalLayerKey] = useState<string>(
     briefing.opticalLayers[0]?.key ?? 'modis-terra'
@@ -61,7 +66,6 @@ export function PhenomenonBriefing() {
   const [selectedEventId, setSelectedEventId] = useState<string>(peakEvent(activeRegion).id)
 
   useEffect(() => {
-    setOpen(true)
     setSource('sar')
     setOpticalLayerKey(BRIEFINGS[activeRegion].opticalLayers[0]?.key ?? 'modis-terra')
     setSelectedEventId(peakEvent(activeRegion).id)
@@ -80,8 +84,6 @@ export function PhenomenonBriefing() {
     d[activeRegion] = true
     writeDismissed(d)
   }
-
-  const reopen = () => setOpen(true)
 
   const pair = useAsfPair(
     briefing.snapshotBbox,
@@ -103,52 +105,53 @@ export function PhenomenonBriefing() {
   const afterBbox = showSar && pair.after ? polygonBbox(pair.after.footprint) : briefing.snapshotBbox
 
   const beforeBadge = showSar
-    ? sarGranuleLabel(pair.before, pair.platform, selectedEvent.beforeDate)
+    ? sarGranuleLabel(pair.before, pair.platform, selectedEvent.beforeDate, t('briefing.opticalShort'))
     : `${activeOptical.label}, ${selectedEvent.beforeDate}`
   const afterBadge = showSar
-    ? sarGranuleLabel(pair.after, pair.platform, selectedEvent.afterDate)
+    ? sarGranuleLabel(pair.after, pair.platform, selectedEvent.afterDate, t('briefing.opticalShort'))
     : `${activeOptical.label}, ${selectedEvent.afterDate}`
 
-  if (!open) {
-    return (
-      <button
-        onClick={reopen}
-        className="absolute left-1/2 -translate-x-1/2 bottom-24 z-30 pointer-events-auto inline-flex items-center gap-2 rounded-md border border-primary/50 bg-primary/15 px-4 py-2 text-[13px] font-semibold text-primary hover:bg-primary/25 transition-colors shadow-md"
-      >
-        <BookOpen className="h-4 w-4" />
-        Entender {region.phenomenonLabel.toLowerCase()}
-        <ChevronUp className="h-3.5 w-3.5" />
-      </button>
-    )
-  }
+  if (!open) return null
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-30 pointer-events-auto">
-      <div className="mx-auto max-w-5xl rounded-t-lg border border-b-0 border-primary/30 bg-card/95 shadow-md animate-in slide-in-from-bottom duration-300">
-        <header className="flex items-center justify-between gap-3 px-4 pt-3 pb-2 border-b border-border/60">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/15 shrink-0">
-              <Radar className="h-4 w-4 text-primary" />
+    <div className="pointer-events-auto w-full max-w-5xl" role="region" aria-label={briefing.title}>
+      <div className="rounded-lg border border-border bg-card animate-in fade-in slide-in-from-bottom-2 duration-200 motion-reduce:animate-none">
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2.5 border-b border-border">
+          <div className="flex min-w-0 flex-1 basis-[200px] items-center gap-2">
+            <div className="grid h-8 w-8 place-items-center rounded-md bg-raised shrink-0">
+              <Radar className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold truncate">{briefing.title}</div>
-              <div className="text-[12px] tabular-nums text-muted-foreground truncate">
+              <h2 className="text-[15px] font-semibold truncate" title={briefing.title}>{briefing.title}</h2>
+              <div className="text-[12px] tabular-nums text-muted-foreground truncate" title={`${briefing.period}, ${region.anchorCity}`}>
                 {briefing.period}, {region.anchorCity}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {stage === 'case' && (
+              <button
+                onClick={() => showRadar()}
+                className="mr-1 inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Radar className="h-4 w-4" />
+                {t('briefing.toRadar')}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            )}
             <button
               onClick={() => setOpen(false)}
               className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
-              aria-label="Minimizar"
+              aria-label={t('briefing.minimize')}
+              title={t('briefing.minimize')}
             >
               <ChevronDown className="h-4 w-4" />
             </button>
             <button
               onClick={close}
               className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
-              aria-label="Fechar"
+              aria-label={t('briefing.close')}
+              title={t('briefing.close')}
             >
               <X className="h-4 w-4" />
             </button>
@@ -158,10 +161,10 @@ export function PhenomenonBriefing() {
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[55vh] overflow-y-auto">
           <section className="space-y-3">
             {showSar && pair.loading ? (
-              <div className="w-full aspect-[4/3] rounded-lg border border-border/60 bg-background/40 grid place-items-center">
+              <div className="w-full aspect-[4/3] rounded-lg border border-border bg-transparent grid place-items-center">
                 <div className="flex items-center gap-2 text-[13px] tabular-nums text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Buscando cenas SAR no ASF DAAC…
+                  {t('briefing.loadingSar')}
                 </div>
               </div>
             ) : (
@@ -183,20 +186,20 @@ export function PhenomenonBriefing() {
                 icon={<Radar className="h-3 w-3" />}
                 disabled={!sarAvailable && !pair.loading}
               >
-                SAR real (ASF)
+                {t('briefing.sarReal')}
               </SourceTab>
               <SourceTab
                 active={source === 'modis'}
                 onClick={() => setSource('modis')}
                 icon={<Satellite className="h-3 w-3" />}
               >
-                Óptico
+                {t('briefing.optical')}
               </SourceTab>
               <a
                 href={briefing.externalViewer.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ml-auto inline-flex items-center gap-1 rounded-md border border-sar-amber/40 bg-sar-amber/10 px-2.5 py-1 text-[11px] tabular-nums text-sar-amber hover:bg-sar-amber/20 transition-colors"
+                className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[12px] tabular-nums text-foreground hover:bg-raised transition-colors"
               >
                 {briefing.externalViewer.label}
                 <ExternalLink className="h-3 w-3" />
@@ -205,8 +208,8 @@ export function PhenomenonBriefing() {
 
             {!showSar && briefing.opticalLayers.length > 1 && (
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] tabular-nums text-muted-foreground mr-1">
-                  camada:
+                <span className="text-[12px] text-muted-foreground mr-1">
+                  {t('briefing.layer')}:
                 </span>
                 {briefing.opticalLayers.map((o) => (
                   <button
@@ -214,10 +217,10 @@ export function PhenomenonBriefing() {
                     onClick={() => setOpticalLayerKey(o.key)}
                     title={o.note}
                     className={cn(
-                      'rounded-md border px-2 py-0.5 text-[11px] tabular-nums transition-colors',
+                      'rounded-sm border px-2 py-0.5 text-[12px] transition-colors',
                       opticalLayerKey === o.key
-                        ? 'border-primary/50 bg-primary/15 text-primary'
-                        : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
+                        ? 'border-transparent bg-raised text-foreground'
+                        : 'border-border bg-transparent text-muted-foreground hover:text-foreground'
                     )}
                   >
                     {o.label}
@@ -227,12 +230,12 @@ export function PhenomenonBriefing() {
             )}
 
             <p className="text-[12px] text-muted-foreground leading-snug flex items-start gap-1.5">
-              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/80" />
+              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground" />
               {showSar
                 ? pair.diagnostic
-                  ? `${pair.diagnostic}. Polígonos vermelhos marcam a área documentada.`
-                  : 'Sem par SAR disponível. Troque para óptico.'
-                : `${activeOptical.note ?? ''}, polígonos vermelhos sobrepostos marcam onde o fenômeno ocorreu. Troque de camada acima se tiver muita nuvem.`}
+                  ? `${pair.diagnostic}. ${t('briefing.redPolys')}`
+                  : t('briefing.noPair')
+                : `${activeOptical.note ? activeOptical.note + '. ' : ''}${t('briefing.opticalNote')}`}
             </p>
           </section>
 
@@ -243,15 +246,15 @@ export function PhenomenonBriefing() {
               onSelect={setSelectedEventId}
             />
 
-            <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2">
+            <div className="border-t border-border pt-3">
               <div className="flex items-baseline gap-2">
-                <div className="text-2xl font-semibold text-primary leading-none">
+                <div className="text-2xl font-semibold text-foreground tabular-nums leading-none">
                   {selectedEvent.magnitude.value}
                 </div>
-                <div className="text-[13px] tabular-nums text-primary/80">
+                <div className="text-[13px] tabular-nums text-muted-foreground">
                   {selectedEvent.magnitude.unit}
                 </div>
-                <div className="ml-auto text-[11px] tabular-nums text-muted-foreground">
+                <div className="ml-auto text-[12px] tabular-nums text-muted-foreground">
                   {selectedEvent.year}
                 </div>
               </div>
@@ -264,11 +267,11 @@ export function PhenomenonBriefing() {
               {briefing.tagline}
             </p>
 
-            <div className="grid grid-cols-2 gap-2">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-3">
               {selectedEvent.stats.map((s, i) => (
                 <StatCard key={i} value={s.value} label={s.label} source={s.source} />
               ))}
-            </div>
+            </dl>
 
             <div className="space-y-2 text-[13px] text-foreground/90 leading-relaxed">
               {briefing.narrative.map((p, i) => (
@@ -276,27 +279,27 @@ export function PhenomenonBriefing() {
               ))}
             </div>
 
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-              <div className="text-[11px] tabular-nums text-primary mb-1">
-                Como o radar lê isso
+            <div className="border-t border-border pt-3">
+              <div className="text-[12px] font-medium text-muted-foreground mb-1">
+                {t('briefing.howRadar')}
               </div>
               <div className="text-[13px] text-foreground/90 leading-snug">
                 {briefing.sarReading}
               </div>
             </div>
 
-            <div className="pt-1">
-              <div className="text-[11px] tabular-nums text-muted-foreground mb-1.5">
-                Fontes
+            <div className="border-t border-border pt-3">
+              <div className="text-[12px] font-medium text-muted-foreground mb-1">
+                {t('briefing.sources')}
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
                 {briefing.sources.map((src, i) => (
                   <a
                     key={i}
                     href={src.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2.5 py-1 text-[11px] tabular-nums text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                    className="inline-flex min-w-0 items-center gap-1 text-[12px] text-water hover:underline"
                   >
                     {src.label}
                     <ExternalLink className="h-3 w-3" />
@@ -329,11 +332,11 @@ function SourceTab({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] tabular-nums transition-colors',
+        'inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[12px] font-medium transition-colors',
         disabled && 'opacity-40 cursor-not-allowed',
         active
-          ? 'border-primary/50 bg-primary/15 text-primary'
-          : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
+          ? 'border-transparent bg-raised text-foreground'
+          : 'border-border bg-transparent text-muted-foreground hover:text-foreground'
       )}
     >
       {icon}
@@ -344,14 +347,12 @@ function SourceTab({
 
 function StatCard({ value, label, source }: { value: string; label: string; source: string }) {
   return (
-    <div className={cn(
-      'rounded-lg border border-border/60 bg-background/40 p-2.5'
-    )}>
-      <div className="text-xl font-semibold text-primary leading-tight">{value}</div>
-      <div className="text-[12px] text-foreground/85 leading-snug mt-0.5">{label}</div>
-      <div className="text-[10px] tabular-nums text-muted-foreground/80 mt-1">
-        {source}
-      </div>
+    <div className="flex min-w-0 flex-col-reverse">
+      <dt className="text-[12px] leading-snug text-foreground/85">
+        {label}
+        <span className="block text-muted-foreground">{source}</span>
+      </dt>
+      <dd className="text-xl font-semibold leading-tight tabular-nums text-foreground">{value}</dd>
     </div>
   )
 }
@@ -359,7 +360,8 @@ function StatCard({ value, label, source }: { value: string; label: string; sour
 function sarGranuleLabel(
   g: AsfGranule | null,
   platform: AsfPlatform | null,
-  fallbackDate: string
+  fallbackDate: string,
+  opticalWord: string
 ): string {
   if (g && platform) {
     const band = bandFor(platform)
@@ -367,10 +369,10 @@ function sarGranuleLabel(
     const pol = g.polarization.join('+') || '—'
     return `${platform} ${band}-band, ${pol}, ${d}`
   }
-  return `óptico, ${fallbackDate}`
+  return `${opticalWord}, ${fallbackDate}`
 }
 
 function boldifyMarkdown(text: string): string {
   const safe = text.replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  return safe.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-primary">$1</strong>')
+  return safe.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
 }

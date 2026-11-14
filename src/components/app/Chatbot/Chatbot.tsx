@@ -86,9 +86,9 @@ export function Chatbot() {
   return (
     <div className="flex h-full flex-col bg-card">
       {/* header */}
-      <div className="flex h-12 items-center gap-2 border-b border-border/60 px-3">
-        <div className="grid h-7 w-7 place-items-center rounded-md bg-primary/15">
-          <MessageSquare className="h-3.5 w-3.5 text-primary" />
+      <div className="flex h-12 items-center gap-2 border-b border-border px-3">
+        <div className="grid h-7 w-7 place-items-center rounded-md bg-raised">
+          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
         </div>
         <div className="flex-1 leading-tight">
           <div className="text-xs font-semibold">IARA assistant</div>
@@ -113,7 +113,7 @@ export function Chatbot() {
             <button
               key={s}
               onClick={() => send(s)}
-              className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+              className="rounded-md border border-border bg-transparent px-2.5 py-1 text-[12px] text-muted-foreground hover:text-foreground hover:bg-raised transition-colors"
             >
               {s}
             </button>
@@ -127,13 +127,13 @@ export function Chatbot() {
           e.preventDefault()
           send(input)
         }}
-        className="border-t border-border/60 p-2 flex items-center gap-2"
+        className="border-t border-border p-2 flex items-center gap-2"
       >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about mining, floods, drought…"
-          className="flex-1 bg-background/40 border border-border rounded-md px-2.5 h-9 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40"
+          className="flex-1 bg-transparent border border-border rounded-md px-2.5 h-9 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40"
         />
         <Button type="submit" size="icon" className="h-9 w-9" aria-label="Send">
           <Send className="h-3.5 w-3.5" />
@@ -149,10 +149,10 @@ function MessageBubble({ msg }: { msg: Message }) {
     <div className={cn('flex gap-2', isUser && 'flex-row-reverse')}>
       <div
         className={cn(
-          'grid h-6 w-6 shrink-0 place-items-center rounded-full ring-1',
+          'grid h-6 w-6 shrink-0 place-items-center rounded-md ring-1',
           isUser
             ? 'bg-muted ring-border text-muted-foreground'
-            : 'bg-primary/15 ring-primary/40 text-primary'
+            : 'bg-raised ring-border text-foreground'
         )}
       >
         {isUser ? <User className="h-3 w-3" /> : <MessageSquare className="h-3 w-3" />}
@@ -161,8 +161,8 @@ function MessageBubble({ msg }: { msg: Message }) {
         className={cn(
           'rounded-lg px-3 py-2 text-[13px] leading-snug max-w-[82%] whitespace-pre-wrap',
           isUser
-            ? 'bg-primary/15 text-foreground border border-primary/30'
-            : 'bg-background/40 text-foreground/90 border border-border/60'
+            ? 'bg-raised text-foreground border border-transparent'
+            : 'bg-transparent text-foreground/90 border border-border'
         )}
       >
         {renderMarkdownLite(msg.text)}
