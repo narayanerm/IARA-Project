@@ -8,14 +8,14 @@ import { MetadataPanel } from '../MetadataPanel/MetadataPanel'
 type Tab = 'chat' | 'meta'
 
 export function RightPanel() {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1536)
   const [tab, setTab] = useState<Tab>('chat')
 
   return (
     <aside
       className={cn(
         'relative z-10 h-full border-l border-border/60 bg-card/40 backdrop-blur-xl transition-[width] duration-300',
-        open ? 'w-[380px]' : 'w-12'
+        open ? 'w-[340px] 2xl:w-[380px]' : 'w-12'
       )}
     >
       <div className="flex h-12 items-center justify-between border-b border-border/60 px-2">

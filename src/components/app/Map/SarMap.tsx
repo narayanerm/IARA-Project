@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Map, {
   Layer,
   Source,
@@ -10,7 +10,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import { REGIONS } from '@/lib/regions'
 import { YANO_MINING } from '@/data/mocks/yanomami-mining'
-import { INDIGENOUS_LANDS, AMAZON_BIOME } from '@/data/layers/indigenous-lands'
+import { AMAZON_BIOME } from '@/data/layers/indigenous-lands'
 import { useApp } from '@/lib/store'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { useBrazilCoverage } from '@/lib/useBrazilCoverage'
@@ -18,10 +18,15 @@ import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsTileUrl } from '@/lib/gibs'
 import { useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
 import { AoiLayersPopup } from './AoiLayersPopup'
-import { TiTargets } from './TiTargets'
+import { CommunityAreas, CommunityPoints } from './CommunityLayers'
+import { CommunityPin } from './CommunityPin'
+import { SarPreview } from './SarPreview'
 import { MapFallback } from './MapFallback'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
+
+// Basemap style already credits OpenFreeMap, OpenMapTiles and OpenStreetMap; this adds the community data sources.
+const MAP_ATTRIBUTION = 'Comunidades: IBGE BC250 · TIs FUNAI e RESEX/RDS MMA via INPE TerraBrasilis'
 
 export function SarMap() {
   const mapRef = useRef<MapRef | null>(null)
@@ -35,9 +40,11 @@ export function SarMap() {
   const coverage = useBrazilCoverage()
   const gibs = GIBS_BY_REGION[activeRegion]
 
+  const [mapLoaded, setMapLoaded] = useState(false)
+
   useEffect(() => {
     const m = mapRef.current
-    if (!m) return
+    if (!m || !mapLoaded) return
     m.flyTo({
       center: region.center,
       zoom: region.zoom,
@@ -46,7 +53,7 @@ export function SarMap() {
       duration: 1600,
       essential: true,
     })
-  }, [region])
+  }, [region, mapLoaded])
 
   const changeFC: FeatureCollection = useMemo(
     () => ({
@@ -142,7 +149,8 @@ export function SarMap() {
         terrain={{ source: 'terrain-dem', exaggeration: 1.6 }}
         interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
         onClick={onClick}
-        attributionControl={false}
+        onLoad={() => setMapLoaded(true)}
+        attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
         <Source
           id="terrain-dem"
@@ -175,45 +183,13 @@ export function SarMap() {
           />
         </Source>
 
-        <Source id="indigenous-lands" type="geojson" data={INDIGENOUS_LANDS}>
-          <Layer
-            id="ti-fill"
-            type="fill"
-            paint={{
-              'fill-color': 'hsl(28 85% 55%)',
-              'fill-opacity': 0.14,
-            }}
-          />
-          <Layer
-            id="ti-line"
-            type="line"
-            paint={{
-              'line-color': 'hsl(28 95% 65%)',
-              'line-opacity': 0.75,
-              'line-width': 1.2,
-            }}
-          />
-          <Layer
-            id="ti-label"
-            type="symbol"
-            layout={{
-              'text-field': ['get', 'name'],
-              'text-size': 10,
-              'text-font': ['Noto Sans Regular'],
-              'text-letter-spacing': 0.04,
-              'text-max-width': 8,
-            }}
-            paint={{
-              'text-color': 'hsl(28 95% 80%)',
-              'text-halo-color': 'hsla(222, 47%, 5%, 0.9)',
-              'text-halo-width': 1.4,
-            }}
-          />
-        </Source>
+        <CommunityAreas />
+        {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
+        <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
         {coverage.data.length > 0 && (
           <Source id="br-coverage" type="geojson" data={coverageFC}>
             <Layer
-              id="br-coverage-fill"
+              id="br-coverage-fill" beforeId="reserves-fill"
               type="fill"
               paint={{
                 'fill-color': 'hsl(190 95% 55%)',
@@ -229,7 +205,7 @@ export function SarMap() {
               }}
             />
             <Layer
-              id="br-coverage-outline"
+              id="br-coverage-outline" beforeId="reserves-fill"
               type="line"
               paint={{
                 'line-color': 'hsl(190 100% 75%)',
@@ -257,7 +233,7 @@ export function SarMap() {
             attribution="NASA GIBS · MODIS"
           >
             <Layer
-              id="gibs-truecolor-layer"
+              id="gibs-truecolor-layer" beforeId="reserves-fill"
               type="raster"
               paint={{ 'raster-opacity': 0.55, 'raster-saturation': -0.1 }}
             />
@@ -273,7 +249,7 @@ export function SarMap() {
             tileSize={256}
             attribution={`NASA GIBS · ${gibs.sensor}`}
           >
-            <Layer id="gibs-raster-layer" type="raster" paint={{ 'raster-opacity': 0.72 }} />
+            <Layer id="gibs-raster-layer" beforeId="reserves-fill" type="raster" paint={{ 'raster-opacity': 0.72 }} />
           </Source>
         )}
 
@@ -288,7 +264,7 @@ export function SarMap() {
             attribution={`NASA GIBS · ${gibs.sensor}`}
           >
             <Layer
-              id="gibs-vector-glow"
+              id="gibs-vector-glow" beforeId="community-points-anchor"
               type="circle"
               source-layer={gibs.identifier}
               paint={{
@@ -299,7 +275,7 @@ export function SarMap() {
               }}
             />
             <Layer
-              id="gibs-vector-dot"
+              id="gibs-vector-dot" beforeId="community-points-anchor"
               type="circle"
               source-layer={gibs.identifier}
               paint={{
@@ -316,7 +292,7 @@ export function SarMap() {
         {asf.data.length > 0 && (
           <Source id="asf-footprints" type="geojson" data={footprintsFC}>
             <Layer
-              id="asf-footprints-fill"
+              id="asf-footprints-fill" beforeId="community-points-anchor"
               type="fill"
               paint={{
                 'fill-color': 'hsl(190 95% 60%)',
@@ -324,7 +300,7 @@ export function SarMap() {
               }}
             />
             <Layer
-              id="asf-footprints-line"
+              id="asf-footprints-line" beforeId="community-points-anchor"
               type="line"
               paint={{
                 'line-color': 'hsl(190 95% 70%)',
@@ -339,7 +315,7 @@ export function SarMap() {
         {activeRegion === 'YANO' && (
           <Source id="yano-change" type="geojson" data={changeFC}>
             <Layer
-              id="yano-change-fill"
+              id="yano-change-fill" beforeId="community-points-anchor"
               type="fill"
               paint={{
                 'fill-color': [
@@ -361,14 +337,14 @@ export function SarMap() {
               }}
             />
             <Layer
-              id="yano-change-outline"
+              id="yano-change-outline" beforeId="community-points-anchor"
               type="line"
               paint={{ 'line-color': 'hsl(0 0% 100% / 0.4)', 'line-width': 0.8 }}
             />
           </Source>
         )}
 
-        <TiTargets />
+        <CommunityPoints />
         <AoiLayersPopup />
       </Map>
 
@@ -386,38 +362,51 @@ function OverlayLegend() {
   const gibs = GIBS_BY_REGION[activeRegion]
 
   return (
-    <div className="pointer-events-none absolute top-4 right-4 flex flex-col items-end gap-2">
-      <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground min-w-[200px] text-right">
-        <div>
-          <span className="text-sar-cyan">▭</span> {t('coverage.title')}
+    <div className="pointer-events-none absolute right-3 top-3 bottom-32 flex w-[min(272px,calc(100%-24px))] flex-col items-stretch gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none]">
+      <div className="pointer-events-auto glass rounded-xl px-3 py-2.5 text-[13px] text-foreground/85">
+        <div className="text-[13px] font-semibold text-foreground mb-1.5">{t('community.legend')}</div>
+        <div className="grid gap-1.5">
+          <div className="flex items-center gap-2">
+            <CommunityPin kind="indigenous" size={22} />
+            {t('community.indigenous')}
+          </div>
+          <div className="flex items-center gap-2">
+            <CommunityPin kind="riverside" size={22} />
+            {t('community.riverside')}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="mx-[3px] inline-block h-0 w-4 border-t-2 border-dashed border-[hsl(174_72%_52%)]" />
+            {t('community.reserves')}
+          </div>
         </div>
-        <div className="mt-0.5 text-[13px] opacity-70">
-          {coverage.loading
-            ? t('coverage.loading')
-            : `${coverage.data.length} passes · ${t('coverage.footer')}`}
+
+        <div className="mt-2.5 grid gap-1 border-t border-border/60 pt-2 text-[12px] text-foreground/70">
+          <div>
+            <span className="text-sar-cyan">▭</span> {t('coverage.title')}{' '}
+            <span className="text-foreground/50">
+              {coverage.loading ? t('coverage.loading') : `(${coverage.data.length})`}
+            </span>
+          </div>
+          {asfCount > 0 && (
+            <div>
+              <span className="text-sar-cyan">▭</span> {asfCount} on AOI · ASF
+            </div>
+          )}
+          {nasaOverlay && gibs && (
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: gibs.paintColor }} />
+              <span className="truncate" title={gibs.explanation}>
+                {gibs.legendLabel}
+              </span>
+            </div>
+          )}
+          {activeRegion === 'YANO' && nasaOverlay && !gibs && <div>{t('overlay.none')}</div>}
         </div>
       </div>
 
-      {asfCount > 0 && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground">
-          <span className="text-sar-cyan">▭</span> {asfCount} on AOI · ASF
-        </div>
-      )}
-      {nasaOverlay && gibs && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground max-w-[260px] text-right">
-          <span
-            className="inline-block h-2 w-2 rounded-full mr-1 align-middle"
-            style={{ background: gibs.paintColor }}
-          />
-          {gibs.legendLabel}
-          <div className="text-[13px] opacity-70 mt-0.5 leading-tight">{gibs.explanation}</div>
-        </div>
-      )}
-      {activeRegion === 'YANO' && nasaOverlay && !gibs && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground max-w-[260px] text-right">
-          {t('overlay.none')}
-        </div>
-      )}
+      <div className="pointer-events-auto hidden md:block">
+        <SarPreview />
+      </div>
     </div>
   )
 }

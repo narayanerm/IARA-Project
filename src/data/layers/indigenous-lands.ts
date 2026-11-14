@@ -1,9 +1,10 @@
 import type { FeatureCollection, Polygon } from 'geojson'
 
-// Simplified TI polygons for demo only; authoritative source is FUNAI (SIRGAS 2000).
+// Hand-drawn TI outlines for the Leaflet fallback map only; the WebGL map loads public/data. Authoritative source is FUNAI.
 
 export interface TiProps {
   name: string
+  isaId: number
   state: string
   area_km2: number
   year: number
@@ -19,6 +20,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Yanomami',
+        isaId: 4016,
         state: 'RR/AM',
         area_km2: 96650,
         year: 1992,
@@ -52,6 +54,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Raposa Serra do Sol',
+        isaId: 3835,
         state: 'RR',
         area_km2: 17474,
         year: 2005,
@@ -78,6 +81,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Vale do Javari',
+        isaId: 3895,
         state: 'AM',
         area_km2: 85440,
         year: 2001,
@@ -107,6 +111,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'Parque Indígena do Xingu',
+        isaId: 3908,
         state: 'MT',
         area_km2: 26420,
         year: 1991,
@@ -135,6 +140,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Kayapó',
+        isaId: 3731,
         state: 'PA/MT',
         area_km2: 32940,
         year: 1991,
@@ -164,6 +170,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Trombetas-Mapuera',
+        isaId: 3951,
         state: 'PA/AM/RR',
         area_km2: 39560,
         year: 1989,
@@ -191,6 +198,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Alto Rio Negro',
+        isaId: 4068,
         state: 'AM',
         area_km2: 79990,
         year: 1998,
@@ -220,6 +228,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Munduruku',
+        isaId: 3770,
         state: 'PA',
         area_km2: 23381,
         year: 2004,
@@ -247,6 +256,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Apyterewa',
+        isaId: 3585,
         state: 'PA',
         area_km2: 7733,
         year: 2007,
@@ -273,6 +283,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Araribóia',
+        isaId: 3600,
         state: 'MA',
         area_km2: 4133,
         year: 1990,
@@ -299,6 +310,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Alto Turiaçu',
+        isaId: 3575,
         state: 'MA',
         area_km2: 5308,
         year: 1993,
@@ -325,6 +337,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Kaxinawá do Rio Humaitá',
+        isaId: 3728,
         state: 'AC',
         area_km2: 1278,
         year: 1998,
@@ -351,6 +364,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Mamoadate',
+        isaId: 3752,
         state: 'AC',
         area_km2: 3137,
         year: 1991,
@@ -377,6 +391,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Uru-Eu-Wau-Wau',
+        isaId: 3891,
         state: 'RO',
         area_km2: 18670,
         year: 1991,
@@ -404,6 +419,7 @@ export const INDIGENOUS_LANDS: FeatureCollection<Polygon, TiProps> = {
       type: 'Feature',
       properties: {
         name: 'TI Waimiri-Atroari',
+        isaId: 3902,
         state: 'AM/RR',
         area_km2: 25843,
         year: 1989,
@@ -476,16 +492,4 @@ export const AMAZON_BIOME: FeatureCollection = {
       },
     },
   ],
-}
-
-export function polygonCentroid(polygon: Polygon): [number, number] {
-  const ring = polygon.coordinates[0]
-  let x = 0
-  let y = 0
-  const n = ring.length - 1 // ignore closing duplicate
-  for (let i = 0; i < n; i++) {
-    x += ring[i][0]
-    y += ring[i][1]
-  }
-  return [x / n, y / n]
 }

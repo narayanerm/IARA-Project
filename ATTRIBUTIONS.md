@@ -30,16 +30,26 @@ License: https://creativecommons.org/licenses/by/3.0/
 | MapBiomas Alerta | Deforestation / mining validation | CC-BY-SA 4.0 |
 | DETER / PRODES (INPE) | Deforestation ground truth | Open data (INPE) |
 | ANA cotas fluviais | Water level ground truth | Open data (ANA) |
-| FUNAI · Sistema Indigenista | Indigenous Lands boundaries | Open data (FUNAI) |
+| FUNAI via INPE TerraBrasilis (`indigenous_area_legal_amazon`) | 386 Indigenous Land boundaries, simplified at 0.01° | Open data (FUNAI / INPE) |
+| MMA/CNUC via INPE TerraBrasilis (`conservation_units_legal_amazon`) | 102 RESEX and RDS boundaries | Open data (MMA / INPE) |
+| IBGE BC250 2023 (aglomerados rurais e vilas) | 1,538 riverside communities in Amazonas (within 2 km of water) | Open data (IBGE) |
+| INPE Programa Queimadas (AQUA tarde) | Fire hotspots and fire-risk class per community and territory | Open data (INPE) |
+| Terras Indígenas no Brasil (ISA) | Per-TI profile links | Linked only, no data copied |
+| FUNAI · Geoprocessamento e Mapas | Official Indigenous Lands record (linked) | Open data (FUNAI) |
 | IBGE | Amazon biome boundary | Open data (IBGE) |
 
-TI polygons shown are **simplified for demo visualization** and are not the
-official FUNAI SIRGAS 2000 shapefiles. The popup links to the official FUNAI
-system for the authoritative record.
+Community layers come from the team data package (ITACUBE, 2026-11-14) and are
+converted by `scripts/build-community-data.mjs` (`npm run data:communities`)
+into `public/data/`. The TerraBrasilis TI layer may lag behind the records
+FUNAI itself publishes; each TI popup links to its ISA profile (350 of 386
+matched by name) and to the official FUNAI geodata page. Hand-drawn TI outlines
+remain only for the Leaflet fallback map shown when WebGL is unavailable.
 
 ## Base Map
 
-OpenFreeMap vector tiles · https://openfreemap.org/ · ODbL
+OpenFreeMap vector tiles · https://openfreemap.org/
+OpenMapTiles schema · https://openmaptiles.org/ · © OpenMapTiles
+Map data © OpenStreetMap contributors · https://www.openstreetmap.org/copyright · ODbL
 AWS Open Terrain Tiles · https://registry.opendata.aws/terrain-tiles/
 
 ## Software / AI Disclosure (NASA Space Apps 2026)
