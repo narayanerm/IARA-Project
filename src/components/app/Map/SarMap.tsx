@@ -6,7 +6,7 @@ import Map, {
   type MapRef,
 } from 'react-map-gl/maplibre'
 import * as maplibregl from 'maplibre-gl'
-import { ChevronDown, Mountain, Satellite, type LucideIcon } from 'lucide-react'
+import { ChevronDown, Layers, Mountain, Satellite, type LucideIcon } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { FeatureCollection } from 'geojson'
 import { REGIONS } from '@/lib/regions'
@@ -33,15 +33,16 @@ import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsMaxZoom, gibsTileUrl, type GibsLa
 import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { hasWebGL2 } from '@/lib/webgl-support'
-import { AoiLayersPopup } from './AoiLayersPopup'
 import { CommunityAreas, CommunityPoints } from './CommunityLayers'
+import { FocusCamera, FocusLayers } from './FocusLayers'
+import { EXPLORE_VIEW } from './map-views'
 import { CommunityPin } from './CommunityPin'
-import { SarPreview } from './SarPreview'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
 import { inAmazon } from '@/lib/amazon'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
+const COMMUNITY_PIN_LAYERS = ['ti-pins', 'riverside-pins']
 
 // Basemap style already credits OpenFreeMap, OpenMapTiles and OpenStreetMap; this adds the community data
 // sources (full list in ATTRIBUTIONS.md). Kept short so the expanded credit stays on one line above the timeline.
@@ -126,6 +127,9 @@ export function SarMap() {
 
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const gibs = GIBS_BY_REGION[activeRegion]
+  const focus = useApp((s) => s.focus)
+  // Region overlays (GIBS, ASF swaths, curated polygons) belong to a documented case opened from a community.
+  const caseOpen = useApp((s) => s.focus !== null && s.caseRegion !== null)
 
   const focusedTi = useApp((s) => s.focusedTi)
   const localTiFeature = useMemo(
@@ -170,10 +174,10 @@ export function SarMap() {
   const [satelliteOn, setSatelliteOn] = useState(false)
   // First label layer of the basemap: imagery goes under it so place and river names stay readable.
   const [labelLayerId, setLabelLayerId] = useState<string>()
-  const [zoom, setZoom] = useState(region.zoom)
+  const [zoom, setZoom] = useState<number>(EXPLORE_VIEW.zoom)
 
-  const asf = useAsfGranules(region)
-  const coverage = useBrazilCoverage()
+  const asf = useAsfGranules(region, caseOpen)
+  const coverage = useBrazilCoverage(caseOpen)
 
   const coverageFC: FeatureCollection = useMemo(
     () => ({
@@ -212,9 +216,12 @@ export function SarMap() {
     [asf.data]
   )
 
+  const flownRegion = useRef(region.id)
   useEffect(() => {
     const m = mapRef.current
-    if (!m || !mapLoaded) return
+    if (!m || !mapLoaded || flownRegion.current === region.id) return
+    flownRegion.current = region.id
+    if (useApp.getState().focus) return
     // The region's layer balloon opens above its centre, so park the centre low enough for it to fit.
     m.flyTo({
       center: region.center,
@@ -285,6 +292,8 @@ export function SarMap() {
   )
 
   const onClick = (e: MapLayerMouseEvent) => {
+    if (!focus) return
+    if (e.target.queryRenderedFeatures(e.point, { layers: COMMUNITY_PIN_LAYERS }).length > 0) return
     const f = e.features?.[0]
     if (!f) {
       selectPolygon(null)
@@ -322,16 +331,10 @@ export function SarMap() {
           mapRef.current = r
         }}
         mapLib={maplibregl}
-        initialViewState={{
-          longitude: region.center[0],
-          latitude: region.center[1],
-          zoom: region.zoom,
-          pitch: PITCH,
-          bearing: BEARING,
-        }}
+        initialViewState={{ ...EXPLORE_VIEW, pitch: 0, bearing: 0 }}
         maxPitch={60}
         mapStyle={BASEMAP_URL}
-        interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
+        interactiveLayerIds={caseOpen && activeRegion === 'YANO' ? ['yano-change-fill'] : []}
         onClick={onClick}
         onZoomEnd={(e) => setZoom(e.viewState.zoom)}
         onLoad={(e) => {
@@ -392,7 +395,7 @@ export function SarMap() {
         <CommunityAreas />
         {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
         <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
-        {coverage.data.length > 0 && (
+        {caseOpen && coverage.data.length > 0 && (
           <Source id="br-coverage" type="geojson" data={coverageFC}>
             <Layer
               id="br-coverage-fill" beforeId="reserves-fill"
@@ -431,7 +434,7 @@ export function SarMap() {
           </Source>
         )}
 
-        {trueColorOverlay && (
+        {caseOpen && trueColorOverlay && (
           <Source
             id="gibs-truecolor"
             type="raster"
@@ -450,7 +453,7 @@ export function SarMap() {
           </Source>
         )}
 
-        {nasaOverlay && gibs?.kind === 'raster' && (
+        {caseOpen && nasaOverlay && gibs?.kind === 'raster' && (
           <Source
             id="gibs-raster"
             key={`gibs-${gibs.identifier}`}
@@ -470,7 +473,7 @@ export function SarMap() {
           </Source>
         )}
 
-        {nasaOverlay && gibs?.kind === 'vector' && (
+        {caseOpen && nasaOverlay && gibs?.kind === 'vector' && (
           <Source
             id="gibs-vector"
             key={`gibs-${gibs.identifier}`}
@@ -506,8 +509,8 @@ export function SarMap() {
           </Source>
         )}
 
-        <NisarImagery />
-        {asf.data.length > 0 && (
+        {focus && <NisarImagery />}
+        {caseOpen && asf.data.length > 0 && (
           <Source id="asf-footprints" type="geojson" data={footprintsFC}>
             <Layer
               id="asf-footprints-fill" beforeId="community-points-anchor"
@@ -547,7 +550,7 @@ export function SarMap() {
           </Source>
         )}
 
-        {activeRegion === 'YANO' && (
+        {caseOpen && activeRegion === 'YANO' && (
           <Source id="yano-change" type="geojson" data={changeFC}>
             <Layer
               id="yano-change-fill" beforeId="community-points-anchor"
@@ -579,6 +582,7 @@ export function SarMap() {
           </Source>
         )}
 
+        {caseOpen && (
         <Source
           id="affected-areas"
           key={`affected-${activeRegion}`}
@@ -639,6 +643,7 @@ export function SarMap() {
             }}
           />
         </Source>
+        )}
         {focusedTi && focusedTiFeature && (
           <>
             <Source
@@ -717,8 +722,9 @@ export function SarMap() {
             />
           </Source>
         )}
+        {focus && <FocusLayers focus={focus} />}
+        <FocusCamera />
         <CommunityPoints />
-        <AoiLayersPopup />
       </Map>
 
       <OverlayLegend
@@ -918,12 +924,35 @@ function OverlayLegend({
   const t = useT()
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
+  const focused = useApp((s) => s.focus !== null)
+  const caseOpen = useApp((s) => s.focus !== null && s.caseRegion !== null)
+  const [open, setOpen] = useState(false)
   const gibs = GIBS_BY_REGION[activeRegion]
   const coarse = !!gibs && gibs.kind === 'raster' && zoom !== undefined && zoom > gibsMaxZoom(gibs) + 1
 
   return (
-    <div className="pointer-events-none absolute right-3 top-3 bottom-24 hidden w-[min(272px,calc(100%-24px))] sm:flex flex-col items-stretch gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none]">
-      <div className="pointer-events-auto glass rounded-xl px-3 py-2.5 text-[13px] text-foreground/85">
+    <div
+      className={cn(
+        'pointer-events-none absolute right-3 top-3 bottom-24 flex w-[min(272px,calc(100%-24px))] flex-col items-end gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none]',
+        // On phones: above the map attribution while exploring; above the community bottom sheet when focused.
+        focused
+          ? 'max-md:bottom-auto max-md:max-h-[calc(45svh-5rem)]'
+          : 'max-md:top-auto max-md:bottom-16 max-md:max-h-[60%] max-md:flex-col-reverse'
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls="map-layers-card"
+        className="pointer-events-auto glass inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium text-foreground/90 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Layers className="h-4 w-4" />
+        {t('map.layers')}
+        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+      <div id="map-layers-card" className="pointer-events-auto glass w-full rounded-xl px-3 py-2.5 text-[13px] text-foreground/85">
         <div className="text-[13px] font-semibold text-foreground mb-1.5">{t('community.legend')}</div>
         <div className="grid gap-1.5">
           <div className="flex items-center gap-2">
@@ -940,6 +969,7 @@ function OverlayLegend({
           </div>
         </div>
 
+        {caseOpen && (
         <div className="mt-2.5 grid gap-1 border-t border-border/60 pt-2 text-[12px] text-foreground/70">
           <div>
             <span className="text-sar-cyan">▭</span> {t('coverage.title')}{' '}
@@ -978,6 +1008,7 @@ function OverlayLegend({
           )}
           {activeRegion === 'YANO' && nasaOverlay && !gibs && <div>{t('overlay.none')}</div>}
         </div>
+        )}
 
         {(onToggleSatellite || onToggleTerrain) && (
           <div className="mt-2.5 grid grid-cols-2 gap-1.5">
@@ -1025,9 +1056,7 @@ function OverlayLegend({
         )}
       </div>
 
-      <div className="pointer-events-auto hidden md:block">
-        <SarPreview />
-      </div>
+      )}
     </div>
   )
 }

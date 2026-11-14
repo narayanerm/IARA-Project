@@ -73,11 +73,14 @@ export function NisarImagery() {
     const raise = () => {
       if (!m.getLayer('nisar-browse-layer')) return
       const ids = m.getStyle().layers.map((l) => l.id)
-      const before = m.getLayer('nisar-point-halo')
-        ? 'nisar-point-halo'
-        : m.getLayer('yano-change-fill')
-          ? 'yano-change-fill'
-          : undefined
+      // Inside a community the image sits under its mask, so only the followed area shows at full strength.
+      const before = m.getLayer('focus-mask-fill')
+        ? 'focus-mask-fill'
+        : m.getLayer('nisar-point-halo')
+          ? 'nisar-point-halo'
+          : m.getLayer('yano-change-fill')
+            ? 'yano-change-fill'
+            : undefined
       const want = before ? ids.indexOf(before) - 1 : ids.length - 1
       // Only move when out of place: moveLayer itself fires 'styledata'.
       if (ids.indexOf('nisar-browse-layer') !== want) m.moveLayer('nisar-browse-layer', before)
@@ -115,8 +118,13 @@ export function NisarImagery() {
   )
 
   const m = map?.getMap()
-  // Above the coverage/footprint fills (which would wash out the radar image), below the detection polygons.
-  const beforeId = m?.getLayer('yano-change-fill') ? 'yano-change-fill' : undefined
+  // Above the coverage/footprint fills (which would wash out the radar image), below the detection polygons
+  // and below the community mask, so the image outside the followed area is dimmed like the rest of the map.
+  const beforeId = m?.getLayer('focus-mask-fill')
+    ? 'focus-mask-fill'
+    : m?.getLayer('yano-change-fill')
+    ? 'yano-change-fill'
+    : undefined
   const showRaster = visible && shown !== null
 
   return (

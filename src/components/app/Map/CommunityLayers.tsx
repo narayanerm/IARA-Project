@@ -1,14 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Layer, Popup, Source, useMap } from 'react-map-gl/maplibre'
-import type {
-  ExpressionSpecification,
-  MapLayerMouseEvent,
-  Map as MapLibreMap,
-  PointLike,
-  PositionAnchor,
-} from 'maplibre-gl'
-import { ExternalLink, Flame, History, MapPin as MapPinIcon, Navigation, Users, X } from 'lucide-react'
-import { COMMUNITY_DATA, type Risk, type RiversideProps, type TiPointProps } from '@/data/layers/communities'
+import { useEffect, useMemo } from 'react'
+import { Layer, Source, useMap } from 'react-map-gl/maplibre'
+import type { ExpressionSpecification, FilterSpecification, MapLayerMouseEvent } from 'maplibre-gl'
+import { ExternalLink, Flame, History, MapPin as MapPinIcon, Navigation, Users } from 'lucide-react'
+import { COMMUNITY_DATA, type RiversideProps, type TiPointProps } from '@/data/layers/communities'
 import {
   FUNAI_TI_URL,
   tiProfileUrl,
@@ -17,9 +11,11 @@ import {
   INPE_QUEIMADAS_URL,
   ibgeCidadeUrl,
 } from '@/lib/links'
-import { useT, type TKey } from '@/lib/i18n'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { CommunityPin } from './CommunityPin'
+import { useApp } from '@/lib/store'
+import { focusFromRiverside, focusFromTi, focusKey } from '@/lib/community'
+import { loadCommunityIndex, useNeighbours } from '@/lib/useCommunityIndex'
 import { KIND_COLOR, type CommunityKind } from './community-kind'
 import { loadPinImage } from './pin-image'
 
@@ -28,25 +24,7 @@ const PIN_IMAGE: Record<CommunityKind, string> = { indigenous: 'pin-indigenous',
 const SOURCE: Record<CommunityKind, string> = { indigenous: 'ti-points', riverside: 'riverside-points' }
 const PIN_LAYER: Record<CommunityKind, string> = { indigenous: 'ti-pins', riverside: 'riverside-pins' }
 
-// Pin tip sits on the point, so the balloon needs room for the pin body when it opens above.
-const PIN_TIP = 48
-const POPUP_OFFSET: Record<PositionAnchor, PointLike> = {
-  center: [0, -PIN_TIP / 2],
-  top: [0, 6],
-  'top-left': [0, 6],
-  'top-right': [0, 6],
-  bottom: [0, -PIN_TIP],
-  'bottom-left': [0, -PIN_TIP],
-  'bottom-right': [0, -PIN_TIP],
-  left: [18, -PIN_TIP / 2],
-  right: [-18, -PIN_TIP / 2],
-}
-
 const IS_VILLAGE: ExpressionSpecification = ['==', ['get', 'tipo'], 'vila']
-
-type Selected =
-  | { kind: 'indigenous'; lngLat: [number, number]; props: TiPointProps }
-  | { kind: 'riverside'; lngLat: [number, number]; props: RiversideProps }
 
 const pinImages = new Map<CommunityKind, HTMLImageElement>()
 
@@ -121,18 +99,24 @@ export function CommunityAreas() {
 
 // Each point carries the zoom at which it is revealed (scripts/build-community-data.mjs),
 // so the overview shows a spaced-out subset and every pin is visible from zoom 11 on.
-function PinLayer({ kind }: { kind: CommunityKind }) {
+// Inside a community only its own pin and its neighbours stay, always labelled.
+function PinLayer({ kind, only }: { kind: CommunityKind; only: number[] | null }) {
   const riverside = kind === 'riverside'
   const scale: ExpressionSpecification | number = riverside ? ['case', IS_VILLAGE, 1.2, 0.9] : 1
-  const label: ExpressionSpecification = riverside
+  const label: ExpressionSpecification = only
+    ? ['get', 'nome']
+    : riverside
     ? ['step', ['zoom'], '', 7, ['case', IS_VILLAGE, ['get', 'nome'], ''], 9, ['get', 'nome']]
     : ['step', ['zoom'], '', 6, ['get', 'nome']]
+  const filter: FilterSpecification = only
+    ? ['in', ['get', 'id'], ['literal', only]]
+    : ['>=', ['zoom'], ['get', 'minzoom']]
   return (
     <Layer
       id={PIN_LAYER[kind]}
       source={SOURCE[kind]}
       type="symbol"
-      filter={['>=', ['zoom'], ['get', 'minzoom']]}
+      filter={filter}
       layout={{
         'icon-image': PIN_IMAGE[kind],
         'icon-anchor': 'bottom',
@@ -156,35 +140,19 @@ function PinLayer({ kind }: { kind: CommunityKind }) {
   )
 }
 
-// Zooms toward the pin and parks it in the lower part of the map so the balloon above it fits.
-function focusOn(map: MapLibreMap, sel: Selected) {
-  const height = map.getContainer().clientHeight
-  const current = map.getZoom()
-  let zoom = Math.max(current, 10.5)
-  if (sel.kind === 'indigenous') {
-    const { bw, bs, be, bn } = sel.props
-    const fit = map.cameraForBounds(
-      [
-        [bw, bs],
-        [be, bn],
-      ],
-      { padding: 48, maxZoom: 11 }
-    )
-    zoom = Math.max(current, fit?.zoom ?? current)
-  }
-  map.easeTo({
-    center: sel.lngLat,
-    zoom,
-    offset: [0, Math.round(height * 0.22)],
-    duration: 900,
-    essential: true,
-  })
-}
-
 export function CommunityPoints() {
   usePinImages()
   const { current: ref } = useMap()
-  const [selected, setSelected] = useState<Selected | null>(null)
+  const focus = useApp((s) => s.focus)
+  const focusCommunity = useApp((s) => s.focusCommunity)
+  const neighbours = useNeighbours(focus)
+
+  const only = useMemo(() => {
+    if (!focus) return null
+    const ids: Record<CommunityKind, number[]> = { indigenous: [], riverside: [] }
+    for (const f of [focus, ...neighbours.map((n) => n.entry.focus)]) ids[f.kind].push(f.id)
+    return ids
+  }, [focus, neighbours])
 
   useEffect(() => {
     const map = ref?.getMap()
@@ -193,12 +161,18 @@ export function CommunityPoints() {
     const pointer = () => (map.getCanvas().style.cursor = 'pointer')
     const reset = () => (map.getCanvas().style.cursor = '')
 
+    // Tile features drop null properties, so the full record comes from the shared index when it is loaded.
     const onPin = (kind: CommunityKind) => (e: MapLayerMouseEvent) => {
       const f = e.features?.[0]
       if (!f || f.geometry.type !== 'Point') return
-      const sel = { kind, lngLat: f.geometry.coordinates as [number, number], props: f.properties } as Selected
-      setSelected(sel)
-      focusOn(map, sel)
+      const lngLat = f.geometry.coordinates as [number, number]
+      const fallback =
+        kind === 'indigenous'
+          ? focusFromTi(f.properties as TiPointProps, lngLat)
+          : focusFromRiverside(f.properties as RiversideProps, lngLat)
+      loadCommunityIndex()
+        .then((index) => focusCommunity(index.byKey.get(focusKey(fallback))?.focus ?? fallback))
+        .catch(() => focusCommunity(fallback))
     }
 
     const handlers = kinds.map((kind) => [PIN_LAYER[kind], onPin(kind)] as const)
@@ -214,107 +188,21 @@ export function CommunityPoints() {
         map.off('mouseleave', layer, reset)
       }
     }
-  }, [ref])
+  }, [ref, focusCommunity])
 
   return (
     <>
       <Source id={SOURCE.riverside} type="geojson" data={COMMUNITY_DATA.riverside}>
-        <PinLayer kind="riverside" />
+        <PinLayer kind="riverside" only={only?.riverside ?? null} />
       </Source>
       <Source id={SOURCE.indigenous} type="geojson" data={COMMUNITY_DATA.tiPoints}>
-        <PinLayer kind="indigenous" />
+        <PinLayer kind="indigenous" only={only?.indigenous ?? null} />
       </Source>
-
-      {selected && (
-        <Popup
-          longitude={selected.lngLat[0]}
-          latitude={selected.lngLat[1]}
-          offset={POPUP_OFFSET}
-          onClose={() => setSelected(null)}
-          closeOnClick={false}
-          closeButton={false}
-          className="ti-popup"
-          maxWidth="340px"
-        >
-          {selected.kind === 'indigenous' ? (
-            <TiPopup props={selected.props} onClose={() => setSelected(null)} />
-          ) : (
-            <RiversidePopup props={selected.props} onClose={() => setSelected(null)} />
-          )}
-        </Popup>
-      )}
     </>
   )
 }
 
-const RISK_TONE: Record<Risk, string> = {
-  baixo: 'text-emerald-300 border-emerald-400/40 bg-emerald-400/10',
-  moderado: 'text-yellow-200 border-yellow-300/40 bg-yellow-300/10',
-  alto: 'text-orange-300 border-orange-400/40 bg-orange-400/10',
-  'muito alto': 'text-red-300 border-red-400/50 bg-red-400/10',
-}
-
-const RISK_KEY: Record<Risk, TKey> = {
-  baixo: 'community.risk.low',
-  moderado: 'community.risk.moderate',
-  alto: 'community.risk.high',
-  'muito alto': 'community.risk.veryHigh',
-}
-
-function PopupShell({
-  kind,
-  title,
-  subtitle,
-  risk,
-  onClose,
-  children,
-}: {
-  kind: CommunityKind
-  title: string
-  subtitle: string
-  risk: Risk | null
-  onClose: () => void
-  children: React.ReactNode
-}) {
-  const t = useT()
-  return (
-    <div
-      className="w-[min(320px,calc(100vw-48px))] max-h-[min(460px,calc(100dvh-140px))] overflow-y-auto overscroll-contain rounded-xl border bg-card shadow-2xl"
-      style={{ borderColor: `color-mix(in srgb, ${KIND_COLOR[kind].fill} 45%, transparent)` }}
-    >
-      <div className="flex items-start gap-2.5 px-3.5 pt-3 pb-2.5">
-        <CommunityPin kind={kind} size={30} />
-        <div className="flex-1 min-w-0">
-          <div className="text-[15px] font-semibold leading-snug text-foreground">{title}</div>
-          <div className="text-[13px] text-foreground/70 mt-0.5">{subtitle}</div>
-        </div>
-        <button
-          onClick={onClose}
-          className="rounded-md p-1 text-foreground/60 hover:text-foreground hover:bg-secondary/70 transition-colors"
-          aria-label={t('community.close')}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      {risk && (
-        <div className="px-3.5 pb-2.5">
-          <span
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-medium',
-              RISK_TONE[risk]
-            )}
-          >
-            <Flame className="h-3.5 w-3.5" />
-            {t('community.fireRisk')}: {t(RISK_KEY[risk])}
-          </span>
-        </div>
-      )}
-      <div className="border-t border-border/60 px-3.5 py-3 space-y-2.5">{children}</div>
-    </div>
-  )
-}
-
-function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+export function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
   return (
     <div className="flex items-start gap-2 text-[13px]">
       <Icon className="h-4 w-4 shrink-0 text-foreground/50 mt-px" />
@@ -326,7 +214,7 @@ function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: st
   )
 }
 
-function LinkButton({ href, label, primary }: { href: string; label: string; primary?: boolean }) {
+export function LinkButton({ href, label, primary }: { href: string; label: string; primary?: boolean }) {
   return (
     <a
       href={href}
@@ -345,18 +233,13 @@ function LinkButton({ href, label, primary }: { href: string; label: string; pri
   )
 }
 
-function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void }) {
+/** Who the TI is: ethnicities, area, boundary revision, hotspots and official sources. */
+export function TiFacts({ props }: { props: TiPointProps }) {
   const t = useT()
   const fmt = (n: number) => n.toLocaleString('pt-BR')
   const ethnicities = props.etnia ? props.etnia.split(/[;,/]\s*/).filter(Boolean) : []
   return (
-    <PopupShell
-      kind="indigenous"
-      title={props.nome}
-      subtitle={[t('community.indigenous'), props.fase].filter(Boolean).join(' · ')}
-      risk={props.risco}
-      onClose={onClose}
-    >
+    <>
       {ethnicities.length > 0 && (
         <div className="rounded-md border border-sar-amber/30 bg-sar-amber/5 p-2">
           <div className="text-[10px] font-mono uppercase tracking-wider text-sar-amber/90">
@@ -408,11 +291,11 @@ function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void 
         </a>
         .
       </div>
-    </PopupShell>
+    </>
   )
 }
 
-function AccessDifficulty({ level, distKm }: { level: string; distKm?: number }) {
+export function AccessDifficulty({ level, distKm }: { level: string; distKm?: number }) {
   const key = level.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   const meta: Record<string, { label: string; color: string; hint: string }> = {
     baixa: {
@@ -462,16 +345,11 @@ function AccessDifficulty({ level, distKm }: { level: string; distKm?: number })
   )
 }
 
-function RiversidePopup({ props, onClose }: { props: RiversideProps; onClose: () => void }) {
+/** Where the riverside community is and how hard it is to reach, with its official sources. */
+export function RiversideFacts({ props }: { props: RiversideProps }) {
   const t = useT()
   return (
-    <PopupShell
-      kind="riverside"
-      title={props.nome}
-      subtitle={`${t('community.riverside')} · ${props.municipio}`}
-      risk={props.risco}
-      onClose={onClose}
-    >
+    <>
       {props.rio && <Fact icon={MapPinIcon} label={t('community.river')} value={props.rio} />}
       {props.cidade_prox && (
         <Fact
@@ -519,6 +397,6 @@ function RiversidePopup({ props, onClose }: { props: RiversideProps; onClose: ()
         </a>
         .
       </div>
-    </PopupShell>
+    </>
   )
 }

@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils'
 const PLAY_MS = 1400
 
 // Floating map control: pick product / track / date of the live NISAR imagery and animate it.
-export function NisarControl() {
+// `embedded` drops the floating frame so the community panel can host it; `areaLabel` names the searched area.
+export function NisarControl({ embedded = false, areaLabel }: { embedded?: boolean; areaLabel?: string } = {}) {
   const t = useT()
   const activeRegion = useApp((s) => s.activeRegion)
   const visible = useApp((s) => s.nisarVisible)
@@ -57,7 +58,12 @@ export function NisarControl() {
     : '—'
 
   return (
-    <div className="glass rounded-lg w-[300px] p-2.5 text-[12px] shadow-xl border border-border/60">
+    <div
+      className={cn(
+        'text-[12px]',
+        !embedded && 'glass rounded-lg w-[300px] p-2.5 shadow-xl border border-border/60'
+      )}
+    >
       <div className="flex items-center gap-2">
         <Satellite className="h-3.5 w-3.5 text-primary" />
         <div className="font-semibold text-[14px] text-foreground">{t('nisar.title')}</div>
@@ -75,6 +81,7 @@ export function NisarControl() {
         >
           {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
         </button>
+        {!embedded && (
         <button
           onClick={() => setCollapsed((v) => !v)}
           className="rounded p-1 text-muted-foreground hover:text-foreground"
@@ -88,9 +95,10 @@ export function NisarControl() {
             <ChevronUp className="h-3.5 w-3.5" />
           )}
         </button>
+        )}
       </div>
 
-      {collapsed ? null : (
+      {collapsed && !embedded ? null : (
       <>
       <div className="mt-2 grid grid-cols-2 gap-1">
         {(['GCOV', 'GUNW'] as NisarProduct[]).map((p) => (
@@ -118,7 +126,7 @@ export function NisarControl() {
         <span className="flex-1">
           {sel.point
             ? `${t('nisar.pointMode')} ${formatPoint(sel.point)}`
-            : t(`region.${activeRegion}.name`)}{' '}
+            : areaLabel ?? t(`region.${activeRegion}.name`)}{' '}
           · {sel.tracks[0]?.scenes.length ?? 0} {t('nisar.images')}
         </span>
         {sel.point && (
