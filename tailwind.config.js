@@ -10,12 +10,15 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['Bricolage Grotesque', 'Geist', 'ui-sans-serif', 'sans-serif'],
-        mono: ['Geist Mono', 'ui-monospace', 'monospace'],
+        sans: ['IBM Plex Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['IBM Plex Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        condensed: ['IBM Plex Sans Condensed', 'IBM Plex Sans', 'ui-sans-serif', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       colors: {
         border: 'hsl(var(--border))',
+        raised: 'hsl(var(--raised))',
+        water: 'hsl(var(--water))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
@@ -72,9 +75,10 @@ export default {
         },
       },
       borderRadius: {
+        xl: 'var(--radius)',
         lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        md: 'var(--radius)',
+        sm: '4px',
       },
       keyframes: {
         'accordion-down': {
