@@ -30,7 +30,7 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
 
   const terminar = useCallback(() => setPronto(true), [])
 
-  /* a barra de pixels acompanha o radar da cena; só atualiza quando um pixel novo acende */
+  /* the pixel bar follows the scene radar; it only updates when a new pixel lights up */
   const ultimo = useRef(-1)
   const progredir = useCallback((p: number) => {
     if (ultimo.current === PIXELS) return
@@ -41,7 +41,7 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
     }
   }, [])
 
-  /* se a cena travar ou os modelos demorarem, libera a entrada mesmo assim */
+  /* if the scene stalls or the models take too long, allow entering anyway */
   useEffect(() => {
     if (pronto) {
       ultimo.current = PIXELS
@@ -61,7 +61,7 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
     try {
       window.localStorage.setItem(STORAGE_KEY, '1')
     } catch {
-      /* armazenamento bloqueado, segue sem lembrar */
+      /* storage blocked, continue without remembering */
     }
     if (reduz) {
       onReady()
@@ -176,7 +176,7 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
   )
 }
 
-/* sem WebGL: o mosaico de pixels da marca, com o rio cortando a mata */
+/* no WebGL: the brand pixel mosaic, with the river cutting through the forest */
 function MosaicoEstatico() {
   const cels = useMemo(() => {
     const r = rnd(2026)
