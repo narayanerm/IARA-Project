@@ -97,8 +97,7 @@ export function Sidebar() {
           <div className="my-1 h-px w-6 bg-border" />
           <RailButton
             icon={Users}
-            label={inCase ? t('side.communities') : t('side.communitiesLocked')}
-            disabled={!inCase}
+            label={t('side.communities')}
             onClick={() => {
               openLeft('communities')
               markExplore()
@@ -152,7 +151,7 @@ export function Sidebar() {
 
           <section ref={tiRef} className="border-t border-border px-3 pt-3 pb-2">
             <h3 className="px-1 pb-1.5 text-[12px] font-medium text-muted-foreground">{t('side.communities')}</h3>
-            <CommunityList locked={!inCase} />
+            <CommunityList locked={false} />
           </section>
 
           <p className="mt-auto border-t border-border px-4 py-2.5 text-[12px] leading-relaxed text-muted-foreground">

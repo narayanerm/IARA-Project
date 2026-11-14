@@ -180,6 +180,9 @@
 }
 
 /* MapLibre popup override for TI targets */
+.maplibregl-popup {
+  z-index: 50;
+}
 .ti-popup .maplibregl-popup-content,
 .ti-popup .maplibregl-popup-tip {
   background: transparent !important;

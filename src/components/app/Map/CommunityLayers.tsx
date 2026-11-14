@@ -18,6 +18,7 @@ import {
   ibgeCidadeUrl,
 } from '@/lib/links'
 import { useT, type TKey } from '@/lib/i18n'
+import { useMapView } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { CommunityPin } from './CommunityPin'
 import { KIND_COLOR, type CommunityKind } from './community-kind'
@@ -149,7 +150,7 @@ function PinLayer({ kind }: { kind: CommunityKind }) {
       }}
       paint={{
         'text-color': 'hsl(0 0% 96%)',
-        'text-halo-color': 'hsl(154 26% 5% / 0.95)',
+        'text-halo-color': 'hsl(222 47% 6% / 0.95)',
         'text-halo-width': 1.6,
       }}
     />
@@ -175,7 +176,8 @@ function focusOn(map: MapLibreMap, sel: Selected) {
   map.easeTo({
     center: sel.lngLat,
     zoom,
-    offset: [0, Math.round(height * 0.22)],
+    // pin at ~78% of the height: the card opens upward above it, clear of the ask bar and dock
+    offset: [0, Math.round(height * 0.28)],
     duration: 900,
     essential: true,
   })
@@ -185,6 +187,11 @@ export function CommunityPoints() {
   usePinImages()
   const { current: ref } = useMap()
   const [selected, setSelected] = useState<Selected | null>(null)
+  const patchMapView = useMapView((s) => s.patch)
+  useEffect(() => {
+    patchMapView({ detailOpen: !!selected })
+    return () => patchMapView({ detailOpen: false })
+  }, [selected, patchMapView])
 
   useEffect(() => {
     const map = ref?.getMap()
@@ -234,6 +241,7 @@ export function CommunityPoints() {
           closeOnClick={false}
           closeButton={false}
           className="ti-popup"
+          anchor="bottom"
           maxWidth="340px"
         >
           {selected.kind === 'indigenous' ? (
@@ -279,7 +287,7 @@ function PopupShell({
 }) {
   const t = useT()
   return (
-    <div className="w-[min(320px,calc(100vw-48px))] max-h-[min(460px,calc(100dvh-140px))] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card">
+    <div className="w-[min(320px,calc(100vw-48px))] max-h-[min(460px,calc(78dvh-130px))] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card">
       <div className="flex items-start gap-2.5 border-b border-border px-3 py-2.5">
         <CommunityPin kind={kind} size={26} />
         <div className="min-w-0 flex-1">
@@ -366,8 +374,8 @@ function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void 
         <div>
           <div className="text-[12px] text-muted-foreground">{t('community.ethnicities')}</div>
           <div className="mt-1 flex flex-wrap gap-1">
-            {ethnicities.map((e) => (
-              <span key={e} className="rounded-md bg-raised px-2 py-0.5 text-[12px] font-medium text-foreground">
+            {ethnicities.map((e, i) => (
+              <span key={`${i}-${e}`} className="rounded-md bg-raised px-2 py-0.5 text-[12px] font-medium text-foreground">
                 {e}
               </span>
             ))}

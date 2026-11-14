@@ -60,10 +60,10 @@ export function MapFallback({ region }: { region: Region }) {
 
   const biomeStyle = useMemo(
     () => ({
-      color: 'hsl(142 32% 46%)',
+      color: 'hsl(145 70% 55%)',
       weight: 1.2,
       opacity: 0.55,
-      fillColor: 'hsl(142 29% 24%)',
+      fillColor: 'hsl(145 65% 35%)',
       fillOpacity: 0.06,
       dashArray: '4 3',
     }),
@@ -71,10 +71,10 @@ export function MapFallback({ region }: { region: Region }) {
   )
 
   const tiStyle = (feature: { properties: TiProps } | undefined) => ({
-    color: 'hsl(19 90% 68%)',
+    color: 'hsl(28 95% 65%)',
     weight: 1.1,
     opacity: 0.85,
-    fillColor: 'hsl(19 85% 61%)',
+    fillColor: 'hsl(28 85% 55%)',
     fillOpacity: feature?.properties.name === 'TI Yanomami' ? 0.28 : 0.14,
   })
 
@@ -213,9 +213,9 @@ export function MapFallback({ region }: { region: Region }) {
             center={[r.center[1], r.center[0]]}
             radius={r.id === region.id ? 14 : 9}
             pathOptions={{
-              color: r.id === region.id ? 'hsl(198 55% 70%)' : 'hsl(198 51% 57%)',
+              color: r.id === region.id ? 'hsl(190 95% 70%)' : 'hsl(190 95% 60%)',
               weight: r.id === region.id ? 3 : 1.5,
-              fillColor: 'hsl(198 51% 57%)',
+              fillColor: 'hsl(190 95% 60%)',
               fillOpacity: r.id === region.id ? 0.55 : 0.2,
             }}
             eventHandlers={{ click: () => setActiveRegion(r.id) }}

@@ -1,5 +1,7 @@
 import { useApp, useUi } from './store'
 import type { ProductLayer, RegionId } from './types'
+import type { FeatureCollection } from 'geojson'
+import { AMAZON_BIOME } from '@/data/layers/indigenous-lands'
 
 /** The SAR layer that tells each story best (drives the NISAR product shown on the map). */
 export const TELLING_LAYER: Record<RegionId, ProductLayer> = {
@@ -8,8 +10,21 @@ export const TELLING_LAYER: Record<RegionId, ProductLayer> = {
   SECA: 'amplitude', // GCOV backscatter: open water is dark, watch it shrink
 }
 
-/** Map view that shows the three cases at once. */
-export const AMAZON_VIEW = { center: [-62.3, -0.6] as [number, number], zoom: 5.6 }
+
+function bboxOf(fc: FeatureCollection): [[number, number], [number, number]] {
+  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity
+  const walk = (c: unknown): void => {
+    if (Array.isArray(c) && typeof c[0] === 'number') {
+      const [x, y] = c as number[]
+      w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y)
+    } else if (Array.isArray(c)) c.forEach(walk)
+  }
+  for (const f of fc.features) if (f.geometry && 'coordinates' in f.geometry) walk(f.geometry.coordinates)
+  return [[w, s], [e, n]]
+}
+
+/** Legal Amazon / biome bounds: the opening view fits these so the basin fills the map at any size. */
+export const AMAZON_BOUNDS = bboxOf(AMAZON_BIOME)
 
 /** overview → case: fly to the case and open "what happened". */
 export function openCase(id: RegionId) {

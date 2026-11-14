@@ -37,7 +37,7 @@ interface AppState {
   setNisarNotice: (n: string | null) => void
 }
 
-/** NISAR product shown on the map follows the layer toggle: Interferogram → GUNW, anything else → GCOV. */
+/** NISAR product shown on the map follows the layer toggle: Interferogram â†’ GUNW, anything else â†’ GCOV. */
 export function nisarProductFor(layer: ProductLayer): NisarProduct {
   return layer === 'interferogram' ? 'GUNW' : 'GCOV'
 }
@@ -47,7 +47,7 @@ export const useApp = create<AppState>((set, get) => ({
   activeLayer: 'change',
   timeIndex: 23,
   selectedPolygon: null,
-  nasaOverlay: false,
+  nasaOverlay: true,
   trueColorOverlay: false,
   focusedTi: null,
   flyTarget: null,
@@ -110,8 +110,8 @@ export type LeftSection = 'cases' | 'communities'
 export type RightTab = 'nisar' | 'chat' | 'meta'
 /**
  * Story stage, revealed one click at a time:
- * overview = Amazon with the three cases · case = what happened (briefing) ·
- * radar = the telling SAR layer + caption · explore = secondary tools in use.
+ * overview = Amazon with the three cases Â· case = what happened (briefing) Â·
+ * radar = the telling SAR layer + caption Â· explore = secondary tools in use.
  */
 export type Stage = 'overview' | 'case' | 'radar' | 'explore'
 
@@ -124,6 +124,8 @@ interface UiState {
   stage: Stage
   /** bumps whenever the map should fly back to the active region */
   flyNonce: number
+  /** question typed in the floating ask bar, waiting for the assistant to pick it up */
+  askQueue: { text: string; ts: number } | null
   setLeftOpen: (v: boolean) => void
   openLeft: (section?: LeftSection) => void
   setRightOpen: (v: boolean) => void
@@ -131,6 +133,9 @@ interface UiState {
   setBriefingOpen: (v: boolean) => void
   setStage: (s: Stage) => void
   flyToRegion: () => void
+  /** ask bar â†’ open the Assistant tab and hand it the question */
+  ask: (text: string) => void
+  clearAsk: () => void
 }
 
 export const useUi = create<UiState>((set, get) => ({
@@ -141,6 +146,7 @@ export const useUi = create<UiState>((set, get) => ({
   briefingOpen: false,
   stage: 'overview',
   flyNonce: 0,
+  askQueue: null,
   setLeftOpen: (v) => set({ leftOpen: v }),
   openLeft: (section) => set({ leftOpen: true, leftSection: section ?? get().leftSection }),
   setRightOpen: (v) => set({ rightOpen: v }),
@@ -148,6 +154,8 @@ export const useUi = create<UiState>((set, get) => ({
   setBriefingOpen: (v) => set({ briefingOpen: v }),
   setStage: (stage) => set({ stage }),
   flyToRegion: () => set({ flyNonce: get().flyNonce + 1 }),
+  ask: (text) => set({ askQueue: { text, ts: Date.now() }, rightOpen: true, rightTab: 'chat' }),
+  clearAsk: () => set({ askQueue: null }),
 }))
 
 /* ------------------------------------------------------------------ */
@@ -178,6 +186,8 @@ interface MapViewState {
   /** bumps when something outside the map asks it to ease to a zoom level */
   zoomRequest: { zoom: number; ts: number } | null
   focusedInfo: FocusedTiInfo | null
+  /** a community / area detail card is open on the map */
+  detailOpen: boolean
   toggleTerrain: () => void
   toggleSatellite: () => void
   toggleMunicipios: () => void
@@ -196,6 +206,7 @@ export const useMapView = create<MapViewState>((set, get) => ({
   coverageLoading: false,
   zoomRequest: null,
   focusedInfo: null,
+  detailOpen: false,
   toggleTerrain: () => set({ terrainOn: !get().terrainOn }),
   toggleSatellite: () => set({ satelliteOn: !get().satelliteOn }),
   toggleMunicipios: () => set({ municipiosOn: !get().municipiosOn }),
