@@ -16,7 +16,7 @@ import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
 
-import { AMAZON_CENTER, AMAZON_ZOOM, BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN } from './constants'
+import { AMAZON_CENTER, AMAZON_ZOOM, BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN, TERRAIN_MIN_ZOOM } from './constants'
 import { useBasemapAdapter } from './hooks/useBasemapAdapter'
 import { useMapCamera } from './hooks/useMapCamera'
 import { useFocusedTi } from './hooks/useFocusedTi'
@@ -55,21 +55,32 @@ export function SarMap() {
   const ibge = useIbgeMunicipios(UF_CODE_BY_REGION[activeRegion] ?? null, municipiosOn)
 
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [terrainOn, setTerrainOn] = useState(false)
+  const [reliefOn, setReliefOn] = useState(false)
   const [satelliteOn, setSatelliteOn] = useState(false)
   // First label layer of the basemap: imagery goes under it so place and river names stay readable.
   const [labelLayerId, setLabelLayerId] = useState<string>()
   useMapCamera(mapRef, region, mapLoaded)
   useBasemapAdapter(() => mapRef.current?.getMap(), satelliteOn, mapLoaded)
 
-  // Terrain is opt-in: draping the map over the DEM renders through an offscreen texture,
-  // which costs frames and softens every layer on top of it.
+  // 3D relief: drape the map over the DEM only when zoomed in enough for it to show.
   useEffect(() => {
     const m = mapRef.current?.getMap()
     if (!m || !mapLoaded) return
-    if (terrainOn && !m.getSource(TERRAIN.source)) return
-    m.setTerrain(terrainOn ? TERRAIN : null)
-  }, [terrainOn, mapLoaded])
+    const sync = () => {
+      const want = reliefOn && m.getZoom() >= TERRAIN_MIN_ZOOM && !!m.getSource(TERRAIN.source)
+      if (want !== !!m.getTerrain()) m.setTerrain(want ? TERRAIN : null)
+    }
+    sync()
+    m.on('zoomend', sync)
+    m.on('sourcedata', sync)
+    // Tilt once so the relief is visible right away; a flat camera hides the mesh.
+    if (reliefOn && m.getPitch() < 20) m.easeTo({ pitch: PITCH, duration: 800, essential: true })
+    return () => {
+      m.off('zoomend', sync)
+      m.off('sourcedata', sync)
+      if (m.getTerrain()) m.setTerrain(null)
+    }
+  }, [reliefOn, mapLoaded])
 
   const onClick = (e: MapLayerMouseEvent) => {
     const f = e.features?.[0]
@@ -121,7 +132,7 @@ export function SarMap() {
         }}
         attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
-        <TerrainSource />
+        <TerrainSource on={reliefOn} beforeId={labelLayerId} />
         <SatelliteLayer on={satelliteOn} beforeId={labelLayerId} />
 
         <AmazonBiomeLayer />
@@ -144,8 +155,8 @@ export function SarMap() {
       </Map>
 
       <OverlayLegend
-        terrainOn={terrainOn}
-        onToggleTerrain={() => setTerrainOn((v) => !v)}
+        reliefOn={reliefOn}
+        onToggleRelief={() => setReliefOn((v) => !v)}
         satelliteOn={satelliteOn}
         onToggleSatellite={() => setSatelliteOn((v) => !v)}
         municipiosOn={municipiosOn}

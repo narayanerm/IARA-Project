@@ -1,4 +1,4 @@
-import type { TerrainSpecification } from 'maplibre-gl'
+import type { HillshadeLayerSpecification, TerrainSpecification } from 'maplibre-gl'
 
 export const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
@@ -30,7 +30,19 @@ export const MAP_ATTRIBUTION =
 // Moderate tilt keeps the 3D feel without loading low-detail tiles across a long horizon.
 export const PITCH = 40
 export const BEARING = -12
-export const TERRAIN: TerrainSpecification = { source: 'terrain-dem', exaggeration: 1.4 }
+// Relief = 3D mesh plus slope shading. The mesh has its own DEM source (MapLibre renders badly when
+// terrain and hillshade share one) and is dropped below TERRAIN_MIN_ZOOM: zoomed out it shows nothing
+// and draping the whole basin through the offscreen texture is where the tiles used to glitch.
+export const TERRAIN: TerrainSpecification = { source: 'terrain-mesh', exaggeration: 1.5 }
+export const TERRAIN_MIN_ZOOM = 6
+export const RELIEF_LAYER = 'relief-hillshade'
+export const RELIEF_PAINT: HillshadeLayerSpecification['paint'] = {
+  'hillshade-method': 'multidirectional',
+  'hillshade-exaggeration': 0.75,
+  'hillshade-shadow-color': 'hsl(222 60% 2%)',
+  'hillshade-highlight-color': 'hsl(40 40% 88% / 0.45)',
+  'hillshade-accent-color': 'hsl(222 40% 8%)',
+}
 
 // Centre of the Amazon biome used when no AOI is active.
 export const AMAZON_CENTER: [number, number] = [-61, -5]
