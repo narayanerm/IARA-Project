@@ -21,7 +21,7 @@ export function ExportMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground">
+        <DropdownMenuLabel className="text-[12px] font-medium text-muted-foreground">
           {t('export.heading')}
         </DropdownMenuLabel>
         <DropdownMenuItem onSelect={() => alert('mock CAP-XML')}>

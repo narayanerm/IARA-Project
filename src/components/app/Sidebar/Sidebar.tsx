@@ -67,7 +67,7 @@ export function Sidebar() {
     >
       <div className="flex h-12 items-center justify-between border-b border-border/60 px-2">
         {open && (
-          <div className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground px-1">
+          <div className="text-[13px] font-medium text-muted-foreground px-1">
             Panorama Amazônia
           </div>
         )}

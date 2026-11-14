@@ -22,7 +22,7 @@ export function SarPreview() {
     <div className="glass rounded-lg overflow-hidden w-[260px] shadow-xl border border-border/60">
       <div className="flex items-center gap-2 border-b border-border/60 px-2.5 py-1.5">
         <ImageIcon className="h-3.5 w-3.5 text-primary" />
-        <div className="text-[13px] font-mono uppercase tracking-wider text-muted-foreground">
+        <div className="text-[13px] font-medium text-muted-foreground">
           {t('preview.title')}
         </div>
         <a

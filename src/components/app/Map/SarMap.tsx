@@ -172,7 +172,7 @@ export function SarMap() {
             id="amazon-biome-fill"
             type="fill"
             paint={{
-              'fill-color': 'hsl(145 65% 35%)',
+              'fill-color': 'hsl(142 29% 24%)',
               'fill-opacity': 0.08,
             }}
           />
@@ -180,7 +180,7 @@ export function SarMap() {
             id="amazon-biome-line"
             type="line"
             paint={{
-              'line-color': 'hsl(145 70% 55%)',
+              'line-color': 'hsl(142 32% 46%)',
               'line-opacity': 0.45,
               'line-width': 1.3,
               'line-dasharray': [3, 2],
@@ -193,7 +193,7 @@ export function SarMap() {
             id="ti-fill"
             type="fill"
             paint={{
-              'fill-color': 'hsl(28 85% 55%)',
+              'fill-color': 'hsl(19 85% 61%)',
               'fill-opacity': 0.14,
             }}
           />
@@ -201,7 +201,7 @@ export function SarMap() {
             id="ti-line"
             type="line"
             paint={{
-              'line-color': 'hsl(28 95% 65%)',
+              'line-color': 'hsl(19 90% 68%)',
               'line-opacity': 0.75,
               'line-width': 1.2,
             }}
@@ -217,7 +217,7 @@ export function SarMap() {
               'text-max-width': 8,
             }}
             paint={{
-              'text-color': 'hsl(28 95% 80%)',
+              'text-color': 'hsl(19 90% 82%)',
               'text-halo-color': 'hsla(222, 47%, 5%, 0.9)',
               'text-halo-width': 1.4,
             }}
@@ -229,7 +229,7 @@ export function SarMap() {
               id="br-coverage-fill"
               type="fill"
               paint={{
-                'fill-color': 'hsl(190 95% 55%)',
+                'fill-color': 'hsl(198 51% 57%)',
                 'fill-opacity': [
                   'interpolate',
                   ['linear'],
@@ -245,7 +245,7 @@ export function SarMap() {
               id="br-coverage-outline"
               type="line"
               paint={{
-                'line-color': 'hsl(190 100% 75%)',
+                'line-color': 'hsl(198 60% 75%)',
                 'line-opacity': [
                   'interpolate',
                   ['linear'],
@@ -332,7 +332,7 @@ export function SarMap() {
               id="asf-footprints-fill"
               type="fill"
               paint={{
-                'fill-color': 'hsl(190 95% 60%)',
+                'fill-color': 'hsl(198 51% 57%)',
                 'fill-opacity': ['interpolate', ['linear'], ['get', 'age'], 0, 0.18, 8, 0.04],
               }}
             />
@@ -340,7 +340,7 @@ export function SarMap() {
               id="asf-footprints-line"
               type="line"
               paint={{
-                'line-color': 'hsl(190 95% 70%)',
+                'line-color': 'hsl(198 55% 70%)',
                 'line-opacity': ['interpolate', ['linear'], ['get', 'age'], 0, 0.95, 8, 0.2],
                 'line-width': 1.2,
                 'line-dasharray': [2, 1.5],

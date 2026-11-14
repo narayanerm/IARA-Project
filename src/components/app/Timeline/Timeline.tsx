@@ -87,7 +87,7 @@ export function Timeline() {
 
         <div className="flex-1">
           <div className="flex items-baseline justify-between mb-1">
-            <div className="text-[13px] font-mono uppercase tracking-wider text-muted-foreground">
+            <div className="text-[13px] font-medium text-muted-foreground">
               {t('timeline.series')} · {seriesTitle}
             </div>
             <div className="text-xs font-mono text-foreground">

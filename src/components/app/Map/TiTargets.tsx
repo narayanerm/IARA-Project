@@ -83,7 +83,7 @@ function TargetReticle({ active }: { active: boolean }) {
       />
       <Crosshair
         className={cn(
-          'relative drop-shadow-[0_0_6px_hsla(28,95%,60%,0.6)]',
+          'relative',
           active ? 'text-sar-amber' : 'text-sar-amber/85'
         )}
         style={{ width: 14, height: 14 }}
@@ -110,7 +110,7 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
         <button
           onClick={onClose}
           className="text-muted-foreground hover:text-foreground text-sm"
-          aria-label="Fechar"
+          aria-label="Close"
         >
           ×
         </button>
@@ -118,21 +118,21 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
 
       <div className="p-3 space-y-2">
         <div className="grid grid-cols-2 gap-2">
-          <StatBlock label="Área" value={`${props.area_km2.toLocaleString('pt-BR')} km²`} />
+          <StatBlock label="Area" value={`${props.area_km2.toLocaleString('en-US')} km²`} />
           <StatBlock label="Status" value={props.status} />
         </div>
         {props.population && (
           <div className="flex items-center gap-2 bg-background/60 border border-border/60 rounded-md px-2.5 py-1.5">
             <Users className="h-3.5 w-3.5 text-muted-foreground" />
             <div className="flex-1 text-[13px] text-foreground">
-              {props.population.toLocaleString('pt-BR')} habitantes
+              {props.population.toLocaleString('en-US')} inhabitants
             </div>
           </div>
         )}
         {props.ethnicities && props.ethnicities.length > 0 && (
           <div>
-            <div className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
-              Etnias
+            <div className="text-[12px] font-medium text-muted-foreground mb-1">
+              Ethnic groups
             </div>
             <div className="flex flex-wrap gap-1">
               {props.ethnicities.map((e) => (
@@ -153,11 +153,11 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
           rel="noopener noreferrer"
           className="flex items-center justify-between rounded-md bg-sar-amber/10 hover:bg-sar-amber/15 border border-sar-amber/30 px-2.5 py-1.5 text-[13px] text-sar-amber font-mono transition-colors"
         >
-          <span>Consultar na FUNAI</span>
+          <span>View on FUNAI</span>
           <ExternalLink className="h-3 w-3" />
         </a>
         <div className="text-[11px] text-muted-foreground/70 leading-snug">
-          Contorno simplificado para visualização. Fonte oficial: FUNAI · SIG Indigenista.
+          Simplified outline for display. Official source: FUNAI Indigenous GIS.
         </div>
       </div>
     </div>
@@ -167,7 +167,7 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
 function StatBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md bg-background/60 border border-border/60 px-2 py-1.5">
-      <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+      <div className="text-[11px] font-medium text-muted-foreground">
         {label}
       </div>
       <div className="text-[13px] text-foreground mt-0.5 capitalize">{value}</div>

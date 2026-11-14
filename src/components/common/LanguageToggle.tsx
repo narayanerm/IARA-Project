@@ -9,7 +9,7 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   return (
     <div
       className={cn(
-        'glass inline-flex items-center gap-0.5 rounded-md p-0.5 text-[13px] font-mono',
+        'glass inline-flex items-center gap-0.5 rounded-md p-0.5 text-[13px] font-medium',
         compact && 'h-8'
       )}
     >
@@ -17,7 +17,7 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
       <button
         onClick={() => setLang('pt')}
         className={cn(
-          'rounded px-2 py-1 transition-colors uppercase tracking-wider',
+          'rounded px-2 py-1 transition-colors',
           lang === 'pt'
             ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
             : 'text-muted-foreground hover:text-foreground'
@@ -29,7 +29,7 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
       <button
         onClick={() => setLang('en')}
         className={cn(
-          'rounded px-2 py-1 transition-colors uppercase tracking-wider',
+          'rounded px-2 py-1 transition-colors',
           lang === 'en'
             ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
             : 'text-muted-foreground hover:text-foreground'
