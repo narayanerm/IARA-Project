@@ -1,31 +1,26 @@
-import { useMemo } from 'react'
 import { Radar } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Sidebar } from './Sidebar/Sidebar'
 import { SarMap } from './Map/SarMap'
-import { Legend } from './Map/Legend'
-import { LayerToggle } from './Map/LayerToggle'
 import { RightPanel } from './RightPanel/RightPanel'
 import { Timeline } from './Timeline/Timeline'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
+import { triggerTutorial } from './Tutorial/Tutorial'
+import { HelpCircle } from 'lucide-react'
 import { PhenomenonBriefing } from './Briefing/PhenomenonBriefing'
 import { NisarControl } from './Map/NisarControl'
 import { Layers3, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
 import { useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 
 export function AppLayout() {
   const t = useT()
-  const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
   const toggleNasaOverlay = useApp((s) => s.toggleNasaOverlay)
   const toggleTrueColorOverlay = useApp((s) => s.toggleTrueColorOverlay)
-  const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
 
   return (
     <section id="app" className="h-[100svh] w-full flex flex-col bg-background">
@@ -35,17 +30,8 @@ export function AppLayout() {
             <Radar className="h-4 w-4 text-primary" />
           </div>
           <div className="min-w-0 leading-tight">
-            <div className="truncate text-sm font-semibold">
-              {t('app.name')} · {t(`region.${region.id}.phen`)}
-            </div>
-            <div className="truncate text-[13px] text-muted-foreground font-mono">
-              {t(`region.${region.id}.city`)}
-            </div>
+            <div className="truncate text-sm font-semibold">{t('app.name')}</div>
           </div>
-        </div>
-
-        <div className="hidden xl:block shrink-0">
-          <LayerToggle />
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -75,29 +61,28 @@ export function AppLayout() {
             <Sun className="h-3.5 w-3.5" />
             {t('overlay.trueColor')}
           </button>
+          <button
+            onClick={() => triggerTutorial()}
+            className="hidden sm:inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-background/40 px-2.5 h-8 text-[13px] font-mono text-muted-foreground hover:text-foreground transition-colors"
+            title="Mostrar tutorial guiado"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            tour
+          </button>
           <LanguageToggle compact />
-          <Badge variant="outline" className="font-mono hidden 2xl:flex whitespace-nowrap">
-            NISAR · L-band · HH + HV
-          </Badge>
-          <ShareDialog />
+          <span data-tour="share"><ShareDialog /></span>
           <ExportMenu />
         </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
         <Sidebar />
-        <div className="relative flex-1 min-w-0">
+        <div data-tour="map" className="relative flex-1 min-w-0">
           <SarMap />
-          <div className="absolute left-3 top-3 xl:hidden">
-            <LayerToggle />
-          </div>
-          <div className="absolute left-4 top-4 hidden md:block">
+          <div data-tour="nisar" className="absolute left-4 top-4 hidden md:block">
             <NisarControl />
           </div>
           <div className="pointer-events-none absolute inset-x-3 bottom-9 flex items-end gap-3">
-            <div className="pointer-events-auto hidden 2xl:block shrink-0">
-              <Legend />
-            </div>
             <div className="pointer-events-auto flex-1 min-w-0 max-w-[860px]">
               <Timeline />
             </div>

@@ -5,15 +5,15 @@ import { cn } from '@/lib/utils'
 import { Chatbot } from '../Chatbot/Chatbot'
 import { MetadataPanel } from '../MetadataPanel/MetadataPanel'
 import { NisarPanel } from '../NisarPanel/NisarPanel'
-
 type Tab = 'nisar' | 'chat' | 'meta'
 
 export function RightPanel() {
-  const [open, setOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1536)
+  const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('chat')
 
   return (
     <aside
+      data-tour="chat"
       className={cn(
         'relative z-10 h-full border-l border-border/60 bg-card/40 backdrop-blur-xl transition-[width] duration-300',
         open ? 'w-[340px] 2xl:w-[380px]' : 'w-12'

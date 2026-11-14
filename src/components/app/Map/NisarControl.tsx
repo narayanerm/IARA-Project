@@ -25,7 +25,7 @@ export function NisarControl() {
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const sel = useNisarSelection(region)
   const [playing, setPlaying] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
 
   const scenes = sel.track?.scenes ?? []
   const n = scenes.length

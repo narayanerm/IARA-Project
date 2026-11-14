@@ -350,7 +350,7 @@ export function MapFallback({ region }: { region: Region }) {
       <div className="absolute left-4 top-4 rounded-lg border border-border/60 bg-card/85 backdrop-blur-sm p-3 text-[12px] font-mono text-muted-foreground max-w-[220px] leading-snug z-[500] pointer-events-auto">
         <div className="text-foreground font-semibold mb-1 flex items-center gap-1.5">
           <MapPin className="h-3.5 w-3.5" />
-          AmazonSAR · 2D
+          IARA · 2D
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full bg-sar-amber" />

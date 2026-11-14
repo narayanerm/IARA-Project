@@ -90,7 +90,7 @@ export function ShareDialog() {
             name: region.name,
             phenomenon: region.phenomenon,
             anchor_city: region.anchorCity,
-            source: 'IARA · AmazonSAR Explorer',
+            source: 'IARA',
             note: 'AOI bounding box for GIS tools (QGIS, ArcGIS).',
           },
           geometry: {
