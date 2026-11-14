@@ -1,0 +1,402 @@
+/* Case picker: three cards that travel from the centre of the map to a docked switcher. */
+
+.case-picker {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --move: 760ms;
+  --card-w: min(292px, calc((100vw - 72px) / 3));
+  --card-h: 356px;
+  --dock-w: min(178px, calc((100vw - 76px) / 3));
+  --dock-h: 42px;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.case-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 55%, hsl(150 40% 4% / 0.55), hsl(150 40% 3% / 0.86) 75%);
+  opacity: 0;
+  transition: opacity var(--move) var(--ease);
+}
+.case-picker.is-ready:not(.is-docked) .case-scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.case-intro {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - var(--card-h) / 2 - 24px);
+  width: min(680px, calc(100vw - 40px));
+  transform: translate(-50%, -100%);
+  text-align: center;
+  opacity: 0;
+  transition:
+    opacity 420ms var(--ease),
+    transform var(--move) var(--ease);
+}
+.case-intro h1 {
+  font-size: clamp(1.45rem, 1rem + 1.9vw, 2.3rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+}
+.case-intro p {
+  margin-top: 0.55rem;
+  font-size: clamp(0.86rem, 0.8rem + 0.25vw, 1rem);
+  color: hsl(var(--muted-foreground));
+}
+.case-picker.is-ready:not(.is-docked) .case-intro {
+  opacity: 1;
+  transition-delay: 120ms;
+}
+.case-picker.is-docked .case-intro {
+  transform: translate(-50%, -160%);
+}
+
+.case-row {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  transform: translate(-50%, calc(-50% + 34px));
+  transition:
+    top var(--move) var(--ease),
+    transform var(--move) var(--ease),
+    gap var(--move) var(--ease);
+}
+.case-picker.is-docked .case-row {
+  top: 10px;
+  gap: 6px;
+  transform: translate(-50%, 0);
+}
+
+.case-card,
+.case-home {
+  pointer-events: auto;
+  position: relative;
+  flex: none;
+  border-radius: 16px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    width var(--move) var(--ease),
+    height var(--move) var(--ease),
+    border-radius var(--move) var(--ease),
+    border-color 200ms,
+    background-color 200ms,
+    box-shadow 200ms,
+    opacity 520ms var(--ease),
+    translate 620ms var(--ease);
+}
+.case-card:focus-visible,
+.case-home:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.case-card {
+  width: var(--card-w);
+  height: var(--card-h);
+  text-align: left;
+  opacity: 0;
+  translate: 0 28px;
+  box-shadow: 0 18px 50px -18px rgb(0 0 0 / 0.7);
+  background:
+    radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--case) 22%, transparent), transparent 70%),
+    hsl(var(--card));
+}
+.case-picker.is-ready .case-card {
+  opacity: 1;
+  translate: 0 0;
+  transition-delay: 0s, 0s, 0s, 0s, 0s, 0s, calc(180ms + var(--i) * 110ms), calc(180ms + var(--i) * 110ms);
+}
+.case-picker.is-docked .case-card {
+  transition-delay: 0s;
+}
+.case-picker:not(.is-docked) .case-card:hover {
+  border-color: color-mix(in srgb, var(--case) 70%, transparent);
+  translate: 0 -6px;
+  transition-delay: 0s;
+  box-shadow: 0 26px 60px -18px color-mix(in srgb, var(--case) 45%, rgb(0 0 0 / 0.7));
+}
+.case-picker.is-docked .case-card {
+  width: var(--dock-w);
+  height: var(--dock-h);
+  border-radius: 11px;
+  background: hsl(var(--card) / 0.94);
+  box-shadow: 0 6px 18px -8px rgb(0 0 0 / 0.7);
+}
+.case-picker.is-docked .case-card:hover {
+  border-color: color-mix(in srgb, var(--case) 55%, transparent);
+}
+.case-picker.is-docked .case-card.is-current {
+  border-color: var(--case);
+  background: color-mix(in srgb, var(--case) 20%, hsl(var(--card)));
+}
+
+.case-home {
+  display: grid;
+  place-items: center;
+  width: 0;
+  height: var(--dock-h);
+  border-width: 0;
+  border-radius: 11px;
+  opacity: 0;
+  margin-right: -16px;
+  color: hsl(var(--muted-foreground));
+  transition:
+    width var(--move) var(--ease),
+    margin var(--move) var(--ease),
+    opacity 300ms,
+    color 200ms;
+}
+.case-picker.is-docked .case-home {
+  width: var(--dock-h);
+  border-width: 1px;
+  margin-right: 0;
+  opacity: 1;
+  background: hsl(var(--card) / 0.94);
+}
+.case-home:hover {
+  color: hsl(var(--foreground));
+}
+
+/* Two faces of a card: the tall hero face and the compact docked face cross-fade. */
+.case-card-hero,
+.case-card-dock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  transition: opacity 320ms var(--ease);
+}
+.case-card-hero {
+  flex-direction: column;
+  padding: 22px;
+  width: var(--card-w);
+  height: var(--card-h);
+}
+.case-card-dock {
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  opacity: 0;
+}
+.case-card-dock svg {
+  color: var(--case);
+}
+.case-card-dock-place {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+.case-picker.is-docked .case-card-hero {
+  opacity: 0;
+}
+.case-picker.is-docked .case-card-dock {
+  opacity: 1;
+  transition-delay: 260ms;
+}
+
+.case-card-icon {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  color: var(--case);
+  background: color-mix(in srgb, var(--case) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--case) 38%, transparent);
+}
+.case-card-icon svg {
+  width: 38px;
+  height: 38px;
+}
+.case-card-theme {
+  margin-top: auto;
+  font-size: 2rem;
+  font-weight: 680;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+.case-card-analysis {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--case);
+}
+.case-card-place {
+  margin-top: 6px;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  color: hsl(var(--foreground) / 0.82);
+}
+.case-card-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid hsl(var(--border));
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+.case-card-go svg {
+  margin-left: auto;
+  transition: translate 200ms var(--ease);
+}
+.case-card:hover .case-card-go svg {
+  translate: 4px 0;
+}
+
+@media (max-width: 720px) {
+  .case-picker {
+    --card-h: 250px;
+    --dock-h: 40px;
+  }
+  .case-row {
+    gap: 8px;
+  }
+  .case-card-hero {
+    padding: 12px;
+  }
+  .case-card-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+  }
+  .case-card-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+  .case-card-theme {
+    font-size: 1.12rem;
+  }
+  .case-card-analysis {
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+  }
+  .case-card-place {
+    font-size: 0.72rem;
+  }
+  .case-card-go {
+    margin-top: 10px;
+    padding-top: 8px;
+    font-size: 0.72rem;
+  }
+  .case-card-dock {
+    padding: 0 8px;
+    gap: 5px;
+    font-size: 12px;
+  }
+  .case-card-dock-place {
+    display: none;
+  }
+}
+
+@media (max-height: 620px) {
+  .case-picker {
+    --card-h: 240px;
+  }
+  .case-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+  .case-card-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+  .case-card-theme {
+    font-size: 1.4rem;
+  }
+}
+
+/* Risk hotspot markers on the map. */
+.hotspot {
+  --c: #f59e42;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+}
+.hotspot::before,
+.hotspot::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+}
+.hotspot::before {
+  inset: 5px;
+  background: var(--c);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.6);
+}
+.hotspot::after {
+  inset: 0;
+  border: 2px solid var(--c);
+  animation: hotspot-ping 2.4s var(--delay, 0s) ease-out infinite;
+}
+.hotspot.is-active::before {
+  inset: 2px;
+}
+.hotspot-label {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  translate: 3px -50%;
+  padding: 1px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #fff;
+  background: rgb(8 14 10 / 0.82);
+  border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
+  pointer-events: none;
+}
+@keyframes hotspot-ping {
+  0% {
+    scale: 0.6;
+    opacity: 0.9;
+  }
+  80%,
+  100% {
+    scale: 2.4;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-picker {
+    --move: 1ms;
+  }
+  .case-card,
+  .case-card-hero,
+  .case-card-dock,
+  .case-intro,
+  .case-scrim {
+    transition-duration: 1ms !important;
+    transition-delay: 0s !important;
+  }
+  .hotspot::after {
+    animation: none;
+    opacity: 0.5;
+  }
+}

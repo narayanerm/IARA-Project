@@ -5,6 +5,13 @@ import { useApp } from '@/lib/store'
 import type { Region } from '@/lib/types'
 import { AMAZON_CENTER, AMAZON_ZOOM, BEARING, PITCH } from '../constants'
 
+// Keeps the region centred in the part of the map the case panels leave free.
+function casePadding(el: HTMLElement) {
+  const { clientWidth: w, clientHeight: h } = el
+  if (w < 768) return { top: 56, right: 0, bottom: Math.round(h * 0.48), left: 0 }
+  return { top: 60, right: w >= 1232 ? 348 : 12, bottom: 250, left: 384 }
+}
+
 // Orchestrates all camera flyTo behavior: region change, focused TI, and external flyTarget events.
 export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, mapLoaded: boolean) {
   const aoiActive = useApp((s) => s.aoiActive)
@@ -20,7 +27,8 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
         zoom: AMAZON_ZOOM,
         pitch: 0,
         bearing: 0,
-        duration: 1600,
+        padding: { top: 0, right: 0, bottom: 0, left: 0 },
+        duration: 1800,
         essential: true,
       })
       return
@@ -30,8 +38,9 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
       zoom: region.zoom,
       pitch: PITCH,
       bearing: BEARING,
-      offset: [0, Math.round(m.getContainer().clientHeight * 0.18)],
-      duration: 1600,
+      padding: casePadding(m.getContainer()),
+      duration: 2600,
+      curve: 1.5,
       essential: true,
     })
   }, [region, mapLoaded, aoiActive, mapRef])
