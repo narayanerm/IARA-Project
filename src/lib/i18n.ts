@@ -1,0 +1,314 @@
+import { create } from 'zustand'
+
+export type Lang = 'pt' | 'en'
+
+export const DICT = {
+  pt: {
+    'app.name': 'AmazonSAR Explorer',
+    'app.subtitle': 'NASA Space Apps · Dancing with the SARs 2026',
+
+    'nav.enterDashboard': 'Entrar no dashboard',
+    'nav.pauseOrbit': 'Pausar órbita',
+    'nav.resumeOrbit': 'Retomar órbita',
+    'nav.howItWorks': 'Como funciona',
+
+    'hero.badge': 'Radar que enxerga o que o olho não vê',
+    'hero.title.before': 'Enxergando o Brasil através de',
+    'hero.title.gradient': 'nuvens, fumaça e noite',
+    'hero.subtitle':
+      'Cinco biomas, cinco fenômenos, um só radar. Cada prisma 3D é uma AOI monitorada; a altura representa a intensidade sintética do sinal SAR, a cor o tipo de mudança de superfície.',
+    'hero.liveBadge': 'LIVE · dados sintéticos',
+
+    'hud.aoiList': 'AOIs monitoradas',
+    'hud.synthetic': 'intensidade sintética',
+    'hud.legend.mining': 'garimpo',
+    'hud.legend.flood': 'enchente',
+    'hud.legend.drought': 'seca',
+
+    'meta.rolling.granule': 'granule',
+    'meta.rolling.orbit': 'órbita',
+    'meta.rolling.pol': 'pol',
+    'meta.rolling.inc': 'ângulo inc',
+    'meta.rolling.baseline': 'B⊥',
+
+    'disclosure.footer':
+      'Pipeline NISAR-ready · dados históricos via Sentinel-1 + ALOS-2 PALSAR como análogos',
+
+    'region.YANO.name': 'TI Yanomami',
+    'region.ENCH.name': 'Encontro das Águas',
+    'region.SECA.name': 'Lago Tefé',
+    'region.YANO.phen': 'Garimpo',
+    'region.ENCH.phen': 'Enchente',
+    'region.SECA.phen': 'Seca',
+    'region.YANO.city': 'Homoxi · Roraima',
+    'region.ENCH.city': 'Manaus · AM 2024',
+    'region.SECA.city': 'Tefé · AM 2023-24',
+    'region.YANO.tagline': 'L-band penetra copa. Clareira de solo exposto = queda abrupta de backscatter.',
+    'region.ENCH.tagline': 'Água sob nuvem perene. Especular em SAR = pixel preto, delimitação robusta.',
+    'region.SECA.tagline': 'Retração de corpos d\'água ao longo do tempo. Área hidrográfica como sinal de estresse.',
+
+    'status.ready': 'Pipeline completo',
+    'status.preview': 'Prévia',
+    'status.planned': 'Planejado',
+    'status.anchor': 'ÂNCORA',
+
+    'sidebar.title': 'Navegador de AOIs',
+    'sidebar.heading': 'Regiões monitoradas',
+    'sidebar.hint':
+      'A AOI âncora mostra o pipeline completo com validação quantitativa. As demais são prévias com o mesmo pipeline parametrizado.',
+    'sidebar.selected': '▸ selecionado',
+
+    'metadata.title': 'Metadados da observação',
+    'metadata.granule': 'Granule atual',
+    'metadata.id': 'Observation ID',
+    'metadata.band': 'Banda',
+    'metadata.pol': 'Polarização',
+    'metadata.orbit': 'Órbita',
+    'metadata.inc': 'Incidência',
+    'metadata.acq': 'Aquisição',
+    'metadata.ver': 'Versão',
+    'metadata.baselinePerp': 'Baseline perp.',
+    'metadata.baselineTemp': 'Baseline temp.',
+    'metadata.hint':
+      'Clique em um bairro no mapa para ver deslocamento milimétrico, coerência e série temporal.',
+    'metadata.coherence': 'Coerência',
+    'metadata.cumulative': 'Acumulado 24 m',
+    'metadata.coherenceNote':
+      'Coerência indica estabilidade do espalhador. Baixa coerência (< 0.4) invalida medida de fase.',
+    'metadata.validation': 'Validação externa',
+    'metadata.precision': 'Precisão',
+    'metadata.recall': 'Recall',
+    'metadata.f1': 'F1',
+    'metadata.samples': 'amostras',
+    'metadata.gt': 'GT',
+    'metadata.onlyAnchor':
+      'Metadados detalhados disponíveis na AOI âncora. Selecione Sudeste para ver pipeline completo.',
+    'metadata.liveAsf': 'LIVE · ASF DAAC',
+    'metadata.syntheticFallback': 'SYNTHETIC · sem cobertura recente',
+    'metadata.loadingLive': 'Buscando granules reais…',
+    'metadata.recentPasses': 'Passes reais (últimos 180d)',
+    'metadata.viewOnAsf': 'Abrir no ASF Vertex',
+    'metadata.noLiveFooter':
+      'Sem cobertura recente das plataformas SAR da NASA nesta janela. Mostrando granule sintético de demonstração.',
+
+    'map.previewHeader': 'Prévia em preparação',
+    'map.previewBody': 'AOI de {phen} em {city}.',
+    'map.previewFooter': 'Pipeline único; mocks de dados chegam na próxima iteração.',
+
+    'legend.title': 'Deslocamento vertical',
+    'legend.unit': 'mm/ano',
+    'legend.lowLabel': '−20 afunda',
+    'legend.highLabel': '+10 sobe',
+    'legend.convention':
+      'Convenção: valor negativo = terreno descendo em relação ao satélite.',
+
+    'timeline.series': 'Série temporal',
+    'timeline.example': 'São Mateus (exemplo)',
+    'timeline.back': 'Voltar ao início',
+    'timeline.end': 'Pular para o fim',
+    'timeline.play': 'Reproduzir',
+    'timeline.pause': 'Pausar',
+    'timeline.scrubber': 'Scrubber temporal',
+
+    'layer.amplitude': 'Amplitude',
+    'layer.coherence': 'Coerência',
+    'layer.interferogram': 'Interferograma',
+    'layer.displacement': 'Deslocamento',
+
+    'export.label': 'Exportar',
+    'export.heading': 'Handoff operacional',
+    'export.cap': 'Alerta CAP-XML',
+    'export.capSub': 'Common Alerting Protocol · Defesa Civil',
+    'export.geojson': 'GeoJSON',
+    'export.geojsonSub': 'QGIS · ArcGIS · ferramentas SIG',
+    'export.hot': 'Tarefa HOT OSM',
+    'export.hotSub': 'Mapeamento voluntário humanitário',
+    'export.disclaimer':
+      'Não rotulamos pixel bruto como enchente/dano confirmado. Exportações carregam incerteza.',
+
+    'overlay.nasa': 'Camada NASA',
+    'overlay.trueColor': 'Óptico (MODIS)',
+    'overlay.none': 'Sem camada NASA direta para Sudeste · subsidência requer InSAR, não GIBS.',
+    'coverage.title': 'Cobertura SAR · Brasil',
+    'coverage.footer': 'Passes Sentinel-1 nos últimos 10 dias · ASF DAAC',
+    'coverage.loading': 'Buscando cobertura…',
+    'popup.layers': 'Camadas SAR disponíveis',
+    'popup.aux': 'Camadas auxiliares',
+    'popup.gibs': 'GIBS NASA',
+    'popup.footprints': 'Footprints ASF',
+    'popup.openDashboard': 'Abrir detalhes',
+    'preview.title': 'Prévia SAR real',
+    'preview.footer': 'Browse JPG via ASF DAAC · ampliar na página do granule',
+    'preview.loading': 'Carregando prévia…',
+    'preview.na': 'Sem prévia disponível neste granule',
+  },
+  en: {
+    'app.name': 'AmazonSAR Explorer',
+    'app.subtitle': 'NASA Space Apps · Dancing with the SARs 2026',
+
+    'nav.enterDashboard': 'Enter dashboard',
+    'nav.pauseOrbit': 'Pause orbit',
+    'nav.resumeOrbit': 'Resume orbit',
+    'nav.howItWorks': 'How it works',
+
+    'hero.badge': 'Radar that sees what the eye cannot',
+    'hero.title.before': 'Watching Brazil through',
+    'hero.title.gradient': 'clouds, smoke and night',
+    'hero.subtitle':
+      'Five biomes, five phenomena, one single radar. Each 3D prism is a monitored AOI; height encodes synthetic SAR signal intensity, color encodes the surface-change type.',
+    'hero.liveBadge': 'LIVE · synthetic data',
+
+    'hud.aoiList': 'Monitored AOIs',
+    'hud.synthetic': 'synthetic intensity',
+    'hud.legend.mining': 'mining',
+    'hud.legend.flood': 'flood',
+    'hud.legend.drought': 'drought',
+
+    'meta.rolling.granule': 'granule',
+    'meta.rolling.orbit': 'orbit',
+    'meta.rolling.pol': 'pol',
+    'meta.rolling.inc': 'inc angle',
+    'meta.rolling.baseline': 'B⊥',
+
+    'disclosure.footer':
+      'NISAR-ready pipeline · historical demos via Sentinel-1 + ALOS-2 PALSAR analogs',
+
+    'region.YANO.name': 'Yanomami ITL',
+    'region.ENCH.name': 'Meeting of Waters',
+    'region.SECA.name': 'Lake Tefé',
+    'region.YANO.phen': 'Illegal mining',
+    'region.ENCH.phen': 'Flood',
+    'region.SECA.phen': 'Drought',
+    'region.YANO.city': 'Homoxi · Roraima',
+    'region.ENCH.city': 'Manaus · AM 2024',
+    'region.SECA.city': 'Tefé · AM 2023-24',
+    'region.YANO.tagline':
+      'L-band penetrates canopy. Bare-soil clearing = sharp backscatter drop.',
+    'region.ENCH.tagline':
+      'Water under perennial clouds. Specular SAR = black pixel, robust delineation.',
+    'region.SECA.tagline':
+      'Shrinking waterbodies through time. Hydrographic extent as a stress signal.',
+
+    'status.ready': 'Full pipeline',
+    'status.preview': 'Preview',
+    'status.planned': 'Planned',
+    'status.anchor': 'ANCHOR',
+
+    'sidebar.title': 'AOI navigator',
+    'sidebar.heading': 'Monitored regions',
+    'sidebar.hint':
+      'The anchor AOI runs the full pipeline with quantitative validation. The others are previews from the same parameterized pipeline.',
+    'sidebar.selected': '▸ selected',
+
+    'metadata.title': 'Observation metadata',
+    'metadata.granule': 'Current granule',
+    'metadata.id': 'Observation ID',
+    'metadata.band': 'Band',
+    'metadata.pol': 'Polarization',
+    'metadata.orbit': 'Orbit',
+    'metadata.inc': 'Incidence',
+    'metadata.acq': 'Acquisition',
+    'metadata.ver': 'Version',
+    'metadata.baselinePerp': 'Perp. baseline',
+    'metadata.baselineTemp': 'Temp. baseline',
+    'metadata.hint':
+      'Click a neighborhood on the map to see millimetric displacement, coherence and time series.',
+    'metadata.coherence': 'Coherence',
+    'metadata.cumulative': 'Cumulative 24 m',
+    'metadata.coherenceNote':
+      'Coherence indicates scatterer stability. Low coherence (< 0.4) invalidates phase measurement.',
+    'metadata.validation': 'External validation',
+    'metadata.precision': 'Precision',
+    'metadata.recall': 'Recall',
+    'metadata.f1': 'F1',
+    'metadata.samples': 'samples',
+    'metadata.gt': 'GT',
+    'metadata.onlyAnchor':
+      'Detailed metadata is available on the anchor AOI. Select Southeast to see the full pipeline.',
+    'metadata.liveAsf': 'LIVE · ASF DAAC',
+    'metadata.syntheticFallback': 'SYNTHETIC · no recent coverage',
+    'metadata.loadingLive': 'Fetching real granules…',
+    'metadata.recentPasses': 'Real passes (last 180d)',
+    'metadata.viewOnAsf': 'Open in ASF Vertex',
+    'metadata.noLiveFooter':
+      'No recent coverage from NASA SAR platforms in this window. Showing a synthetic demo granule.',
+
+    'map.previewHeader': 'Preview in preparation',
+    'map.previewBody': '{phen} AOI in {city}.',
+    'map.previewFooter':
+      'Unified pipeline; data mocks land in the next iteration.',
+
+    'legend.title': 'Vertical displacement',
+    'legend.unit': 'mm/yr',
+    'legend.lowLabel': '−20 sinks',
+    'legend.highLabel': '+10 rises',
+    'legend.convention':
+      'Convention: negative value = ground going down relative to the satellite.',
+
+    'timeline.series': 'Time series',
+    'timeline.example': 'São Mateus (example)',
+    'timeline.back': 'Back to start',
+    'timeline.end': 'Skip to end',
+    'timeline.play': 'Play',
+    'timeline.pause': 'Pause',
+    'timeline.scrubber': 'Time scrubber',
+
+    'layer.amplitude': 'Amplitude',
+    'layer.coherence': 'Coherence',
+    'layer.interferogram': 'Interferogram',
+    'layer.displacement': 'Displacement',
+
+    'export.label': 'Export',
+    'export.heading': 'Operational handoff',
+    'export.cap': 'CAP-XML alert',
+    'export.capSub': 'Common Alerting Protocol · Civil Defense',
+    'export.geojson': 'GeoJSON',
+    'export.geojsonSub': 'QGIS · ArcGIS · GIS tools',
+    'export.hot': 'HOT OSM task',
+    'export.hotSub': 'Humanitarian volunteer mapping',
+    'export.disclaimer':
+      'We do not label raw pixels as confirmed flood/damage. Exports carry uncertainty.',
+
+    'overlay.nasa': 'NASA layer',
+    'overlay.trueColor': 'Optical (MODIS)',
+    'overlay.none': 'No direct NASA layer for Southeast · subsidence requires InSAR, not GIBS.',
+    'coverage.title': 'SAR coverage · Brazil',
+    'coverage.footer': 'Sentinel-1 passes over the last 10 days · ASF DAAC',
+    'coverage.loading': 'Fetching coverage…',
+    'popup.layers': 'Available SAR layers',
+    'popup.aux': 'Auxiliary layers',
+    'popup.gibs': 'NASA GIBS',
+    'popup.footprints': 'ASF footprints',
+    'popup.openDashboard': 'Open details',
+    'preview.title': 'Real SAR preview',
+    'preview.footer': 'Browse JPG via ASF DAAC · open full granule page',
+    'preview.loading': 'Loading preview…',
+    'preview.na': 'No preview available for this granule',
+  },
+} satisfies Record<Lang, Record<string, string>>
+
+export type TKey = keyof (typeof DICT)['pt']
+
+interface I18nStore {
+  lang: Lang
+  setLang: (l: Lang) => void
+  toggle: () => void
+}
+
+export const useI18n = create<I18nStore>((set, get) => ({
+  lang: 'pt',
+  setLang: (lang) => set({ lang }),
+  toggle: () => set({ lang: get().lang === 'pt' ? 'en' : 'pt' }),
+}))
+
+export function useT(): (k: TKey, vars?: Record<string, string>) => string {
+  const lang = useI18n((s) => s.lang)
+  return (k, vars) => {
+    const raw = DICT[lang][k] ?? k
+    if (!vars) return raw
+    return Object.entries(vars).reduce(
+      (acc, [name, val]) => acc.replace(`{${name}}`, val),
+      raw
+    )
+  }
+}
