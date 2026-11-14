@@ -98,6 +98,8 @@ function rasterFade(layer: GibsLayer, opacity: number) {
   ]
 }
 
+const halfStep = (zoom: number) => Math.floor(zoom * 2) / 2
+
 export function SarMap() {
   const mapRef = useRef<MapRef | null>(null)
   const activeRegion = useApp((s) => s.activeRegion)
@@ -115,7 +117,8 @@ export function SarMap() {
   const [satelliteOn, setSatelliteOn] = useState(false)
   // First label layer of the basemap: imagery goes under it so place and river names stay readable.
   const [labelLayerId, setLabelLayerId] = useState<string>()
-  const [zoom, setZoom] = useState(region.zoom)
+  // Half-level steps are all the legend needs; re-rendering the map tree on every zoom gesture is wasted work.
+  const [zoom, setZoom] = useState(halfStep(region.zoom))
 
   useEffect(() => {
     const m = mapRef.current
@@ -246,7 +249,7 @@ export function SarMap() {
         mapStyle={BASEMAP_URL}
         interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
         onClick={onClick}
-        onZoomEnd={(e) => setZoom(e.viewState.zoom)}
+        onZoomEnd={(e) => setZoom(halfStep(e.viewState.zoom))}
         onLoad={(e) => {
           setLabelLayerId(e.target.getStyle().layers.find((l) => l.type === 'symbol')?.id ?? 'amazon-biome-fill')
           setMapLoaded(true)
@@ -276,7 +279,8 @@ export function SarMap() {
               id="satellite-layer"
               type="raster"
               beforeId={labelLayerId}
-              paint={{ 'raster-brightness-max': 0.88, 'raster-saturation': -0.05 }}
+              // No cross-fade: each arriving tile would otherwise keep the map repainting for 300 ms mid-zoom.
+              paint={{ 'raster-brightness-max': 0.88, 'raster-saturation': -0.05, 'raster-fade-duration': 0 }}
             />
           </Source>
         )}
