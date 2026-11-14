@@ -2,12 +2,14 @@ import { useEffect, useMemo } from 'react'
 import {
   MapContainer,
   TileLayer,
+  WMSTileLayer,
   GeoJSON,
   CircleMarker,
   Popup,
   ImageOverlay,
   LayersControl,
   useMap,
+  useMapEvents,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { AlertTriangle, MapPin } from 'lucide-react'
@@ -25,6 +27,7 @@ import {
 import type { Region } from '@/lib/types'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
+import { GWIS_ATTRIBUTION, GWIS_WMS, FIRE_LAYER, type ForecastMapProps, type ForecastPoint } from '@/lib/predictive-models'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
 import { useFunaiTi } from '@/lib/useFunaiTi'
@@ -41,7 +44,12 @@ import {
   ISA_TI_PORTAL,
 } from '@/lib/links'
 
-export function MapFallback({ region }: { region: Region }) {
+function RiverSelection({ onSelect }: { onSelect: (point: ForecastPoint) => void }) {
+  useMapEvents({ click: ({ latlng }) => onSelect([latlng.lng, latlng.lat]) })
+  return null
+}
+
+export function MapFallback({ region, fireDate, onRiverSelect, onFireTileError }: { region: Region } & ForecastMapProps) {
   const setActiveRegion = useApp((s) => s.setActiveRegion)
   const focusedTi = useApp((s) => s.focusedTi)
   const localTiFeature = useMemo(
@@ -97,6 +105,19 @@ export function MapFallback({ region }: { region: Region }) {
         attributionControl
       >
         <TiFocusController />
+        {onRiverSelect && <RiverSelection onSelect={onRiverSelect} />}
+        {fireDate && (
+          <WMSTileLayer
+            key={fireDate}
+            url={`${GWIS_WMS}?time=${fireDate}`}
+            params={{ layers: FIRE_LAYER, styles: 'default', format: 'image/png', transparent: true }}
+            attribution={GWIS_ATTRIBUTION}
+            eventHandlers={{ tileerror: onFireTileError }}
+            maxNativeZoom={8}
+            opacity={0.7}
+            zIndex={450}
+          />
+        )}
         <LayersControl position="bottomright">
           <LayersControl.BaseLayer checked name="NASA GIBS satellite (MODIS)">
             <TileLayer

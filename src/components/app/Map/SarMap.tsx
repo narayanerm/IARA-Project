@@ -43,6 +43,7 @@ import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { CommunityPin } from './CommunityPin'
 import { SarPreview } from './SarPreview'
 import { MapFallback } from './MapFallback'
+import { gwisMapUrl, GWIS_ATTRIBUTION, type ForecastMapProps } from '@/lib/predictive-models'
 import { NisarImagery } from './NisarImagery'
 import { inAmazon } from '@/lib/amazon'
 
@@ -119,7 +120,7 @@ function rasterFade(layer: GibsLayer, opacity: number) {
   ]
 }
 
-export function SarMap() {
+export function SarMap({ fireDate, onRiverSelect, onFireTileError }: ForecastMapProps) {
   const mapRef = useRef<MapRef | null>(null)
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
@@ -290,6 +291,10 @@ export function SarMap() {
   )
 
   const onClick = (e: MapLayerMouseEvent) => {
+    if (onRiverSelect) {
+      onRiverSelect([e.lngLat.lng, e.lngLat.lat])
+      return
+    }
     const f = e.features?.[0]
     if (!f) {
       selectPolygon(null)
@@ -314,7 +319,7 @@ export function SarMap() {
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
-        <MapFallback region={region} />
+        <MapFallback region={region} fireDate={fireDate} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} />
         <OverlayLegend {...counts} />
       </div>
     )
@@ -338,6 +343,10 @@ export function SarMap() {
         mapStyle={BASEMAP_URL}
         interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
         onClick={onClick}
+        onError={(e) => {
+          if ('sourceId' in e && e.sourceId === 'gwis-fire') onFireTileError()
+          else console.error(e.error)
+        }}
         onZoomEnd={(e) => setZoom(e.viewState.zoom)}
         onLoad={(e) => {
           setLabelLayerId(e.target.getStyle().layers.find((l) => l.type === 'symbol')?.id ?? 'amazon-biome-fill')
@@ -512,6 +521,18 @@ export function SarMap() {
         )}
 
         <NisarImagery />
+        {fireDate && (
+          <Source
+            id="gwis-fire"
+            type="raster"
+            tiles={[gwisMapUrl(fireDate, '{bbox-epsg-3857}')]}
+            tileSize={256}
+            maxzoom={8}
+            attribution={GWIS_ATTRIBUTION}
+          >
+            <Layer id="gwis-fire-overlay" type="raster" paint={{ 'raster-opacity': 0.7 }} />
+          </Source>
+        )}
         {asf.data.length > 0 && (
           <Source id="asf-footprints" type="geojson" data={footprintsFC}>
             <Layer

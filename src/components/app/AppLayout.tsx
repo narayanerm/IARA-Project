@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Radar } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { CloudSun, Radar } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Sidebar } from './Sidebar/Sidebar'
 import { SarMap } from './Map/SarMap'
@@ -15,11 +15,20 @@ import { Layers3, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
-import { useT } from '@/lib/i18n'
+import { useI18n, useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
+import { PredictiveModels } from './Map/PredictiveModels'
+import { gwisDates, type ForecastPoint } from '@/lib/predictive-models'
 
 export function AppLayout() {
   const t = useT()
+  const forecastLabel = useI18n((s) => s.lang === 'pt' ? 'Previsões' : 'Forecasts')
+  const [forecastMode, setForecastMode] = useState<'river' | 'fire' | null>(null)
+  const [forecastPoint, setForecastPoint] = useState<ForecastPoint | null>(null)
+  const [forecastDates, setForecastDates] = useState(gwisDates)
+  const [fireDate, setFireDate] = useState<string | null>(null)
+  const [fireError, setFireError] = useState(false)
+  const selectedFireDate = fireDate && forecastDates.includes(fireDate) ? fireDate : forecastDates[0]
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
@@ -76,6 +85,25 @@ export function AppLayout() {
             {t('overlay.trueColor')}
           </button>
           <LanguageToggle compact />
+          <button
+            type="button"
+            aria-label={forecastLabel}
+            aria-expanded={forecastMode !== null}
+            title={forecastLabel}
+            onClick={() => {
+              if (forecastMode) {
+                setForecastMode(null)
+                return
+              }
+              setForecastDates(gwisDates())
+              setFireError(false)
+              setForecastMode('river')
+            }}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2 text-xs hover:bg-secondary aria-expanded:bg-primary/20"
+          >
+            <CloudSun className="size-4" />
+            <span className="hidden lg:inline">{forecastLabel}</span>
+          </button>
           <Badge variant="outline" className="font-mono hidden 2xl:flex whitespace-nowrap">
             NISAR · L-band · HH + HV
           </Badge>
@@ -86,8 +114,28 @@ export function AppLayout() {
 
       <div className="flex-1 flex min-h-0">
         <Sidebar />
-        <div className="relative flex-1 min-w-0">
-          <SarMap />
+        <div className="relative isolate flex-1 min-w-0">
+          <SarMap
+            fireDate={forecastMode === 'fire' ? selectedFireDate : null}
+            onRiverSelect={forecastMode === 'river' ? setForecastPoint : undefined}
+            onFireTileError={() => setFireError(true)}
+          />
+          {forecastMode && (
+            <PredictiveModels
+              mode={forecastMode}
+              onModeChange={(mode) => {
+                if (mode === forecastMode) return
+                setFireError(false)
+                setForecastMode(mode)
+              }}
+              onClose={() => setForecastMode(null)}
+              point={forecastPoint}
+              fireDate={selectedFireDate}
+              fireDates={forecastDates}
+              onFireDate={(date) => { setFireError(false); setFireDate(date) }}
+              fireError={fireError}
+            />
+          )}
           <div className="absolute left-3 top-3 xl:hidden">
             <LayerToggle />
           </div>
