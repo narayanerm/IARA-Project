@@ -17,9 +17,17 @@ export interface TiPointProps {
   etnia: string | null
   fase: string | null
   area_km2: number | null
+  revisao_fase: string | null
+  revisao_area_km2: number | null
   focos_2026: number
   risco: Risk | null
   isaId: number | null
+  // Outline bounding box, flattened because MapLibre stringifies nested properties.
+  bw: number
+  bs: number
+  be: number
+  bn: number
+  minzoom: number
 }
 
 export interface RiversideProps {
@@ -34,4 +42,5 @@ export interface RiversideProps {
   risco: Risk | null
   dificuldade: 'baixa' | 'média' | 'alta' | null
   atividade_principal_mun: string | null
+  minzoom: number
 }

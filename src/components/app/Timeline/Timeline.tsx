@@ -1,19 +1,15 @@
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { Pause, Play, SkipBack, SkipForward } from 'lucide-react'
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as RTooltip,
-  XAxis,
-  YAxis,
-  ReferenceLine,
-} from 'recharts'
+import { Area, AreaChart, ReferenceDot, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { useApp } from '@/lib/store'
 import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { useT } from '@/lib/i18n'
+
+const LINE = 'hsl(348 85% 58%)'
+
+// Half the native range thumb, so the invisible slider's steps line up with the chart points.
+const THUMB_HALF = 8
 
 export function Timeline() {
   const t = useT()
@@ -51,115 +47,95 @@ export function Timeline() {
 
   const current = series[Math.min(timeIndex, maxIndex)]
   const seriesTitle = selected ? selected.name : t('timeline.example')
+  const valueText = `${current.date} · ${current.displacementMm.toFixed(2)} mm`
 
   return (
-    <div className="glass rounded-lg px-4 py-3">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setTimeIndex(0)}
-            aria-label={t('timeline.back')}
-          >
-            <SkipBack className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="default"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setPlaying((v) => !v)}
-            aria-label={playing ? t('timeline.pause') : t('timeline.play')}
-          >
-            {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setTimeIndex(maxIndex)}
-            aria-label={t('timeline.end')}
-          >
-            <SkipForward className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-
-        <div className="flex-1">
-          <div className="flex items-baseline justify-between mb-1">
-            <div className="text-[13px] font-mono uppercase tracking-wider text-muted-foreground">
-              {t('timeline.series')} · {seriesTitle}
-            </div>
-            <div className="text-xs font-mono text-foreground">
-              {current.date} · {current.displacementMm.toFixed(2)} mm
-            </div>
-          </div>
-
-          <div className="h-16 -mx-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={series} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
-                <defs>
-                  <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(348 85% 58%)" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="hsl(348 85% 58%)" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="hsl(var(--border) / 0.4)" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                  tickFormatter={(d: string) => d.slice(2, 7)}
-                  tickLine={false}
-                  axisLine={false}
-                  interval={3}
-                />
-                <YAxis
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={28}
-                  domain={['auto', 'auto']}
-                />
-                <RTooltip
-                  contentStyle={{
-                    background: 'hsl(var(--popover))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 6,
-                    fontSize: 11,
-                  }}
-                  formatter={(value) => {
-                    const n = typeof value === 'number' ? value : Number(value)
-                    return [`${n.toFixed(2)} mm`, 'desloc.']
-                  }}
-                />
-                <ReferenceLine
-                  x={current.date}
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={1.2}
-                  strokeDasharray="3 2"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="displacementMm"
-                  stroke="hsl(348 85% 58%)"
-                  strokeWidth={1.5}
-                  fill="url(#g1)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+    <div className="glass flex h-14 items-center gap-2 rounded-lg px-2 sm:gap-3 sm:px-2.5">
+      <div className="flex shrink-0 items-center gap-0.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setTimeIndex(0)}
+          aria-label={t('timeline.back')}
+        >
+          <SkipBack className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="default"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => setPlaying((v) => !v)}
+          aria-label={playing ? t('timeline.pause') : t('timeline.play')}
+        >
+          {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setTimeIndex(maxIndex)}
+          aria-label={t('timeline.end')}
+        >
+          <SkipForward className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
-      <input
-        type="range"
-        min={0}
-        max={maxIndex}
-        value={timeIndex}
-        onChange={(e) => setTimeIndex(Number(e.target.value))}
-        className="mt-2 w-full accent-primary"
-        aria-label={t('timeline.scrubber')}
-      />
+      <div className="hidden min-w-0 max-w-[200px] shrink flex-col leading-tight sm:flex">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          {t('timeline.series')}
+        </span>
+        <span className="truncate text-[12px] text-foreground/90" title={seriesTitle}>
+          {seriesTitle}
+        </span>
+      </div>
+
+      <div className="relative h-10 min-w-[96px] flex-1 rounded-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={series} margin={{ top: 4, right: THUMB_HALF, bottom: 4, left: THUMB_HALF }}>
+            <defs>
+              <linearGradient id="timeline-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={LINE} stopOpacity={0.45} />
+                <stop offset="100%" stopColor={LINE} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="date" hide />
+            <YAxis hide domain={['dataMin', 'dataMax']} />
+            <Area
+              type="monotone"
+              dataKey="displacementMm"
+              stroke={LINE}
+              strokeWidth={1.5}
+              fill="url(#timeline-fill)"
+              isAnimationActive={false}
+            />
+            <ReferenceLine x={current.date} stroke="hsl(var(--primary))" strokeWidth={1.2} strokeDasharray="3 2" />
+            <ReferenceDot
+              x={current.date}
+              y={current.displacementMm}
+              r={3.5}
+              fill="hsl(var(--primary))"
+              stroke="hsl(var(--background))"
+              strokeWidth={1.5}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+        <input
+          type="range"
+          min={0}
+          max={maxIndex}
+          value={timeIndex}
+          onChange={(e) => setTimeIndex(Number(e.target.value))}
+          className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0"
+          aria-label={t('timeline.scrubber')}
+          aria-valuetext={valueText}
+        />
+      </div>
+
+      <div className="shrink-0 text-right font-mono leading-tight tabular-nums">
+        <div className="text-[13px] text-foreground">{current.displacementMm.toFixed(2)} mm</div>
+        <div className="text-[11px] text-muted-foreground">{current.date}</div>
+      </div>
     </div>
   )
 }

@@ -89,11 +89,11 @@ export function AppLayout() {
           <div className="absolute left-3 top-3 xl:hidden">
             <LayerToggle />
           </div>
-          <div className="pointer-events-none absolute inset-x-3 bottom-8 flex items-end gap-3">
+          <div className="pointer-events-none absolute inset-x-3 bottom-9 flex items-end gap-3">
             <div className="pointer-events-auto hidden 2xl:block shrink-0">
               <Legend />
             </div>
-            <div className="pointer-events-auto flex-1 min-w-0">
+            <div className="pointer-events-auto flex-1 min-w-0 max-w-[860px]">
               <Timeline />
             </div>
           </div>

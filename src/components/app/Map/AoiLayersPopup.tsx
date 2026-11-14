@@ -41,7 +41,7 @@ export function AoiLayersPopup() {
       maxWidth="340px"
       className="aoi-popup"
     >
-      <div className="relative w-[320px]">
+      <div className="relative w-[min(320px,calc(100vw-48px))] max-h-[min(440px,calc(100dvh-160px))] overflow-y-auto overscroll-contain">
         <button
           onClick={closePopup}
           className="absolute top-2 right-2 rounded-md p-1 text-muted-foreground hover:bg-secondary/80 hover:text-foreground transition-colors"
@@ -122,7 +122,6 @@ export function AoiLayersPopup() {
           border-radius: 0.65rem;
           padding: 14px 14px;
           box-shadow: 0 20px 40px -12px rgb(0 0 0 / 0.6);
-          backdrop-filter: blur(16px);
         }
         .aoi-popup .maplibregl-popup-tip {
           border-top-color: hsl(var(--border)) !important;
