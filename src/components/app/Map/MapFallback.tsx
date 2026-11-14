@@ -31,7 +31,6 @@ import { useApp } from '@/lib/store'
 import { FLOOD_ATTRIBUTION, floodTiles, gwisMapUrl, GWIS_ATTRIBUTION, type ForecastMapProps, type ForecastPoint } from '@/lib/predictive-models'
 import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
 import { FloodProbability } from './FloodProbability'
-import { floodChanceColor } from '@/lib/predictive-models'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
 import { useFunaiTi } from '@/lib/useFunaiTi'
@@ -296,10 +295,10 @@ export function MapFallback({ region, fireDate, floodLayer, floodFocus, floodSig
         ))}
         {floodLayer && selectedForecastPoint && (
           <CircleMarker center={[selectedForecastPoint[1], selectedForecastPoint[0]]} radius={13}
-            interactive={false} pathOptions={{ color: floodChanceColor(riverChance) ?? '#67e8f9', weight: 3, fill: typeof riverChance === 'number', fillOpacity: 0.85 }}
+            interactive={false} pathOptions={{ stroke: false, fill: false }}
           >
             {riverChance !== null && (
-              <Tooltip permanent direction="top" offset={[0, -14]} className="!border-0 !bg-transparent !p-0 !shadow-none before:!hidden">
+              <Tooltip permanent direction="center" className="!border-0 !bg-transparent !p-0 !shadow-none before:!hidden">
                 <FloodProbability chance={riverChance} />
               </Tooltip>
             )}
