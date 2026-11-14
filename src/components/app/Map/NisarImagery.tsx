@@ -114,28 +114,29 @@ export function NisarImagery() {
     </Source>
   )
 
-  if (!visible || !shown) return pointMarker || null
-
   const m = map?.getMap()
   // Above the coverage/footprint fills (which would wash out the radar image), below the detection polygons.
   const beforeId = m?.getLayer('yano-change-fill') ? 'yano-change-fill' : undefined
+  const showRaster = visible && shown !== null
 
   return (
     <>
-    <Source
-      id="nisar-browse"
-      type="image"
-      url={shown.url}
-      coordinates={shown.corners}
-    >
-      <Layer
-        id="nisar-browse-layer"
-        type="raster"
-        beforeId={beforeId}
-        paint={{ 'raster-opacity': opacity, 'raster-fade-duration': 0, 'raster-resampling': 'linear' }}
-      />
-    </Source>
-    {pointMarker}
+      {showRaster && (
+        <Source
+          id="nisar-browse"
+          type="image"
+          url={shown.url}
+          coordinates={shown.corners}
+        >
+          <Layer
+            id="nisar-browse-layer"
+            type="raster"
+            beforeId={beforeId}
+            paint={{ 'raster-opacity': opacity, 'raster-fade-duration': 0, 'raster-resampling': 'linear' }}
+          />
+        </Source>
+      )}
+      {pointMarker}
     </>
   )
 }

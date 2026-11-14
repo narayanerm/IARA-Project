@@ -25,16 +25,29 @@ import {
 import type { Region } from '@/lib/types'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
+import { useT } from '@/lib/i18n'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
+import { useFunaiTi } from '@/lib/useFunaiTi'
+import {
+  FUNAI_TI_URL,
+  tiProfileUrl,
+  funaiSiciUrl,
+  TERRABRASILIS_FUNAI_URL,
+  DETER_WFS_URL,
+  ISA_TI_PORTAL,
+} from '@/lib/links'
 
 export function MapFallback({ region }: { region: Region }) {
+  const t = useT()
   const setActiveRegion = useApp((s) => s.setActiveRegion)
   const focusedTi = useApp((s) => s.focusedTi)
-  const focusedTiFeature = useMemo(
+  const localTiFeature = useMemo(
     () => INDIGENOUS_LANDS.features.find((f) => f.properties.name === focusedTi) ?? null,
     [focusedTi]
   )
+  const funai = useFunaiTi(focusedTi)
+  const focusedTiFeature = funai.feature ?? localTiFeature
   const asf = useAsfGranules(region)
   const browse = asf.data.find((g) => !!g.browseUrl)
 
@@ -168,8 +181,12 @@ export function MapFallback({ region }: { region: Region }) {
         {focusedTi && focusedTiFeature && (
           <>
             <GeoJSON
-              key={`focus-mask-${focusedTi}`}
-              data={worldWithHoleFC(focusedTiFeature.geometry.coordinates[0])}
+              key={`focus-mask-${focusedTi}-${funai.feature ? 'f' : 'l'}`}
+              data={worldWithHoleFC(
+                focusedTiFeature.geometry.type === 'MultiPolygon'
+                  ? focusedTiFeature.geometry.coordinates[0][0]
+                  : (focusedTiFeature.geometry.coordinates[0] as number[][])
+              )}
               style={{
                 color: 'transparent',
                 weight: 0,
@@ -178,7 +195,7 @@ export function MapFallback({ region }: { region: Region }) {
               }}
             />
             <GeoJSON
-              key={`focus-outline-${focusedTi}`}
+              key={`focus-outline-${focusedTi}-${funai.feature ? 'f' : 'l'}`}
               data={focusedTiFeature}
               style={{
                 color: 'hsl(190 95% 70%)',
@@ -216,7 +233,63 @@ export function MapFallback({ region }: { region: Region }) {
         ))}
       </MapContainer>
 
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-md rounded-lg border border-sar-amber/40 bg-card px-4 py-2.5 text-[12px] text-foreground leading-snug z-[500] pointer-events-auto">
+      {focusedTi && (
+        <div className="absolute left-4 top-20 z-[600] max-w-[300px] rounded-lg border border-border bg-card px-3 py-2 pointer-events-auto">
+          <div className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+            <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-water" />
+            <span className="truncate">{focusedTi}</span>
+          </div>
+          <div className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
+            {funai.loading ? t('ti.loading') : funai.feature ? t('ti.official') : t('ti.simplified')}
+            {funai.error && <span className="text-destructive">, {funai.error}</span>}
+          </div>
+          {funai.feature && (
+            <div className="mt-1.5 grid gap-0.5 text-[12px] leading-snug text-foreground">
+              <div>
+                <span className="text-muted-foreground">{t('ti.ethnicity')}:</span> {funai.feature.properties.etnia_nome ?? '—'}
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t('ti.phase')}:</span> {funai.feature.properties.fase_ti ?? '—'}
+              </div>
+              <div className="tabular-nums text-muted-foreground">
+                {t('ti.code')} {funai.feature.properties.terrai_cod}
+              </div>
+            </div>
+          )}
+          {localTiFeature && (
+            <div className="mt-1.5 grid gap-0.5 border-t border-border pt-1.5 text-[12px] leading-snug text-foreground">
+              <div>
+                <span className="text-muted-foreground">{t('ti.isaArea')}:</span>{' '}
+                {localTiFeature.properties.area_km2.toLocaleString('en-US')} km²
+              </div>
+              {localTiFeature.properties.population && (
+                <div>
+                  <span className="text-muted-foreground">{t('ti.isaPop')}:</span>{' '}
+                  {localTiFeature.properties.population.toLocaleString('en-US')}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 border-t border-border pt-1.5 text-[12px]">
+            <a href={funaiSiciUrl(focusedTi)} target="_blank" rel="noopener noreferrer" className="text-foreground underline hover:text-water">
+              FUNAI, {focusedTi.replace(/^TI\s+/, '')}
+            </a>
+            {funai.feature && (
+              <a href={TERRABRASILIS_FUNAI_URL} target="_blank" rel="noopener noreferrer" className="text-foreground underline hover:text-water">
+                TerraBrasilis WFS
+              </a>
+            )}
+            <a href={DETER_WFS_URL} target="_blank" rel="noopener noreferrer" className="text-foreground underline hover:text-water">
+              DETER/INPE
+            </a>
+            <a href={ISA_TI_PORTAL} target="_blank" rel="noopener noreferrer" className="text-foreground underline hover:text-water">
+              ISA
+            </a>
+          </div>
+        </div>
+      )}
+
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-md rounded-lg border border-border bg-card px-4 py-2.5 text-[12px] text-foreground leading-snug z-[500] pointer-events-auto">
         <div className="flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 text-sar-amber shrink-0 mt-0.5" />
           <div>
@@ -265,7 +338,7 @@ function buildAffectedPopupHtml(p: AffectedAreaProps): string {
     'drought-original': 'Espelho original',
   }[p.kind]
   return `
-    <div style="min-width:200px; font-family:Inter,sans-serif;">
+    <div style="min-width:200px; font-family:'IBM Plex Sans',sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.label}</div>
       <div style="font-size:11px; color:#888; font-family:monospace;">${kindLabel}, ${p.year}</div>
       <div style="font-size:16px; font-weight:600; margin-top:6px; color:${affectedAreaColor(p.kind)};">
@@ -279,6 +352,7 @@ function buildAffectedPopupHtml(p: AffectedAreaProps): string {
 function TiFocusController() {
   const map = useMap()
   const focusedTi = useApp((s) => s.focusedTi)
+  const flyTarget = useApp((s) => s.flyTarget)
   useEffect(() => {
     if (!focusedTi) return
     const f = INDIGENOUS_LANDS.features.find((x) => x.properties.name === focusedTi)
@@ -286,16 +360,18 @@ function TiFocusController() {
     const [lon, lat] = polygonCentroid(f.geometry)
     map.flyTo([lat, lon], 7, { duration: 1.4 })
   }, [focusedTi, map])
+  useEffect(() => {
+    if (!flyTarget) return
+    const [lon, lat] = flyTarget.center
+    map.flyTo([lat, lon], flyTarget.zoom ?? 8, { duration: 1.4 })
+  }, [flyTarget, map])
   return null
 }
 
 function buildTiPopupHtml(p: TiProps): string {
-  const ethn = p.ethnicities?.slice(0, 5).join(',') ?? ''
-  const funai = `https://sistemas.funai.gov.br/sici/busca.php?nome=${encodeURIComponent(
-    p.name.replace(/^TI\s+/, '')
-  )}`
+  const ethn = p.ethnicities?.slice(0, 5).join(', ') ?? ''
   return `
-    <div style="min-width:220px; font-family:Geist,sans-serif;">
+    <div style="min-width:220px; font-family:'IBM Plex Sans',sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.name}</div>
       <div style="font-size:12px; color:#666;">${p.state}, ${p.year}, ${p.status}</div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:6px; font-size:12px;">
@@ -303,7 +379,8 @@ function buildTiPopupHtml(p: TiProps): string {
         ${p.population ? `<div><strong>Population:</strong><br/>${p.population.toLocaleString('en-US')}</div>` : ''}
       </div>
       ${ethn ? `<div style="font-size:11px; margin-top:6px;"><strong>Ethnic groups:</strong> ${ethn}</div>` : ''}
-      <a href="${funai}" target="_blank" rel="noopener" style="display:inline-block; margin-top:8px; font-size:12px; color:hsl(19, 75%, 45%);">View on FUNAI →</a>
+      <a href="${tiProfileUrl(p.isaId)}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:8px; font-size:12px; color:hsl(19, 75%, 45%);">Land profile (ISA) →</a>
+      <a href="${FUNAI_TI_URL}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:4px; font-size:12px; color:hsl(19, 75%, 45%);">FUNAI official data →</a>
     </div>
   `
 }

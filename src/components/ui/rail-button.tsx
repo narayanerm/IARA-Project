@@ -8,12 +8,15 @@ export function RailButton({
   label,
   onClick,
   active = false,
+  disabled = false,
   side = 'right',
 }: {
   icon: LucideIcon
   label: string
   onClick: () => void
   active?: boolean
+  /** locked: stays visible (with its tooltip) but does nothing yet */
+  disabled?: boolean
   side?: 'left' | 'right'
 }) {
   return (
@@ -21,13 +24,18 @@ export function RailButton({
       <TooltipTrigger asChild>
         <button
           type="button"
-          onClick={onClick}
+          onClick={disabled ? undefined : onClick}
+          aria-disabled={disabled || undefined}
           aria-label={label}
           aria-current={active ? 'true' : undefined}
           className={cn(
             'grid h-9 w-9 place-items-center rounded-md transition-colors',
             'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
-            active ? 'bg-raised text-foreground' : 'text-muted-foreground hover:bg-raised hover:text-foreground'
+            disabled
+              ? 'cursor-not-allowed text-muted-foreground opacity-40'
+              : active
+                ? 'bg-raised text-foreground'
+                : 'text-muted-foreground hover:bg-raised hover:text-foreground'
           )}
         >
           <Icon className="h-4 w-4" strokeWidth={1.8} />
