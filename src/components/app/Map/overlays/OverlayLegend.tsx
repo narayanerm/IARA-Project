@@ -7,8 +7,8 @@ import { SarPreview } from '../SarPreview'
 import { MapToggle } from './MapToggle'
 
 export interface OverlayLegendProps {
-  terrainOn?: boolean
-  onToggleTerrain?: () => void
+  reliefOn?: boolean
+  onToggleRelief?: () => void
   satelliteOn?: boolean
   onToggleSatellite?: () => void
   municipiosOn?: boolean
@@ -17,8 +17,8 @@ export interface OverlayLegendProps {
 }
 
 export function OverlayLegend({
-  terrainOn,
-  onToggleTerrain,
+  reliefOn,
+  onToggleRelief,
   satelliteOn,
   onToggleSatellite,
   municipiosOn,
@@ -46,7 +46,7 @@ export function OverlayLegend({
           </div>
         </div>
 
-        {(onToggleSatellite || onToggleTerrain) && (
+        {(onToggleSatellite || onToggleRelief) && (
           <div className="mt-2.5 grid grid-cols-2 gap-1.5">
             {onToggleSatellite && (
               <MapToggle
@@ -57,8 +57,14 @@ export function OverlayLegend({
                 onToggle={onToggleSatellite}
               />
             )}
-            {onToggleTerrain && (
-              <MapToggle icon={Mountain} label={t('map.terrain')} on={!!terrainOn} onToggle={onToggleTerrain} />
+            {onToggleRelief && (
+              <MapToggle
+                icon={Mountain}
+                label={t('map.relief')}
+                hint={t('map.reliefHint')}
+                on={!!reliefOn}
+                onToggle={onToggleRelief}
+              />
             )}
           </div>
         )}

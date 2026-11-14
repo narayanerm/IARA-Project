@@ -49,7 +49,7 @@ export const useApp = create<AppState>((set, get) => ({
   activeLayer: 'change',
   timeIndex: 23,
   selectedPolygon: null,
-  nasaOverlay: true,
+  nasaOverlay: false,
   trueColorOverlay: false,
   focusedTi: null,
   flyTarget: null,
