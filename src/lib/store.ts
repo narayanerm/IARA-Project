@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { ProductLayer, RegionId, SubsidencePolygon } from './types'
 import type { NisarProduct } from './nisar'
+import type { Focus, Step } from './community'
 
 interface AppState {
   activeRegion: RegionId
@@ -20,6 +21,15 @@ interface AppState {
   nisarPoint: [number, number] | null
   /** Short message for the NISAR control (e.g. click outside the Amazon). */
   nisarNotice: string | null
+  /** Community the interface is focused on; null = explore mode (map + search only). */
+  focus: Focus | null
+  step: Step
+  /** Documented case (one of the curated regions) opened from inside a community. */
+  caseRegion: RegionId | null
+  focusCommunity: (f: Focus, step?: Step) => void
+  clearFocus: () => void
+  setStep: (s: Step) => void
+  openCase: (id: RegionId) => void
   setActiveRegion: (id: RegionId) => void
   setActiveLayer: (l: ProductLayer) => void
   setTimeIndex: (i: number) => void
@@ -57,6 +67,37 @@ export const useApp = create<AppState>((set, get) => ({
   nisarOpacity: 0.85,
   nisarPoint: null,
   nisarNotice: null,
+  focus: null,
+  step: 'know',
+  caseRegion: null,
+  focusCommunity: (f, step) =>
+    set({
+      focus: f,
+      step: step ?? 'know',
+      caseRegion: null,
+      focusedTi: null,
+      selectedPolygon: null,
+      nisarTrack: null,
+      nisarSceneId: null,
+      nisarPoint: null,
+      nisarNotice: null,
+      nisarVisible: true,
+    }),
+  clearFocus: () =>
+    set({
+      focus: null,
+      caseRegion: null,
+      selectedPolygon: null,
+      nisarTrack: null,
+      nisarSceneId: null,
+      nisarPoint: null,
+      nisarNotice: null,
+    }),
+  setStep: (step) => set({ step }),
+  openCase: (id) => {
+    get().setActiveRegion(id)
+    set({ caseRegion: id })
+  },
   setActiveRegion: (id) => {
     set({
       activeRegion: id,

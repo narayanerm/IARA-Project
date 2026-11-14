@@ -39,7 +39,7 @@ interface Result {
   error: string | null
 }
 
-export function useBrazilCoverage(): Result {
+export function useBrazilCoverage(enabled = true): Result {
   const [state, setState] = useState<Result>(() => {
     const cached = typeof window !== 'undefined' ? readCache() : null
     return {
@@ -50,7 +50,7 @@ export function useBrazilCoverage(): Result {
   })
 
   useEffect(() => {
-    if (state.data.length > 0 && !state.loading) return
+    if (!enabled || (state.data.length > 0 && !state.loading)) return
     const ctrl = new AbortController()
     let cancelled = false
     const end = new Date()
@@ -82,7 +82,7 @@ export function useBrazilCoverage(): Result {
       ctrl.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [enabled])
 
   return state
 }

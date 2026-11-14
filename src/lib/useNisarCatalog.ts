@@ -83,10 +83,11 @@ function group(key: string, scenes: NisarScene[], bbox: Bbox): TrackGroup {
  */
 export function useNisarSelection(region: Region): NisarSelection {
   const point = useApp((s) => s.nisarPoint)
+  const focusBbox = useApp((s) => s.focus?.bbox ?? null)
   // A clicked point is searched as a ~2 km box, so every image covering that spot is returned.
   const bbox: Bbox = point
     ? [point[0] - 0.01, point[1] - 0.01, point[0] + 0.01, point[1] + 0.01]
-    : region.bbox
+    : focusBbox ?? region.bbox
   const catalog = useNisarCatalog(bbox)
   const activeLayer = useApp((s) => s.activeLayer)
   const nisarTrack = useApp((s) => s.nisarTrack)

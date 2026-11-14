@@ -68,11 +68,13 @@ function granulesFor(region: Region): Promise<Outcome> {
 }
 
 const LOADING: Result = { data: [], platform: null, loading: true, error: null }
+const IDLE: Result = { data: [], platform: null, loading: false, error: null }
 
-export function useAsfGranules(region: Region): Result {
+export function useAsfGranules(region: Region, enabled = true): Result {
   const [settled, setSettled] = useState<{ regionId: Region['id']; outcome: Outcome } | null>(null)
 
   useEffect(() => {
+    if (!enabled) return
     let cancelled = false
     granulesFor(region).then((outcome) => {
       if (!cancelled) setSettled({ regionId: region.id, outcome })
@@ -80,10 +82,11 @@ export function useAsfGranules(region: Region): Result {
     return () => {
       cancelled = true
     }
-  }, [region])
+  }, [region, enabled])
 
   return useMemo(
-    () => (settled?.regionId === region.id ? { ...settled.outcome, loading: false } : LOADING),
-    [settled, region.id]
+    () =>
+      !enabled ? IDLE : settled?.regionId === region.id ? { ...settled.outcome, loading: false } : LOADING,
+    [settled, region.id, enabled]
   )
 }

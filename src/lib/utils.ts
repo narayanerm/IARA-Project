@@ -21,3 +21,7 @@ export function fmtSigned(value: number, digits = 2, unit = '') {
   }).format(abs)
   return `${sign}${s}${unit}`
 }
+
+export function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
