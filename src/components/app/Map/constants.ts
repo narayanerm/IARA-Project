@@ -1,4 +1,4 @@
-import type { HillshadeLayerSpecification } from 'maplibre-gl'
+import type { HillshadeLayerSpecification, TerrainSpecification } from 'maplibre-gl'
 
 export const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
@@ -9,8 +9,11 @@ export const MAP_ATTRIBUTION = 'Comunidades: IBGE, FUNAI, MMA via INPE TerraBras
 // Moderate tilt keeps the 3D feel without loading low-detail tiles across a long horizon.
 export const PITCH = 40
 export const BEARING = -12
-// Most of the basin sits below 200 m, where a 3D mesh shows no visible change; shading the
-// slopes marks river valleys, terraces and the highlands, and costs one raster layer.
+// Relief = 3D mesh plus slope shading. The mesh has its own DEM source (MapLibre renders badly when
+// terrain and hillshade share one) and is dropped below TERRAIN_MIN_ZOOM: zoomed out it shows nothing
+// and draping the whole basin through the offscreen texture is where the tiles used to glitch.
+export const TERRAIN: TerrainSpecification = { source: 'terrain-mesh', exaggeration: 1.5 }
+export const TERRAIN_MIN_ZOOM = 6
 export const RELIEF_LAYER = 'relief-hillshade'
 export const RELIEF_PAINT: HillshadeLayerSpecification['paint'] = {
   'hillshade-method': 'multidirectional',

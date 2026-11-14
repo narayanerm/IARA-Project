@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Map, { Layer, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/maplibre'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -16,7 +16,7 @@ import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
 
-import { AMAZON_CENTER, AMAZON_ZOOM, BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH } from './constants'
+import { AMAZON_CENTER, AMAZON_ZOOM, BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN, TERRAIN_MIN_ZOOM } from './constants'
 import { useBasemapAdapter } from './hooks/useBasemapAdapter'
 import { useMapCamera } from './hooks/useMapCamera'
 import { useFocusedTi } from './hooks/useFocusedTi'
@@ -61,6 +61,26 @@ export function SarMap() {
   const [labelLayerId, setLabelLayerId] = useState<string>()
   useMapCamera(mapRef, region, mapLoaded)
   useBasemapAdapter(() => mapRef.current?.getMap(), satelliteOn, mapLoaded)
+
+  // 3D relief: drape the map over the DEM only when zoomed in enough for it to show.
+  useEffect(() => {
+    const m = mapRef.current?.getMap()
+    if (!m || !mapLoaded) return
+    const sync = () => {
+      const want = reliefOn && m.getZoom() >= TERRAIN_MIN_ZOOM && !!m.getSource(TERRAIN.source)
+      if (want !== !!m.getTerrain()) m.setTerrain(want ? TERRAIN : null)
+    }
+    sync()
+    m.on('zoomend', sync)
+    m.on('sourcedata', sync)
+    // Tilt once so the relief is visible right away; a flat camera hides the mesh.
+    if (reliefOn && m.getPitch() < 20) m.easeTo({ pitch: PITCH, duration: 800, essential: true })
+    return () => {
+      m.off('zoomend', sync)
+      m.off('sourcedata', sync)
+      if (m.getTerrain()) m.setTerrain(null)
+    }
+  }, [reliefOn, mapLoaded])
 
   const onClick = (e: MapLayerMouseEvent) => {
     const f = e.features?.[0]
