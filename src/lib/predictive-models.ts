@@ -11,11 +11,39 @@ const RIVER_PREVIEW_POINTS: { name: string; point: ForecastPoint }[] = [
 ]
 export const AMAZON_RIVER_SITES = RIVER_PREVIEW_POINTS.filter(({ point }) => inAmazon(...point))
 export const AMAZON_RIVER_PREVIEWS = AMAZON_RIVER_SITES.map(({ point }) => point)
-export type FloodSignal = { point: ForecastPoint; color: string }
-export type FloodChance = number | 'loading' | 'unavailable' | null
+export type GlofasSignal = {
+  layer: FloodLayer
+  color: string
+  band?: { threshold: number; range: string }
+}
+export type FloodSignal = { point: ForecastPoint; color: string; glofas?: GlofasSignal }
+export type FloodChance = number | GlofasSignal | 'loading' | 'unavailable' | null
+
+// Swatches from the GloFAS FloodSummary1_30 WMS legend, ordered by exceedance band.
+const GLOFAS_SWATCHES = [
+  { threshold: 2, colors: [[255, 255, 193], [255, 255, 139], [255, 254, 0]] },
+  { threshold: 5, colors: [[255, 115, 115], [255, 67, 67], [230, 0, 0]] },
+  { threshold: 20, colors: [[225, 117, 255], [212, 55, 255], [168, 0, 214]] },
+]
+const GLOFAS_RANGES = ['30–50%', '50–75%', '75–100%']
+
+export function glofasProbabilityBand(r: number, g: number, b: number): GlofasSignal['band'] {
+  let match: GlofasSignal['band']
+  let minDistance = 30
+  for (const { threshold, colors } of GLOFAS_SWATCHES) {
+    colors.forEach(([red, green, blue], index) => {
+      const distance = Math.hypot(r - red, g - green, b - blue)
+      if (distance >= minDistance) return
+      minDistance = distance
+      match = { threshold, range: GLOFAS_RANGES[index] }
+    })
+  }
+  return match
+}
 
 export function floodChanceColor(chance: FloodChance) {
-  return typeof chance === 'number' ? `hsl(${120 * (1 - chance / 100)} 76% 60%)` : undefined
+  if (typeof chance === 'number') return `hsl(${120 * (1 - chance / 100)} 76% 60%)`
+  return chance && typeof chance === 'object' ? chance.color : undefined
 }
 
 export type ForecastMapProps = {
@@ -72,9 +100,11 @@ export async function findRegionalFloodSignals(layer: FloodLayer, signal: AbortS
       const lat = Math.atan(Math.sinh(y / radius)) * 180 / Math.PI
       if (!inAmazon(lon, lat)) continue
       const [r, g, b] = data.subarray(i * 4, i * 4 + 3)
+      const color = `rgb(${r}, ${g}, ${b})`
       samples.set(key, {
         point: [lon, lat],
-        color: `rgb(${r}, ${g}, ${b})`,
+        color,
+        glofas: { layer, color, band: layer === FLOOD_LAYER ? glofasProbabilityBand(r, g, b) : undefined },
       })
     }
     return [...samples.values()].sort((a, b) =>

@@ -22,11 +22,12 @@ import {
   type FloodSignal,
   type FloodChance,
   type ForecastPoint,
+  type GlofasSignal,
 } from '@/lib/predictive-models'
 
 type FlowResult = { point: ForecastPoint; data: FlowForecast | null } | { point: ForecastPoint; error: true }
 
-export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance }: {
+export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance, selectedGlofas }: {
   mode: 'river' | 'fire'
   onModeChange: (mode: 'river' | 'fire') => void
   onClose: () => void
@@ -41,6 +42,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   onFloodFocus: (point: ForecastPoint) => void
   onFloodSignals: (signals: FloodSignal[]) => void
   onFloodChance: (result: { point: ForecastPoint; chance: FloodChance }) => void
+  selectedGlofas?: GlofasSignal
 }) {
   const lang = useI18n((s) => s.lang)
   const pt = lang === 'pt'
@@ -76,7 +78,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
       setChanceResult(next)
       onFloodChance(next)
     }
-    updateChance('loading')
+    if (!selectedGlofas) updateChance('loading')
     const selection = loadFloodForecastSnapshot(AbortSignal.any([controller.signal, AbortSignal.timeout(3000)]))
       .then(async (snapshot) => {
         controller.signal.throwIfAborted()
@@ -91,11 +93,13 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
         if (controller.signal.aborted) return
         setResult({ point: selected, error: true })
       })
-    selection.then(({ id, saved }) => saved?.chance ?? (id === null ? 'unavailable' as const : fetchFloodChance(id, AbortSignal.any([controller.signal, AbortSignal.timeout(45000)]))))
-      .then(updateChance)
-      .catch(() => updateChance('unavailable'))
+    if (!selectedGlofas) {
+      selection.then(({ id, saved }) => saved?.chance ?? (id === null ? 'unavailable' as const : fetchFloodChance(id, AbortSignal.any([controller.signal, AbortSignal.timeout(45000)]))))
+        .then(updateChance)
+        .catch(() => updateChance('unavailable'))
+    }
     return () => controller.abort()
-  }, [selected, attempt, onFloodChance])
+  }, [selected, attempt, onFloodChance, selectedGlofas])
 
   const current = result?.point === selected ? result : null
   const chance = chanceResult?.point === selected ? chanceResult?.chance : 'loading'
@@ -162,11 +166,21 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
           {floodError && <p role="status" className="mt-2">{pt ? 'Parte do mapa de cheias não pôde ser carregada.' : 'Some flood forecast tiles could not be loaded.'}</p>}
           <a href={FLOOD_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{FLOOD_ATTRIBUTION}</a>
           <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio dentro do contorno para ver a previsão do trecho mais próximo.' : 'Click near a river inside the boundary to see the forecast for the closest modeled reach.'}</p>
-          {selected && <p className="mt-1 text-xs text-muted-foreground">{pt
+          {selectedGlofas?.band && (
+            <p className="mt-2 text-xs font-semibold">
+              {pt
+                ? `GloFAS: ${selectedGlofas.band.range} de chance de superar o limiar de ${selectedGlofas.band.threshold} anos em 15 dias.`
+                : `GloFAS: ${selectedGlofas.band.range} chance of exceeding the ${selectedGlofas.band.threshold}-year threshold over 15 days.`}
+            </p>
+          )}
+          {selectedGlofas && !selectedGlofas.band && (
+            <p className="mt-2 text-xs">{pt ? 'Esta camada GloFAS não fornece uma porcentagem para este ponto.' : 'This GloFAS layer supplies no percentage for this point.'}</p>
+          )}
+          {selected && !selectedGlofas && <p className="mt-1 text-xs text-muted-foreground">{pt
             ? 'A porcentagem indica quantos cenários GEOGLOWS superam o limiar de vazão diária de 2 anos ao menos uma vez em 7 dias (UTC).'
             : 'The percentage is the share of GEOGLOWS scenarios exceeding the 2-year daily flow threshold at least once over 7 days (UTC).'}
           </p>}
-          {selected && (
+          {selected && !selectedGlofas && (
             <div className="mt-2 text-xs" aria-live="polite">
               {typeof chance === 'number'
                 ? <strong>{pt ? 'Chance em 7 dias' : '7-day chance'} · {chance}%</strong>

@@ -34,6 +34,9 @@ export function AppLayout() {
   const [floodLayer, setFloodLayer] = useState<FloodLayer>(FLOOD_LAYER)
   const [floodFocus, setFloodFocus] = useState<ForecastPoint | null>(null)
   const [floodSignals, setFloodSignals] = useState<FloodSignal[]>([])
+  const selectedGlofas = forecastPoint
+    ? floodSignals.find(({ point, glofas }) => glofas && point[0] === forecastPoint[0] && point[1] === forecastPoint[1])?.glofas
+    : undefined
   const selectedFireDate = fireDate && forecastDates.includes(fireDate) ? fireDate : forecastDates[0]
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
@@ -130,7 +133,7 @@ export function AppLayout() {
             floodFocus={forecastMode === 'river' ? floodFocus : null}
             floodSignals={forecastMode === 'river' ? floodSignals : []}
             riverPoint={forecastMode === 'river' ? forecastPoint : null}
-            riverChance={forecastMode === 'river' && forecastPoint ? (floodChance?.point === forecastPoint ? floodChance.chance : 'loading') : null}
+            riverChance={forecastMode === 'river' && forecastPoint ? (selectedGlofas ?? (floodChance?.point === forecastPoint ? floodChance.chance : 'loading')) : null}
             onRiverSelect={forecastMode === 'river' ? (point) => {
               if (inAmazon(...point)) setForecastPoint(point)
             } : undefined}
@@ -159,6 +162,7 @@ export function AppLayout() {
               onFloodFocus={(point) => { setForecastPoint(point); setFloodFocus([...point]) }}
               onFloodSignals={setFloodSignals}
               onFloodChance={setFloodChance}
+              selectedGlofas={selectedGlofas}
               onFloodLayer={(layer) => { setFloodError(false); setFloodSignals([]); setFloodFocus(null); setFloodLayer(layer) }}
             />
           )}
