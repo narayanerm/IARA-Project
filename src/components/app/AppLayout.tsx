@@ -18,7 +18,7 @@ import { useApp } from '@/lib/store'
 import { useI18n, useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 import { PredictiveModels } from './Map/PredictiveModels'
-import { FLOOD_LAYER, gwisDates, type FloodChance, type FloodLayer, type FloodSignal, type ForecastPoint } from '@/lib/predictive-models'
+import { FLOOD_LAYER, gwisDates, isFloodLayer, observedFloodStart, type FloodChance, type WaterLayer, type FloodSignal, type ForecastPoint } from '@/lib/predictive-models'
 import { inAmazon } from '@/lib/amazon'
 
 export function AppLayout() {
@@ -31,7 +31,10 @@ export function AppLayout() {
   const [fireDate, setFireDate] = useState<string | null>(null)
   const [fireError, setFireError] = useState(false)
   const [floodError, setFloodError] = useState(false)
-  const [floodLayer, setFloodLayer] = useState<FloodLayer>(FLOOD_LAYER)
+  const [floodLayer, setFloodLayer] = useState<WaterLayer>(FLOOD_LAYER)
+  const [observationDate, setObservationDate] = useState(() => new Date(Date.now() - 86_400_000).toISOString().slice(0, 10))
+  const observedDate = observationDate < observedFloodStart(floodLayer) ? observedFloodStart(floodLayer) : observationDate
+  const canSelectRiver = forecastMode === 'river' && isFloodLayer(floodLayer)
   const [floodFocus, setFloodFocus] = useState<ForecastPoint | null>(null)
   const [floodSignals, setFloodSignals] = useState<FloodSignal[]>([])
   const selectedGlofas = forecastPoint
@@ -130,11 +133,12 @@ export function AppLayout() {
           <SarMap
             fireDate={forecastMode === 'fire' ? selectedFireDate : null}
             floodLayer={forecastMode === 'river' ? floodLayer : null}
+            observedDate={observedDate}
             floodFocus={forecastMode === 'river' ? floodFocus : null}
             floodSignals={forecastMode === 'river' ? floodSignals : []}
-            riverPoint={forecastMode === 'river' ? forecastPoint : null}
-            riverChance={forecastMode === 'river' && forecastPoint ? (selectedGlofas ?? (floodChance?.point === forecastPoint ? floodChance.chance : 'loading')) : null}
-            onRiverSelect={forecastMode === 'river' ? (point) => {
+            riverPoint={canSelectRiver ? forecastPoint : null}
+            riverChance={canSelectRiver && forecastPoint ? (selectedGlofas ?? (floodChance?.point === forecastPoint ? floodChance.chance : 'loading')) : null}
+            onRiverSelect={canSelectRiver ? (point) => {
               if (inAmazon(...point)) setForecastPoint(point)
             } : undefined}
             onFireTileError={() => setFireError(true)}
@@ -159,11 +163,13 @@ export function AppLayout() {
               fireError={fireError}
               floodError={floodError}
               floodLayer={floodLayer}
+              observedDate={observedDate}
+              onObservedDate={(date) => { setFloodError(false); setObservationDate(date) }}
               onFloodFocus={(point) => { setForecastPoint(point); setFloodFocus([...point]) }}
               onFloodSignals={setFloodSignals}
               onFloodChance={setFloodChance}
               selectedGlofas={selectedGlofas}
-              onFloodLayer={(layer) => { setFloodError(false); setFloodSignals([]); setFloodFocus(null); setFloodLayer(layer) }}
+              onFloodLayer={(layer) => { setFloodError(false); setFloodSignals([]); setFloodFocus(null); setForecastPoint(null); setFloodLayer(layer) }}
             />
           )}
           <div className="absolute left-3 top-3 xl:hidden">

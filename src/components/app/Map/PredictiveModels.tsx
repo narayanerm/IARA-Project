@@ -10,6 +10,17 @@ import {
   FLOOD_ATTRIBUTION,
   FLOOD_EXTENT_LAYER,
   FLOOD_LAYER,
+  SUBSEASONAL_RIVERS,
+  SEASONAL_BASINS,
+  MODIS_FLOOD,
+  VIIRS_FLOOD,
+  WATER_LAYERS,
+  isFloodLayer,
+  isObservedFlood,
+  observedFloodStart,
+  NASA_FLOOD_ATTRIBUTION,
+  NASA_FLOOD_LEGEND,
+  NASA_FLOOD_VIEWER,
   floodLegend,
   findRegionalFloodSignals,
   FLOOD_VIEWER,
@@ -19,6 +30,7 @@ import {
   GWIS_VIEWER,
   type FlowForecast,
   type FloodLayer,
+  type WaterLayer,
   type FloodSignal,
   type FloodChance,
   type ForecastPoint,
@@ -27,7 +39,16 @@ import {
 
 type FlowResult = { point: ForecastPoint; data: FlowForecast | null } | { point: ForecastPoint; error: true }
 
-export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance, selectedGlofas }: {
+const WATER_LABELS: Record<WaterLayer, [string, string]> = {
+  [FLOOD_LAYER]: ['Trechos em risco', 'River reaches at risk'],
+  [FLOOD_EXTENT_LAYER]: ['Inundação estimada', 'Estimated inundation'],
+  [SUBSEASONAL_RIVERS]: ['Vazão subsazonal · rios', 'Subseasonal flow · rivers'],
+  [SEASONAL_BASINS]: ['Vazão sazonal · bacias', 'Seasonal flow · basins'],
+  [VIIRS_FLOOD]: ['Inundação observada · VIIRS', 'Observed flooding · VIIRS'],
+  [MODIS_FLOOD]: ['Inundação observada · MODIS', 'Observed flooding · MODIS'],
+}
+
+export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance, selectedGlofas, observedDate, onObservedDate }: {
   mode: 'river' | 'fire'
   onModeChange: (mode: 'river' | 'fire') => void
   onClose: () => void
@@ -37,8 +58,10 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   onFireDate: (date: string) => void
   fireError: boolean
   floodError: boolean
-  floodLayer: FloodLayer
-  onFloodLayer: (layer: FloodLayer) => void
+  floodLayer: WaterLayer
+  onFloodLayer: (layer: WaterLayer) => void
+  observedDate: string
+  onObservedDate: (date: string) => void
   onFloodFocus: (point: ForecastPoint) => void
   onFloodSignals: (signals: FloodSignal[]) => void
   onFloodChance: (result: { point: ForecastPoint; chance: FloodChance }) => void
@@ -50,10 +73,10 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   const [attempt, setAttempt] = useState(0)
   const [chanceResult, setChanceResult] = useState<{ point: ForecastPoint; chance: FloodChance } | null>(null)
   const [regionalSignal, setRegionalSignal] = useState<{ layer: FloodLayer; point: ForecastPoint | null | 'error' } | null>(null)
-  const selected = mode === 'river' ? point : null
+  const selected = mode === 'river' && isFloodLayer(floodLayer) ? point : null
 
   useEffect(() => {
-    if (mode !== 'river') return
+    if (mode !== 'river' || !isFloodLayer(floodLayer)) return
     const controller = new AbortController()
     const referencePoints = floodLayer === FLOOD_LAYER
       ? AMAZON_RIVER_PREVIEWS.map((point) => ({ point, color: '#94a3b8' }))
@@ -117,7 +140,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
       </div>
       <div className="mb-3 flex gap-1">
         <button type="button" aria-pressed={mode === 'river'} onClick={() => onModeChange('river')} className="rounded-md border border-border px-2 py-1 aria-pressed:bg-primary/20">
-          {pt ? 'Risco de cheia' : 'Flood risk'}
+          {pt ? 'Cheia e seca' : 'Flood & drought'}
         </button>
         <button type="button" aria-pressed={mode === 'fire'} onClick={() => onModeChange('fire')} className="rounded-md border border-border px-2 py-1 aria-pressed:bg-primary/20">
           {pt ? 'Perigo de fogo' : 'Fire danger'}
@@ -127,11 +150,17 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
         <>
           <label className="mb-2 flex flex-wrap items-center gap-2">
             {pt ? 'Camada' : 'Layer'}
-            <select value={floodLayer} onChange={(e) => onFloodLayer(e.target.value === FLOOD_LAYER ? FLOOD_LAYER : FLOOD_EXTENT_LAYER)} className="rounded border border-border bg-background p-1">
-              <option value={FLOOD_LAYER}>{pt ? 'Trechos em risco' : 'River reaches at risk'}</option>
-              <option value={FLOOD_EXTENT_LAYER}>{pt ? 'Inundação estimada' : 'Estimated inundation'}</option>
+            <select value={floodLayer} onChange={(e) => {
+              const layer = WATER_LAYERS.find((value) => value === e.target.value)
+              if (layer) onFloodLayer(layer)
+            }} className="max-w-full rounded border border-border bg-background p-1">
+              {WATER_LAYERS.map((layer) => <option key={layer} value={layer}>{WATER_LABELS[layer][pt ? 0 : 1]}</option>)}
             </select>
           </label>
+          {!isFloodLayer(floodLayer) ? (
+            <WaterOutlook layer={floodLayer} date={observedDate} onDate={onObservedDate} pt={pt} error={floodError} />
+          ) : (
+          <>
           <p className="text-xs">{floodLayer === FLOOD_LAYER
             ? (pt ? 'Trechos com sinal de cheia nos próximos 15 dias. As cores comparam a vazão prevista com o histórico.' : 'River reaches with a flood signal over the next 15 days. Colors compare forecast discharge with historical flows.')
             : (pt ? 'Estimativa experimental das áreas inundáveis em grandes bacias com sinal de cheia intensa.' : 'Experimental estimate of inundation in large basins with a severe flood signal.')}
@@ -226,6 +255,8 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
             )}
           </div>
           <a href={GEOGLOWS_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">GEOGLOWS · ECMWF</a>
+          </>
+          )}
         </>
       ) : (
         <>
@@ -242,5 +273,56 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
         </>
       )}
     </section>
+  )
+}
+
+function WaterOutlook({ layer, date, onDate, pt, error }: {
+  layer: Exclude<WaterLayer, FloodLayer>
+  date: string
+  onDate: (date: string) => void
+  pt: boolean
+  error: boolean
+}) {
+  const observed = isObservedFlood(layer)
+  const [today] = useState(() => new Date().toISOString().slice(0, 10))
+  const start = observedFloodStart(layer)
+  return (
+    <div className="space-y-2 text-xs">
+      {observed ? (
+        <>
+          <label className="flex flex-wrap items-center gap-2">
+            {pt ? 'Data da observação (UTC)' : 'Observation date (UTC)'}
+            <input type="date" value={date} min={start} max={today} onChange={(e) => {
+              const value = e.target.value
+              if (value >= start && value <= today) onDate(value)
+            }} className="rounded border border-border bg-background p-1" />
+          </label>
+          <p>{pt
+            ? 'Imagem óptica composta de três dias. Nuvens podem ocultar áreas inundadas.'
+            : 'Three-day optical composite. Cloud cover can hide flooded areas.'}</p>
+        </>
+      ) : (
+        <p>{layer === SUBSEASONAL_RIVERS
+          ? (pt ? 'Perspectiva semanal de vazão nos rios em relação ao normal para a época.' : 'Weekly outlook for river flow relative to what is normal for the season.')
+          : (pt ? 'Perspectiva mensal de vazão nas bacias em relação ao normal para a época.' : 'Monthly outlook for basin flow relative to what is normal for the season.')}
+        </p>
+      )}
+      <img src={observed ? NASA_FLOOD_LEGEND : floodLegend(layer)} alt={pt ? 'Legenda da camada' : 'Layer legend'} className="max-w-full rounded bg-white" />
+      {error && <p role="status">{pt ? 'Parte da camada não pôde ser carregada.' : 'Some map tiles could not be loaded.'}</p>}
+      <a href={observed ? NASA_FLOOD_VIEWER : FLOOD_VIEWER} target="_blank" rel="noreferrer" className="block underline">
+        {observed ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}
+      </a>
+      {!observed && (
+        <div className="space-y-2 border-t border-border pt-2">
+          <h3 className="font-semibold">{pt ? 'Seca no Brasil' : 'Drought in Brazil'}</h3>
+          <a href="https://sace.sgb.gov.br/" target="_blank" rel="noreferrer" className="block underline">
+            {pt ? 'SGB/SACE · níveis dos rios e alertas de vazante' : 'SGB/SACE · river levels and low-water alerts'}
+          </a>
+          <a href="https://www.gov.br/cemaden/pt-br/assuntos/monitoramento/impactos-seca/monitoramento-de-seca-para-o-brasil" target="_blank" rel="noreferrer" className="block underline">
+            {pt ? 'Cemaden · boletins de seca e perspectivas de chuva' : 'Cemaden · drought bulletins and rainfall outlooks'}
+          </a>
+        </div>
+      )}
+    </div>
   )
 }

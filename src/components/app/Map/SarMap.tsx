@@ -39,7 +39,7 @@ import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { CommunityPin } from './CommunityPin'
 import { SarPreview } from './SarPreview'
 import { MapFallback } from './MapFallback'
-import { FLOOD_ATTRIBUTION, floodTiles, gwisMapUrl, GWIS_ATTRIBUTION, type FloodLayer, type ForecastMapProps } from '@/lib/predictive-models'
+import { AMAZON_WATER_BOUNDS, FLOOD_ATTRIBUTION, waterTileTemplate, isObservedFlood, isWaterOutlook, NASA_FLOOD_ATTRIBUTION, gwisMapUrl, GWIS_ATTRIBUTION, type WaterLayer, type ForecastMapProps } from '@/lib/predictive-models'
 import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
 import { FloodProbability } from './FloodProbability'
 import { NisarImagery } from './NisarImagery'
@@ -48,8 +48,8 @@ import { inAmazon } from '@/lib/amazon'
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
 maplibregl.addProtocol('amazon-forecast', async ({ url }, { signal }) => {
-  const [kind, value, zoom, column, row] = url.slice('amazon-forecast://'.length).split('/')
-  const tileUrl = (bbox: string) => kind === 'fire' ? gwisMapUrl(value, bbox) : floodTiles(value as FloodLayer, bbox)
+  const [kind, value, date, zoom, column, row] = url.slice('amazon-forecast://'.length).split('/')
+  const tileUrl = kind === 'fire' ? gwisMapUrl(date, '{bbox}') : waterTileTemplate(value as WaterLayer, date)
   const canvas = document.createElement('canvas')
   await drawAmazonForecastTile(canvas, tileUrl, { z: Number(zoom), x: Number(column), y: Number(row) }, signal)
   const blob = await new Promise<Blob>((resolve, reject) =>
@@ -128,10 +128,15 @@ function rasterFade(layer: GibsLayer, opacity: number) {
   ]
 }
 
-export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
+export function SarMap({ fireDate, floodLayer, observedDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
   const signalLabel = useI18n((s) => s.lang === 'pt' ? 'Ver previsão de vazão neste ponto' : 'View river forecast at this point')
   const selectedForecastPoint = riverPoint ?? floodFocus
   const mapRef = useRef<MapRef | null>(null)
+  const observedFlood = floodLayer !== null && isObservedFlood(floodLayer)
+  const waterSourceId = observedFlood ? 'nasa-observed-flood' : 'glofas-flood'
+  useEffect(() => {
+    if (isWaterOutlook(floodLayer)) mapRef.current?.fitBounds(AMAZON_WATER_BOUNDS, { padding: 36, pitch: 0, bearing: 0 })
+  }, [floodLayer])
   useEffect(() => {
     if (floodFocus) mapRef.current?.flyTo({ center: floodFocus, zoom: 7, pitch: 0, bearing: 0 })
   }, [floodFocus])
@@ -332,7 +337,7 @@ export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPo
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
-        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} floodFocus={floodFocus} floodSignals={floodSignals} riverPoint={riverPoint} riverChance={riverChance} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
+        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} observedDate={observedDate} floodFocus={floodFocus} floodSignals={floodSignals} riverPoint={riverPoint} riverChance={riverChance} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
         <OverlayLegend {...counts} />
       </div>
     )
@@ -358,7 +363,7 @@ export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPo
         onClick={onClick}
         onError={(e) => {
           if ('sourceId' in e && e.sourceId === 'gwis-fire') onFireTileError()
-          else if ('sourceId' in e && e.sourceId === 'glofas-flood') onFloodTileError()
+          else if ('sourceId' in e && e.sourceId === waterSourceId) onFloodTileError()
           else console.error(e.error)
         }}
         onZoomEnd={(e) => setZoom(e.viewState.zoom)}
@@ -539,7 +544,7 @@ export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPo
           <Source
             id="gwis-fire"
             type="raster"
-            tiles={[`amazon-forecast://fire/${fireDate}/{z}/{x}/{y}`]}
+            tiles={[`amazon-forecast://fire/fwi/${fireDate}/{z}/{x}/{y}`]}
             tileSize={256}
             maxzoom={8}
             attribution={GWIS_ATTRIBUTION}
@@ -760,8 +765,9 @@ export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPo
         <CommunityPoints />
         <AoiLayersPopup />
         {floodLayer && (
-          <Source id="glofas-flood" type="raster" tiles={[`amazon-forecast://flood/${floodLayer}/{z}/{x}/{y}`]} tileSize={256} maxzoom={11} attribution={FLOOD_ATTRIBUTION}>
-            <Layer id="glofas-flood-overlay" type="raster" paint={{ 'raster-fade-duration': 0 }} />
+          <Source key={waterSourceId} id={waterSourceId} type="raster" tiles={[`amazon-forecast://flood/${floodLayer}/${observedDate}/{z}/{x}/{y}`]} tileSize={256}
+            maxzoom={observedFlood ? 9 : 11} attribution={observedFlood ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}>
+            <Layer id={`${waterSourceId}-overlay`} type="raster" paint={{ 'raster-fade-duration': 0 }} />
           </Source>
         )}
         {floodLayer && floodSignals.map(({ point, color }) => (

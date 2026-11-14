@@ -48,7 +48,8 @@ export function floodChanceColor(chance: FloodChance) {
 
 export type ForecastMapProps = {
   fireDate: string | null
-  floodLayer: FloodLayer | null
+  floodLayer: WaterLayer | null
+  observedDate: string
   floodFocus: ForecastPoint | null
   floodSignals: FloodSignal[]
   riverPoint: ForecastPoint | null
@@ -62,10 +63,34 @@ export const FLOOD_WMS = 'https://ows.globalfloods.eu/glofas-ows/ows.py'
 export const FLOOD_LAYER = 'FloodSummary1_30'
 export const FLOOD_EXTENT_LAYER = 'RapidFloodMapping'
 export type FloodLayer = typeof FLOOD_LAYER | typeof FLOOD_EXTENT_LAYER
+export const SUBSEASONAL_RIVERS = 'SubSeasonalOutlookRivers'
+export const SEASONAL_BASINS = 'SeasonalOutlookBasins'
+export const MODIS_FLOOD = 'MODIS_Combined_Flood_3-Day'
+export const VIIRS_FLOOD = 'VIIRS_Combined_Flood_3-Day'
+export type ObservedFloodLayer = typeof MODIS_FLOOD | typeof VIIRS_FLOOD
+export type OutlookLayer = typeof SUBSEASONAL_RIVERS | typeof SEASONAL_BASINS
+export type WaterLayer = FloodLayer | OutlookLayer | ObservedFloodLayer
+export const WATER_LAYERS: readonly WaterLayer[] = [
+  FLOOD_LAYER, FLOOD_EXTENT_LAYER, SUBSEASONAL_RIVERS, SEASONAL_BASINS, VIIRS_FLOOD, MODIS_FLOOD,
+]
+export const NASA_FLOOD_ATTRIBUTION = 'NASA EOSDIS · GIBS'
+export const NASA_FLOOD_VIEWER = 'https://worldview.earthdata.nasa.gov/?tr=flood-product'
+export const NASA_FLOOD_LEGEND = 'https://gibs.earthdata.nasa.gov/legends/MODIS_Flood_H.svg'
+export const isFloodLayer = (layer: WaterLayer): layer is FloodLayer => layer === FLOOD_LAYER || layer === FLOOD_EXTENT_LAYER
+export const isObservedFlood = (layer: WaterLayer): layer is ObservedFloodLayer => layer === MODIS_FLOOD || layer === VIIRS_FLOOD
+export const isWaterOutlook = (layer: WaterLayer | null): layer is OutlookLayer => layer === SUBSEASONAL_RIVERS || layer === SEASONAL_BASINS
+export const AMAZON_WATER_BOUNDS: [number, number, number, number] = [-74, -13.8, -45.5, 5.5]
+export const observedFloodStart = (layer: WaterLayer) => layer === VIIRS_FLOOD ? '2025-06-01' : '2021-01-01'
 export const FLOOD_ATTRIBUTION = '© European Union · Copernicus EMS / GloFAS'
 export const FLOOD_VIEWER = 'https://global-flood.emergency.copernicus.eu/'
-export const floodLegend = (layer: FloodLayer) => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetLegendGraphic&sld_version=1.1.0&layer=${layer}&format=image/png&STYLE=default`
-export const floodTiles = (layer: FloodLayer, bbox = '{bbox-epsg-3857}') => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetMap&layers=${layer}&styles=&crs=EPSG:3857&bbox=${bbox}&width=256&height=256&format=image/png&transparent=true&exceptions=XML`
+export const floodLegend = (layer: FloodLayer | OutlookLayer) => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetLegendGraphic&sld_version=1.1.0&layer=${layer}&format=image/png&STYLE=default`
+export const floodTiles = (layer: FloodLayer | OutlookLayer, bbox = '{bbox}') => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetMap&layers=${layer}&styles=&crs=EPSG:3857&bbox=${bbox}&width=256&height=256&format=image/png&transparent=true&exceptions=XML`
+
+export function waterTileTemplate(layer: WaterLayer, date: string) {
+  return isObservedFlood(layer)
+    ? `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png`
+    : floodTiles(layer)
+}
 
 export async function findRegionalFloodSignals(layer: FloodLayer, signal: AbortSignal): Promise<FloodSignal[]> {
   // Enclose the biome, then test each sample against its actual boundary.

@@ -18,7 +18,7 @@ const south = Math.max(...vertices.map(([, y]) => y))
 
 export async function drawAmazonForecastTile(
   canvas: HTMLCanvasElement,
-  tileUrl: (bbox: string) => string,
+  urlTemplate: string,
   { x, y, z }: { x: number; y: number; z: number },
   signal: AbortSignal,
 ) {
@@ -44,7 +44,9 @@ export async function drawAmazonForecastTile(
   const span = 2 * HALF_WORLD / scale
   const left = x * span - HALF_WORLD
   const top = HALF_WORLD - y * span
-  const response = await fetch(tileUrl([left, top - span, left + span, top].join(',')), { signal })
+  const url = urlTemplate.replace('{bbox}', [left, top - span, left + span, top].join(','))
+    .replace('{x}', String(x)).replace('{y}', String(y)).replace('{z}', String(z))
+  const response = await fetch(url, { signal })
   if (!response.ok || !response.headers.get('content-type')?.startsWith('image/png')) {
     throw new Error('Forecast image unavailable')
   }

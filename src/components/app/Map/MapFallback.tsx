@@ -28,7 +28,7 @@ import {
 import type { Region } from '@/lib/types'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
-import { FLOOD_ATTRIBUTION, floodTiles, gwisMapUrl, GWIS_ATTRIBUTION, type ForecastMapProps, type ForecastPoint } from '@/lib/predictive-models'
+import { AMAZON_WATER_BOUNDS, FLOOD_ATTRIBUTION, waterTileTemplate, isObservedFlood, isWaterOutlook, NASA_FLOOD_ATTRIBUTION, gwisMapUrl, GWIS_ATTRIBUTION, type ForecastMapProps, type ForecastPoint, type WaterLayer } from '@/lib/predictive-models'
 import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
 import { FloodProbability } from './FloodProbability'
 import { useAsfGranules } from '@/lib/useAsfGranules'
@@ -62,7 +62,7 @@ function AmazonForecastLayer({ url, attribution, maxZoom, opacity, onError }: {
         const tile = document.createElement('canvas')
         const controller = new AbortController()
         requests.set(tile, controller)
-        drawAmazonForecastTile(tile, (bbox) => url.replace('{bbox}', bbox), coords, controller.signal)
+        drawAmazonForecastTile(tile, url, coords, controller.signal)
           .then(() => { if (!controller.signal.aborted) done(undefined, tile) })
           .catch((error: Error) => { if (!controller.signal.aborted) done(error, tile) })
         return tile
@@ -82,7 +82,17 @@ function FloodFocus({ point }: { point: ForecastPoint }) {
   return null
 }
 
-export function MapFallback({ region, fireDate, floodLayer, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
+function WaterOutlookFocus({ layer }: { layer: WaterLayer }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!isWaterOutlook(layer)) return
+    const [west, south, east, north] = AMAZON_WATER_BOUNDS
+    map.fitBounds([[south, west], [north, east]], { padding: [36, 36] })
+  }, [layer, map])
+  return null
+}
+
+export function MapFallback({ region, fireDate, floodLayer, observedDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
   const selectedForecastPoint = riverPoint ?? floodFocus
   const setActiveRegion = useApp((s) => s.setActiveRegion)
   const focusedTi = useApp((s) => s.focusedTi)
@@ -134,14 +144,15 @@ export function MapFallback({ region, fireDate, floodLayer, floodFocus, floodSig
         attributionControl
       >
         <TiFocusController />
+        {floodLayer && <WaterOutlookFocus layer={floodLayer} />}
         {floodFocus && <FloodFocus point={floodFocus} />}
         {onRiverSelect && <RiverSelection onSelect={onRiverSelect} />}
         {fireDate && <AmazonForecastLayer url={gwisMapUrl(fireDate, '{bbox}')} attribution={GWIS_ATTRIBUTION} maxZoom={8} opacity={0.7} onError={onFireTileError} />}
         {floodLayer && (
           <AmazonForecastLayer
-            url={floodTiles(floodLayer, '{bbox}')}
-            attribution={FLOOD_ATTRIBUTION}
-            maxZoom={11}
+            url={waterTileTemplate(floodLayer, observedDate)}
+            attribution={isObservedFlood(floodLayer) ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}
+            maxZoom={isObservedFlood(floodLayer) ? 9 : 11}
             opacity={1}
             onError={onFloodTileError}
           />
