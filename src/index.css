@@ -116,20 +116,10 @@
 }
 
 @layer utilities {
-  .grid-bg {
-    background-image:
-      linear-gradient(to right, hsl(var(--border) / 0.4) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--border) / 0.4) 1px, transparent 1px);
-    background-size: 48px 48px;
-  }
-  .radial-fade {
-    mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
-    -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
-  }
   .text-balance {
     text-wrap: balance;
   }
   .glass {
-    @apply backdrop-blur-xl bg-card/60 border border-border/60;
+    @apply bg-card/95 border border-border/60;
   }
 }

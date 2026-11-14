@@ -104,16 +104,16 @@ export function PhenomenonBriefing() {
 
   const beforeBadge = showSar
     ? sarGranuleLabel(pair.before, pair.platform, selectedEvent.beforeDate)
-    : `${activeOptical.label} · ${selectedEvent.beforeDate}`
+    : `${activeOptical.label}, ${selectedEvent.beforeDate}`
   const afterBadge = showSar
     ? sarGranuleLabel(pair.after, pair.platform, selectedEvent.afterDate)
-    : `${activeOptical.label} · ${selectedEvent.afterDate}`
+    : `${activeOptical.label}, ${selectedEvent.afterDate}`
 
   if (!open) {
     return (
       <button
         onClick={reopen}
-        className="absolute left-1/2 -translate-x-1/2 bottom-24 z-30 pointer-events-auto inline-flex items-center gap-2 rounded-full border border-primary/50 bg-primary/15 backdrop-blur-sm px-4 py-2 text-[13px] font-semibold text-primary hover:bg-primary/25 transition-all shadow-lg"
+        className="absolute left-1/2 -translate-x-1/2 bottom-24 z-30 pointer-events-auto inline-flex items-center gap-2 rounded-md border border-primary/50 bg-primary/15 px-4 py-2 text-[13px] font-semibold text-primary hover:bg-primary/25 transition-colors shadow-md"
       >
         <BookOpen className="h-4 w-4" />
         Entender {region.phenomenonLabel.toLowerCase()}
@@ -124,16 +124,16 @@ export function PhenomenonBriefing() {
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-30 pointer-events-auto">
-      <div className="mx-auto max-w-5xl rounded-t-2xl border border-b-0 border-primary/30 bg-card/95 backdrop-blur-xl shadow-2xl animate-in slide-in-from-bottom duration-300">
+      <div className="mx-auto max-w-5xl rounded-t-lg border border-b-0 border-primary/30 bg-card/95 shadow-md animate-in slide-in-from-bottom duration-300">
         <header className="flex items-center justify-between gap-3 px-4 pt-3 pb-2 border-b border-border/60">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/15 ring-1 ring-primary/40 shrink-0">
+            <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/15 shrink-0">
               <Radar className="h-4 w-4 text-primary" />
             </div>
             <div className="min-w-0">
               <div className="text-sm font-semibold truncate">{briefing.title}</div>
-              <div className="text-[12px] font-mono text-muted-foreground truncate">
-                {briefing.period} · {region.anchorCity}
+              <div className="text-[12px] tabular-nums text-muted-foreground truncate">
+                {briefing.period}, {region.anchorCity}
               </div>
             </div>
           </div>
@@ -159,7 +159,7 @@ export function PhenomenonBriefing() {
           <section className="space-y-3">
             {showSar && pair.loading ? (
               <div className="w-full aspect-[4/3] rounded-lg border border-border/60 bg-background/40 grid place-items-center">
-                <div className="flex items-center gap-2 text-[13px] font-mono text-muted-foreground">
+                <div className="flex items-center gap-2 text-[13px] tabular-nums text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Buscando cenas SAR no ASF DAAC…
                 </div>
@@ -196,7 +196,7 @@ export function PhenomenonBriefing() {
                 href={briefing.externalViewer.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ml-auto inline-flex items-center gap-1 rounded-full border border-sar-amber/40 bg-sar-amber/10 px-2.5 py-1 text-[11px] font-mono text-sar-amber hover:bg-sar-amber/20 transition-colors"
+                className="ml-auto inline-flex items-center gap-1 rounded-md border border-sar-amber/40 bg-sar-amber/10 px-2.5 py-1 text-[11px] tabular-nums text-sar-amber hover:bg-sar-amber/20 transition-colors"
               >
                 {briefing.externalViewer.label}
                 <ExternalLink className="h-3 w-3" />
@@ -205,7 +205,7 @@ export function PhenomenonBriefing() {
 
             {!showSar && briefing.opticalLayers.length > 1 && (
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mr-1">
+                <span className="text-[11px] tabular-nums text-muted-foreground mr-1">
                   camada:
                 </span>
                 {briefing.opticalLayers.map((o) => (
@@ -214,7 +214,7 @@ export function PhenomenonBriefing() {
                     onClick={() => setOpticalLayerKey(o.key)}
                     title={o.note}
                     className={cn(
-                      'rounded-full border px-2 py-0.5 text-[11px] font-mono transition-colors',
+                      'rounded-md border px-2 py-0.5 text-[11px] tabular-nums transition-colors',
                       opticalLayerKey === o.key
                         ? 'border-primary/50 bg-primary/15 text-primary'
                         : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
@@ -232,7 +232,7 @@ export function PhenomenonBriefing() {
                 ? pair.diagnostic
                   ? `${pair.diagnostic}. Polígonos vermelhos marcam a área documentada.`
                   : 'Sem par SAR disponível. Troque para óptico.'
-                : `${activeOptical.note ?? ''} · polígonos vermelhos sobrepostos marcam onde o fenômeno ocorreu. Troque de camada acima se tiver muita nuvem.`}
+                : `${activeOptical.note ?? ''}, polígonos vermelhos sobrepostos marcam onde o fenômeno ocorreu. Troque de camada acima se tiver muita nuvem.`}
             </p>
           </section>
 
@@ -248,10 +248,10 @@ export function PhenomenonBriefing() {
                 <div className="text-2xl font-semibold text-primary leading-none">
                   {selectedEvent.magnitude.value}
                 </div>
-                <div className="text-[13px] font-mono text-primary/80">
+                <div className="text-[13px] tabular-nums text-primary/80">
                   {selectedEvent.magnitude.unit}
                 </div>
-                <div className="ml-auto text-[11px] font-mono text-muted-foreground">
+                <div className="ml-auto text-[11px] tabular-nums text-muted-foreground">
                   {selectedEvent.year}
                 </div>
               </div>
@@ -277,7 +277,7 @@ export function PhenomenonBriefing() {
             </div>
 
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-              <div className="text-[11px] font-mono uppercase tracking-wider text-primary mb-1">
+              <div className="text-[11px] tabular-nums text-primary mb-1">
                 Como o radar lê isso
               </div>
               <div className="text-[13px] text-foreground/90 leading-snug">
@@ -286,7 +286,7 @@ export function PhenomenonBriefing() {
             </div>
 
             <div className="pt-1">
-              <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">
+              <div className="text-[11px] tabular-nums text-muted-foreground mb-1.5">
                 Fontes
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -296,7 +296,7 @@ export function PhenomenonBriefing() {
                     href={src.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-[11px] font-mono text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-2.5 py-1 text-[11px] tabular-nums text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
                   >
                     {src.label}
                     <ExternalLink className="h-3 w-3" />
@@ -329,7 +329,7 @@ function SourceTab({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-mono transition-colors',
+        'inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] tabular-nums transition-colors',
         disabled && 'opacity-40 cursor-not-allowed',
         active
           ? 'border-primary/50 bg-primary/15 text-primary'
@@ -349,7 +349,7 @@ function StatCard({ value, label, source }: { value: string; label: string; sour
     )}>
       <div className="text-xl font-semibold text-primary leading-tight">{value}</div>
       <div className="text-[12px] text-foreground/85 leading-snug mt-0.5">{label}</div>
-      <div className="text-[10px] font-mono text-muted-foreground/80 mt-1 uppercase tracking-wider">
+      <div className="text-[10px] tabular-nums text-muted-foreground/80 mt-1">
         {source}
       </div>
     </div>
@@ -365,9 +365,9 @@ function sarGranuleLabel(
     const band = bandFor(platform)
     const d = g.startTime.slice(0, 10)
     const pol = g.polarization.join('+') || '—'
-    return `${platform} ${band}-band · ${pol} · ${d}`
+    return `${platform} ${band}-band, ${pol}, ${d}`
   }
-  return `óptico · ${fallbackDate}`
+  return `óptico, ${fallbackDate}`
 }
 
 function boldifyMarkdown(text: string): string {

@@ -54,21 +54,21 @@ export function BeforeAfter({
         <Frame url={beforeUrl} bbox={beforeBbox} affected={affected} className="absolute inset-0" />
       </div>
 
-      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] font-mono backdrop-blur-sm z-10">
-        ANTES · {beforeLabel}
+      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] tabular-nums z-10">
+        Antes: {beforeLabel}
       </span>
-      <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] font-mono backdrop-blur-sm z-10">
-        DEPOIS · {afterLabel}
+      <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] tabular-nums z-10">
+        Depois: {afterLabel}
       </span>
 
       <div
-        className="absolute top-0 bottom-0 w-[2px] bg-white/90 pointer-events-none shadow-[0_0_8px_rgba(255,255,255,0.6)] z-10"
+        className="absolute top-0 bottom-0 w-[2px] bg-white/90 pointer-events-none z-10"
         style={{ left: `calc(${pos}% - 1px)` }}
       />
       <button
         onMouseDown={() => setDragging(true)}
         onTouchStart={() => setDragging(true)}
-        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 grid place-items-center h-10 w-10 rounded-full bg-white shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-10"
+        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 grid place-items-center h-10 w-10 rounded-full bg-white shadow-lg cursor-ew-resize transition-transform z-10"
         style={{ left: `${pos}%` }}
         aria-label="Arrastar comparador"
       >
@@ -77,7 +77,7 @@ export function BeforeAfter({
         </svg>
       </button>
 
-      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-mono text-white/80 bg-black/60 backdrop-blur-sm rounded-full px-2 py-0.5 z-10">
+      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] tabular-nums text-white/80 bg-black/60 rounded-md px-2 py-0.5 z-10">
         arraste ↔
       </div>
     </div>

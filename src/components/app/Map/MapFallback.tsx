@@ -75,7 +75,7 @@ export function MapFallback({ region }: { region: Region }) {
           <LayersControl.BaseLayer checked name="NASA GIBS satellite (MODIS)">
             <TileLayer
               url="https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2026-11-13/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg"
-              attribution="NASA GIBS · MODIS Terra true color"
+              attribution="NASA GIBS, MODIS Terra true color"
               maxZoom={9}
               tileSize={256}
             />
@@ -90,14 +90,14 @@ export function MapFallback({ region }: { region: Region }) {
           <LayersControl.BaseLayer name="OSM Humanitarian">
             <TileLayer
               url="https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
-              attribution='&copy; OpenStreetMap · HOT'
+              attribution='&copy; OpenStreetMap, HOT'
               maxZoom={19}
             />
           </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="NASA GIBS NDVI (vegetation)">
             <TileLayer
               url="https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_NDVI_8Day/default/2026-11-12/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png"
-              attribution="NASA GIBS · MODIS NDVI 8-day"
+              attribution="NASA GIBS, MODIS NDVI 8-day"
               maxZoom={9}
               tileSize={256}
             />
@@ -125,13 +125,13 @@ export function MapFallback({ region }: { region: Region }) {
                 url={browse.browseUrl}
                 bounds={sarBounds}
                 opacity={0.72}
-                attribution={`ASF DAAC · ${browse.dataset}`}
+                attribution={`ASF DAAC, ${browse.dataset}`}
               />
             </LayersControl.Overlay>
           )}
 
 
-          <LayersControl.Overlay checked name={`Área afetada · ${region.phenomenonLabel}`}>
+          <LayersControl.Overlay checked name={`Área afetada, ${region.phenomenonLabel}`}>
             <GeoJSON
               key={region.id}
               data={AFFECTED_AREAS[region.id]}
@@ -150,7 +150,7 @@ export function MapFallback({ region }: { region: Region }) {
               onEachFeature={(f, layer) => {
                 const p = f.properties as AffectedAreaProps
                 layer.bindTooltip(
-                  `${p.label} · ${p.area_km2.toLocaleString('pt-BR')} km²`,
+                  `${p.label}, ${p.area_km2.toLocaleString('pt-BR')} km²`,
                   { sticky: true, direction: 'top' }
                 )
                 layer.bindPopup(buildAffectedPopupHtml(p))
@@ -176,7 +176,7 @@ export function MapFallback({ region }: { region: Region }) {
               <div style={{ minWidth: 180 }}>
                 <strong>{r.phenomenonLabel}</strong>
                 <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
-                  {r.name} · {r.anchorCity}
+                  {r.name}, {r.anchorCity}
                 </div>
                 <div style={{ fontSize: 12, marginTop: 6 }}>{r.tagline}</div>
               </div>
@@ -198,7 +198,7 @@ export function MapFallback({ region }: { region: Region }) {
         </div>
       </div>
 
-      <div className="absolute left-4 top-4 rounded-lg border border-border/60 bg-card/85 backdrop-blur-sm p-3 text-[12px] text-muted-foreground max-w-[220px] leading-snug z-[500] pointer-events-auto">
+      <div className="absolute left-4 top-4 rounded-lg border border-border/60 bg-card p-3 text-[12px] text-muted-foreground max-w-[220px] leading-snug z-[500] pointer-events-auto">
         <div className="text-foreground font-semibold mb-1 flex items-center gap-1.5">
           <MapPin className="h-3.5 w-3.5" />
           IARA 2D map
@@ -236,7 +236,7 @@ function buildAffectedPopupHtml(p: AffectedAreaProps): string {
   return `
     <div style="min-width:200px; font-family:Inter,sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.label}</div>
-      <div style="font-size:11px; color:#888; font-family:monospace; text-transform:uppercase;">${kindLabel} · ${p.year}</div>
+      <div style="font-size:11px; color:#888; font-family:monospace;">${kindLabel}, ${p.year}</div>
       <div style="font-size:16px; font-weight:600; margin-top:6px; color:${affectedAreaColor(p.kind)};">
         ${p.area_km2.toLocaleString('pt-BR')} km²
       </div>
@@ -266,7 +266,7 @@ function buildTiPopupHtml(p: TiProps): string {
   return `
     <div style="min-width:220px; font-family:Geist,sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.name}</div>
-      <div style="font-size:12px; color:#666;">${p.state} · ${p.year} · ${p.status}</div>
+      <div style="font-size:12px; color:#666;">${p.state}, ${p.year}, ${p.status}</div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:6px; font-size:12px;">
         <div><strong>Area:</strong><br/>${p.area_km2.toLocaleString('en-US')} km²</div>
         ${p.population ? `<div><strong>Population:</strong><br/>${p.population.toLocaleString('en-US')}</div>` : ''}

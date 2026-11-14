@@ -36,7 +36,7 @@ export function MetadataPanel() {
   return (
     <aside
       className={cn(
-        'relative z-10 h-full border-l border-border/60 bg-card/40 backdrop-blur-xl transition-[width] duration-300',
+        'relative z-10 h-full border-l border-border/60 bg-card transition-[width] duration-300',
         open ? 'w-[360px]' : 'w-12'
       )}
     >
@@ -85,7 +85,7 @@ function SourceBadge({ asf }: { asf: ReturnType<typeof useAsfGranules> }) {
   const t = useT()
   if (asf.loading) {
     return (
-      <Badge variant="outline" className="w-fit font-mono text-[12px]">
+      <Badge variant="outline" className="w-fit tabular-nums text-[12px]">
         <Loader2 className="h-3 w-3 animate-spin" />
         {t('metadata.loadingLive')}
       </Badge>
@@ -93,14 +93,14 @@ function SourceBadge({ asf }: { asf: ReturnType<typeof useAsfGranules> }) {
   }
   if (asf.data.length > 0 && asf.platform) {
     return (
-      <Badge variant="success" className="w-fit font-mono text-[12px]">
-        <span className="h-1.5 w-1.5 rounded-full bg-sar-jade animate-pulse-soft" />
-        {t('metadata.liveAsf')} · {asf.platform}
+      <Badge variant="success" className="w-fit tabular-nums text-[12px]">
+        <span className="h-1.5 w-1.5 rounded-full bg-sar-jade" />
+        {t('metadata.liveAsf')}, {asf.platform}
       </Badge>
     )
   }
   return (
-    <Badge variant="warning" className="w-fit font-mono text-[12px]">
+    <Badge variant="warning" className="w-fit tabular-nums text-[12px]">
       {t('metadata.syntheticFallback')}
     </Badge>
   )
@@ -116,7 +116,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
         <div className="flex items-center gap-2 mb-3">
           <Satellite className="h-4 w-4 text-primary" />
           <div className="text-sm font-semibold">{t('metadata.granule')}</div>
-          <Badge variant="outline" className="ml-auto font-mono text-[12px]">
+          <Badge variant="outline" className="ml-auto tabular-nums text-[12px]">
             {level}
           </Badge>
         </div>
@@ -128,7 +128,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
             <MetaRow
               icon={Layers}
               label={t('metadata.pol')}
-              value={liveGranule.polarization.join(' · ') || '—'}
+              value={liveGranule.polarization.join(', ') || '—'}
             />
             <MetaRow
               icon={Compass}
@@ -157,7 +157,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
           href={liveGranule.vertexUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 flex items-center justify-between rounded-md bg-primary/10 hover:bg-primary/15 border border-primary/30 px-2.5 py-1.5 text-[13px] text-primary font-mono transition-colors"
+          className="mt-3 flex items-center justify-between rounded-md bg-primary/10 hover:bg-primary/15 border border-primary/30 px-2.5 py-1.5 text-[13px] text-primary tabular-nums transition-colors"
         >
           <span>{t('metadata.viewOnAsf')}</span>
           <ExternalLink className="h-3 w-3" />
@@ -172,7 +172,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
       <div className="flex items-center gap-2 mb-3">
         <Satellite className="h-4 w-4 text-primary" />
         <div className="text-sm font-semibold">{t('metadata.granule')}</div>
-        <Badge variant="outline" className="ml-auto font-mono text-[12px]">
+        <Badge variant="outline" className="ml-auto tabular-nums text-[12px]">
           {g.productLevel}
         </Badge>
       </div>
@@ -181,7 +181,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
         <MetaRow icon={Fingerprint} label={t('metadata.id')} value={g.observationId} mono wrap />
         <div className="grid grid-cols-2 gap-2">
           <MetaRow icon={Radio} label={t('metadata.band')} value={`${g.band}-band`} />
-          <MetaRow icon={Layers} label={t('metadata.pol')} value={g.polarizations.join(' · ')} />
+          <MetaRow icon={Layers} label={t('metadata.pol')} value={g.polarizations.join(', ')} />
           <MetaRow icon={Compass} label={t('metadata.orbit')} value={g.orbitPass} />
           <MetaRow icon={ScanLine} label={t('metadata.inc')} value={`${g.incidenceAngleDeg}°`} />
           <MetaRow icon={Clock} label={t('metadata.acq')} value={g.acquisitionDate} />
@@ -195,7 +195,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
         )}
       </div>
 
-      <div className="mt-3 rounded-md bg-background/40 border border-border/60 px-2.5 py-1.5 text-[12px] text-muted-foreground font-mono">
+      <div className="mt-3 rounded-md bg-background/40 border border-border/60 px-2.5 py-1.5 text-[12px] text-muted-foreground tabular-nums">
         {g.attribution}
       </div>
       <div className="mt-2 text-[12px] text-muted-foreground leading-snug">
@@ -221,10 +221,10 @@ function RecentPassesBlock({ granules }: { granules: AsfGranule[] }) {
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-md border border-border/60 bg-background/40 px-2 py-1.5 text-[13px] hover:border-primary/40 hover:bg-background/60 transition-colors"
           >
-            <span className="font-mono text-muted-foreground">{g.startTime.slice(0, 10)}</span>
+            <span className="tabular-nums text-muted-foreground">{g.startTime.slice(0, 10)}</span>
             <span className="text-foreground truncate flex-1">{g.dataset}</span>
-            <span className="font-mono text-muted-foreground">
-              {g.flightDirection?.[0] ?? '?'} · {g.polarization.join('+') || '—'}
+            <span className="tabular-nums text-muted-foreground">
+              {g.flightDirection?.[0] ?? '?'}, {g.polarization.join('+') || '—'}
             </span>
           </a>
         ))}
@@ -253,9 +253,9 @@ function SelectedPolygonBlock() {
       <div className="flex items-center justify-between mb-3">
         <div>
           <div className="text-sm font-semibold">{p.name}</div>
-          <div className="text-[13px] text-muted-foreground font-mono">{p.id.toUpperCase()}</div>
+          <div className="text-[13px] text-muted-foreground tabular-nums">{p.id.toUpperCase()}</div>
         </div>
-        <Badge variant={color} className="font-mono">
+        <Badge variant={color} className="tabular-nums">
           {fmtSigned(trend, 2, ' mm/' + t('legend.unit').replace('mm/', ''))}
         </Badge>
       </div>
@@ -268,7 +268,7 @@ function SelectedPolygonBlock() {
         />
       </div>
 
-      <div className="mt-3 rounded-md bg-background/40 border border-border/60 p-2 text-[12px] text-muted-foreground font-mono leading-snug">
+      <div className="mt-3 rounded-md bg-background/40 border border-border/60 p-2 text-[12px] text-muted-foreground tabular-nums leading-snug">
         {t('metadata.coherenceNote')}
       </div>
     </section>
@@ -282,7 +282,7 @@ function ValidationBlock() {
     <section>
       <div className="flex items-center gap-2 mb-3">
         <div className="text-sm font-semibold">{t('metadata.validation')}</div>
-        <Badge variant="success" className="ml-auto font-mono text-[12px]">
+        <Badge variant="success" className="ml-auto tabular-nums text-[12px]">
           κ = {v.cohensKappa.toFixed(2)}
         </Badge>
       </div>
@@ -294,9 +294,9 @@ function ValidationBlock() {
       </div>
 
       <div className="mt-3 text-[13px] text-muted-foreground leading-snug">
-        {v.nSamples} {t('metadata.samples')} · {v.periodStart} → {v.periodEnd}
+        {v.nSamples} {t('metadata.samples')}, {v.periodStart} → {v.periodEnd}
       </div>
-      <div className="mt-1 text-[12px] text-muted-foreground font-mono">
+      <div className="mt-1 text-[12px] text-muted-foreground tabular-nums">
         {t('metadata.gt')}: {v.groundTruthSource}
       </div>
     </section>
@@ -333,7 +333,7 @@ function MetaRow({
       <div
         className={cn(
           'mt-0.5 text-xs text-foreground',
-          mono && 'font-mono',
+          mono && 'tabular-nums',
           wrap ? 'break-all' : 'truncate'
         )}
       >
@@ -349,7 +349,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-[12px] font-medium text-muted-foreground">
         {label}
       </div>
-      <div className="mt-0.5 text-sm font-semibold text-foreground font-mono">{value}</div>
+      <div className="mt-0.5 text-sm font-semibold text-foreground tabular-nums">{value}</div>
     </div>
   )
 }

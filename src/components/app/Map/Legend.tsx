@@ -9,7 +9,7 @@ export function Legend() {
         <div className="text-[13px] font-medium text-muted-foreground">
           {t('legend.title')}
         </div>
-        <div className="text-[12px] font-mono text-muted-foreground">
+        <div className="text-[12px] tabular-nums text-muted-foreground">
           {t('legend.unit')}
         </div>
       </div>
@@ -21,7 +21,7 @@ export function Legend() {
           }}
         />
       </div>
-      <div className="mt-2 flex justify-between text-[12px] font-mono text-muted-foreground">
+      <div className="mt-2 flex justify-between text-[12px] tabular-nums text-muted-foreground">
         <span>{t('legend.lowLabel')}</span>
         <span>0</span>
         <span>{t('legend.highLabel')}</span>

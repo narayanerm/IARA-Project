@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Send, Sparkles, User } from 'lucide-react'
+import { MessageSquare, Send, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useApp } from '@/lib/store'
 import { cn } from '@/lib/utils'
@@ -84,16 +84,16 @@ export function Chatbot() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-card/40 backdrop-blur-xl">
+    <div className="flex h-full flex-col bg-card">
       {/* header */}
       <div className="flex h-12 items-center gap-2 border-b border-border/60 px-3">
-        <div className="grid h-7 w-7 place-items-center rounded-md bg-primary/15 ring-1 ring-primary/40">
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <div className="grid h-7 w-7 place-items-center rounded-md bg-primary/15">
+          <MessageSquare className="h-3.5 w-3.5 text-primary" />
         </div>
         <div className="flex-1 leading-tight">
           <div className="text-xs font-semibold">IARA assistant</div>
           <div className="text-[13px] text-muted-foreground">
-            Deterministic router (Claude stub)
+            Questions about the three study regions
           </div>
         </div>
       </div>
@@ -113,7 +113,7 @@ export function Chatbot() {
             <button
               key={s}
               onClick={() => send(s)}
-              className="rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+              className="rounded-md border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
             >
               {s}
             </button>
@@ -155,7 +155,7 @@ function MessageBubble({ msg }: { msg: Message }) {
             : 'bg-primary/15 ring-primary/40 text-primary'
         )}
       >
-        {isUser ? <User className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+        {isUser ? <User className="h-3 w-3" /> : <MessageSquare className="h-3 w-3" />}
       </div>
       <div
         className={cn(
@@ -173,20 +173,7 @@ function MessageBubble({ msg }: { msg: Message }) {
 
 function ThinkingBubble() {
   return (
-    <div className="flex gap-2">
-      <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/15 ring-1 ring-primary/40 text-primary">
-        <Sparkles className="h-3 w-3" />
-      </div>
-      <div className="rounded-lg bg-background/40 border border-border/60 px-3 py-2 flex gap-1">
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-pulse"
-            style={{ animationDelay: `${i * 160}ms` }}
-          />
-        ))}
-      </div>
-    </div>
+    <div className="pl-8 text-[12px] text-muted-foreground">Looking that up…</div>
   )
 }
 

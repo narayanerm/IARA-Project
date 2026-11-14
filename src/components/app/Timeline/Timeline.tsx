@@ -88,10 +88,10 @@ export function Timeline() {
         <div className="flex-1">
           <div className="flex items-baseline justify-between mb-1">
             <div className="text-[13px] font-medium text-muted-foreground">
-              {t('timeline.series')} · {seriesTitle}
+              {t('timeline.series')}, {seriesTitle}
             </div>
-            <div className="text-xs font-mono text-foreground">
-              {current.date} · {current.displacementMm.toFixed(2)} mm
+            <div className="text-xs tabular-nums text-foreground">
+              {current.date}, {current.displacementMm.toFixed(2)} mm
             </div>
           </div>
 

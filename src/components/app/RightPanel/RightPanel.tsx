@@ -14,7 +14,7 @@ export function RightPanel() {
   return (
     <aside
       className={cn(
-        'relative z-10 h-full border-l border-border/60 bg-card/40 backdrop-blur-xl transition-[width] duration-300',
+        'relative z-10 h-full border-l border-border/60 bg-card transition-[width] duration-300',
         open ? 'w-[380px]' : 'w-12'
       )}
     >
@@ -86,7 +86,7 @@ function TabButton({
 // by stripping its outer frame via a thin wrapper.
 function MetadataPanelEmbedded() {
   return (
-    <div className="h-full [&>aside]:!w-full [&>aside]:!border-l-0 [&>aside]:!bg-transparent [&>aside]:!backdrop-blur-none">
+    <div className="h-full [&>aside]:!w-full [&>aside]:!border-l-0 [&>aside]:!bg-transparent">
       <MetadataPanel />
     </div>
   )

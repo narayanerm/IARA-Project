@@ -61,7 +61,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'relative z-10 h-full border-r border-border/60 bg-card/40 backdrop-blur-xl transition-[width] duration-300',
+        'relative z-10 h-full border-r border-border/60 bg-card transition-[width] duration-300',
         open ? 'w-[300px]' : 'w-10'
       )}
     >
@@ -95,7 +95,7 @@ export function Sidebar() {
                     setActiveRegion(r.id)
                     openPopup()
                   }}
-                  title={`${r.phenomenonLabel} · ${r.anchorCity}`}
+                  title={`${r.phenomenonLabel}, ${r.anchorCity}`}
                   className={cn(
                     'flex-1 inline-flex flex-col items-center gap-1 rounded-md border px-2 py-2 transition-colors',
                     isActive
@@ -104,7 +104,7 @@ export function Sidebar() {
                   )}
                 >
                   <Icon className="h-4 w-4" strokeWidth={1.8} />
-                  <span className="text-[11px] font-mono font-semibold leading-none">
+                  <span className="text-[11px] tabular-nums font-semibold leading-none">
                     {r.phenomenonLabel}
                   </span>
                 </button>
@@ -136,10 +136,10 @@ export function Sidebar() {
           </div>
 
           <div className="flex items-center justify-between px-1 pt-1">
-            <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+            <div className="text-[11px] tabular-nums text-muted-foreground">
               Terras Indígenas (FUNAI)
             </div>
-            <div className="text-[11px] font-mono text-muted-foreground">
+            <div className="text-[11px] tabular-nums text-muted-foreground">
               {tis.length}
             </div>
           </div>
@@ -154,7 +154,7 @@ export function Sidebar() {
                   className={cn(
                     'w-full rounded-md border p-2 text-left transition-colors',
                     focused
-                      ? 'bg-sar-amber/15 border-sar-amber/50 shadow-[0_0_14px_-6px_hsl(28,95%,55%)]'
+                      ? 'bg-sar-amber/15 border-sar-amber/50'
                       : 'bg-background/40 border-border/60 hover:border-sar-amber/40 hover:bg-background/60'
                   )}
                 >
@@ -163,22 +163,22 @@ export function Sidebar() {
                       <div className="text-[13px] font-semibold text-foreground truncate">
                         {ti.name}
                       </div>
-                      <div className="text-[11px] font-mono text-muted-foreground truncate">
-                        {ti.state} · {ti.year}
+                      <div className="text-[11px] tabular-nums text-muted-foreground truncate">
+                        {ti.state}, {ti.year}
                       </div>
                     </div>
                     {focused && (
-                      <Badge variant="outline" className="shrink-0 text-[10px] font-mono px-1.5 py-0 h-4">
+                      <Badge variant="outline" className="shrink-0 text-[10px] tabular-nums px-1.5 py-0 h-4">
                         focused
                       </Badge>
                     )}
                   </div>
 
                   <div className="mt-1.5 flex items-center justify-between">
-                    <div className="text-[11px] font-mono text-muted-foreground">
+                    <div className="text-[11px] tabular-nums text-muted-foreground">
                       {ti.area_km2.toLocaleString('pt-BR')} km²
                       {ti.population && (
-                        <> · {(ti.population / 1000).toFixed(0)}k hab</>
+                        <>, {(ti.population / 1000).toFixed(0)}k hab</>
                       )}
                     </div>
                     <a
@@ -186,7 +186,7 @@ export function Sidebar() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 rounded-sm border border-sar-cyan/40 bg-sar-cyan/10 px-1.5 py-0.5 text-[10px] font-mono text-sar-cyan hover:bg-sar-cyan/20 transition-colors"
+                      className="inline-flex items-center gap-1 rounded-sm border border-sar-cyan/40 bg-sar-cyan/10 px-1.5 py-0.5 text-[10px] tabular-nums text-sar-cyan hover:bg-sar-cyan/20 transition-colors"
                       title="Abrir catálogo SAR da ASF para esta TI"
                     >
                       SAR ↗
@@ -197,8 +197,8 @@ export function Sidebar() {
             })}
           </div>
 
-          <div className="mt-auto pt-2 border-t border-border/40 text-[10px] font-mono text-muted-foreground leading-relaxed">
-            Contornos TI simplificados · fonte oficial{' '}
+          <div className="mt-auto pt-2 border-t border-border/40 text-[10px] tabular-nums text-muted-foreground leading-relaxed">
+            Contornos TI simplificados, fonte oficial{' '}
             <a
               href="https://sistemas.funai.gov.br/"
               target="_blank"
@@ -230,7 +230,7 @@ function StatBox({
         <Icon className="h-3 w-3" strokeWidth={2} />
         <span className="text-base font-semibold leading-none">{value}</span>
       </div>
-      <div className="text-[10px] font-mono text-muted-foreground mt-1 leading-tight">
+      <div className="text-[10px] tabular-nums text-muted-foreground mt-1 leading-tight">
         {label}
       </div>
     </div>
