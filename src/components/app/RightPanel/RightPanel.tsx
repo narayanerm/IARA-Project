@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, MessageSquare, Fingerprint } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MessageSquare, Fingerprint, Satellite } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Chatbot } from '../Chatbot/Chatbot'
 import { MetadataPanel } from '../MetadataPanel/MetadataPanel'
+import { NisarPanel } from '../NisarPanel/NisarPanel'
 
-type Tab = 'chat' | 'meta'
+type Tab = 'nisar' | 'chat' | 'meta'
 
 export function RightPanel() {
   const [open, setOpen] = useState(true)
@@ -31,6 +32,12 @@ export function RightPanel() {
         {open && (
           <div className="flex gap-1">
             <TabButton
+              active={tab === 'nisar'}
+              onClick={() => setTab('nisar')}
+              icon={<Satellite className="h-3.5 w-3.5" />}
+              label="NISAR"
+            />
+            <TabButton
               active={tab === 'chat'}
               onClick={() => setTab('chat')}
               icon={<MessageSquare className="h-3.5 w-3.5" />}
@@ -48,7 +55,7 @@ export function RightPanel() {
 
       {open && (
         <div className="h-[calc(100%-3rem)]">
-          {tab === 'chat' ? <Chatbot /> : <MetadataPanelEmbedded />}
+          {tab === 'nisar' ? <NisarPanel /> : tab === 'chat' ? <Chatbot /> : <MetadataPanelEmbedded />}
         </div>
       )}
     </aside>
