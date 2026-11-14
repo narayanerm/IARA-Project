@@ -26,9 +26,15 @@ import type { Region } from '@/lib/types'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
 import { useAsfGranules } from '@/lib/useAsfGranules'
+import { worldWithHoleFC } from '@/lib/polygon-bbox'
 
 export function MapFallback({ region }: { region: Region }) {
   const setActiveRegion = useApp((s) => s.setActiveRegion)
+  const focusedTi = useApp((s) => s.focusedTi)
+  const focusedTiFeature = useMemo(
+    () => INDIGENOUS_LANDS.features.find((f) => f.properties.name === focusedTi) ?? null,
+    [focusedTi]
+  )
   const asf = useAsfGranules(region)
   const browse = asf.data.find((g) => !!g.browseUrl)
 
@@ -158,6 +164,31 @@ export function MapFallback({ region }: { region: Region }) {
             />
           </LayersControl.Overlay>
         </LayersControl>
+
+        {focusedTi && focusedTiFeature && (
+          <>
+            <GeoJSON
+              key={`focus-mask-${focusedTi}`}
+              data={worldWithHoleFC(focusedTiFeature.geometry.coordinates[0])}
+              style={{
+                color: 'transparent',
+                weight: 0,
+                fillColor: 'hsl(222 47% 5%)',
+                fillOpacity: 0.75,
+              }}
+            />
+            <GeoJSON
+              key={`focus-outline-${focusedTi}`}
+              data={focusedTiFeature}
+              style={{
+                color: 'hsl(190 95% 70%)',
+                weight: 2.5,
+                opacity: 1,
+                fillOpacity: 0,
+              }}
+            />
+          </>
+        )}
 
         {REGIONS.map((r) => (
           <CircleMarker
