@@ -1,4 +1,5 @@
 import { MapPin, Pickaxe, Trees, Users, type LucideIcon } from 'lucide-react'
+import { useT } from '@/lib/i18n'
 
 interface Panorama {
   localCount: number
@@ -11,27 +12,28 @@ interface Panorama {
 }
 
 export function PanoramaStats({ panorama }: { panorama: Panorama }) {
+  const t = useT()
   return (
     <div className="grid grid-cols-2 gap-1.5">
       <StatBox
         icon={Trees}
         value={`${panorama.funaiCount ?? panorama.localCount}`}
-        label={panorama.funaiCount ? 'TIs FUNAI (Amz)' : 'TIs destacadas'}
+        label={panorama.funaiCount ? t('panoramaStats.funaiLands') : t('panoramaStats.highlightedLands')}
       />
       <StatBox
         icon={Users}
         value={`${panorama.rivCount ?? '…'}`}
-        label="Comunidades ribeirinhas"
+        label={t('panoramaStats.riversideCommunities')}
       />
       <StatBox
         icon={MapPin}
         value={`${((panorama.funaiArea || panorama.localArea) / 1000).toFixed(0)}k`}
-        label="km² TIs protegidos"
+        label={t('panoramaStats.protectedLandsKm2')}
       />
       <StatBox
         icon={Pickaxe}
         value={`${panorama.miningKm2}`}
-        label="km² garimpo em Yanomami"
+        label={t('panoramaStats.miningKm2')}
       />
     </div>
   )

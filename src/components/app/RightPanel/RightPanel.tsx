@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, MessageSquare, Fingerprint, Satellite } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { Chatbot } from '../Chatbot/Chatbot'
 import { MetadataPanel } from '../MetadataPanel/MetadataPanel'
@@ -8,6 +9,7 @@ import { NisarPanel } from '../NisarPanel/NisarPanel'
 type Tab = 'nisar' | 'chat' | 'meta'
 
 export function RightPanel() {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('chat')
 
@@ -25,7 +27,7 @@ export function RightPanel() {
           size="icon"
           className="h-8 w-8"
           onClick={() => setOpen((v) => !v)}
-          aria-label={open ? 'Colapsar painel' : 'Expandir painel'}
+          aria-label={open ? t('rightPanel.collapse') : t('rightPanel.expand')}
         >
           {open ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
@@ -35,19 +37,19 @@ export function RightPanel() {
               active={tab === 'nisar'}
               onClick={() => setTab('nisar')}
               icon={<Satellite className="h-3.5 w-3.5" />}
-              label="NISAR"
+              label={t('rightPanel.tab.nisar')}
             />
             <TabButton
               active={tab === 'chat'}
               onClick={() => setTab('chat')}
               icon={<MessageSquare className="h-3.5 w-3.5" />}
-              label="Conversar"
+              label={t('rightPanel.tab.chat')}
             />
             <TabButton
               active={tab === 'meta'}
               onClick={() => setTab('meta')}
               icon={<Fingerprint className="h-3.5 w-3.5" />}
-              label="Metadata"
+              label={t('rightPanel.tab.meta')}
             />
           </div>
         )}

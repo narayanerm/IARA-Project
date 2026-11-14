@@ -9,6 +9,7 @@ import { useAsfPair } from '@/lib/useAsfPair'
 import { bandFor, type AsfGranule, type AsfPlatform } from '@/lib/asf'
 import { BeforeAfter } from './BeforeAfter'
 import { EventTimeline } from './EventTimeline'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { Polygon } from 'geojson'
 
@@ -49,6 +50,7 @@ function writeDismissed(d: DismissedMap) {
 }
 
 export function PhenomenonBriefing() {
+  const t = useT()
   const aoiActive = useApp((s) => s.aoiActive)
   const activeRegion = useApp((s) => s.activeRegion)
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
@@ -106,10 +108,10 @@ export function PhenomenonBriefing() {
   const afterBbox = showSar && pair.after ? polygonBbox(pair.after.footprint) : briefing.snapshotBbox
 
   const beforeBadge = showSar
-    ? sarGranuleLabel(pair.before, pair.platform, selectedEvent.beforeDate)
+    ? sarGranuleLabel(pair.before, pair.platform, selectedEvent.beforeDate, t)
     : `${activeOptical.label} · ${selectedEvent.beforeDate}`
   const afterBadge = showSar
-    ? sarGranuleLabel(pair.after, pair.platform, selectedEvent.afterDate)
+    ? sarGranuleLabel(pair.after, pair.platform, selectedEvent.afterDate, t)
     : `${activeOptical.label} · ${selectedEvent.afterDate}`
 
   if (!aoiActive) return null
@@ -121,7 +123,7 @@ export function PhenomenonBriefing() {
         className="absolute left-1/2 -translate-x-1/2 bottom-24 z-30 pointer-events-auto inline-flex items-center gap-2 rounded-full border border-primary/50 bg-primary/15 backdrop-blur-sm px-4 py-2 text-[13px] font-semibold text-primary hover:bg-primary/25 transition-all shadow-lg"
       >
         <BookOpen className="h-4 w-4" />
-        Entender {region.phenomenonLabel.toLowerCase()}
+        {t('briefing.understand', { phen: region.phenomenonLabel.toLowerCase() })}
         <ChevronUp className="h-3.5 w-3.5" />
       </button>
     )
@@ -146,14 +148,14 @@ export function PhenomenonBriefing() {
             <button
               onClick={() => setOpen(false)}
               className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
-              aria-label="Minimizar"
+              aria-label={t('briefing.minimize')}
             >
               <ChevronDown className="h-4 w-4" />
             </button>
             <button
               onClick={close}
               className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted"
-              aria-label="Fechar"
+              aria-label={t('briefing.close')}
             >
               <X className="h-4 w-4" />
             </button>
@@ -166,7 +168,7 @@ export function PhenomenonBriefing() {
               <div className="w-full aspect-[4/3] rounded-lg border border-border/60 bg-background/40 grid place-items-center">
                 <div className="flex items-center gap-2 text-[13px] font-mono text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Buscando cenas SAR no ASF DAAC…
+                  {t('briefing.loadingSar')}
                 </div>
               </div>
             ) : (
@@ -188,14 +190,14 @@ export function PhenomenonBriefing() {
                 icon={<Radar className="h-3 w-3" />}
                 disabled={!sarAvailable && !pair.loading}
               >
-                SAR real (ASF)
+                {t('briefing.tab.sar')}
               </SourceTab>
               <SourceTab
                 active={source === 'modis'}
                 onClick={() => setSource('modis')}
                 icon={<Satellite className="h-3 w-3" />}
               >
-                Óptico
+                {t('briefing.tab.optical')}
               </SourceTab>
               <a
                 href={briefing.externalViewer.url}
@@ -211,7 +213,7 @@ export function PhenomenonBriefing() {
             {!showSar && briefing.opticalLayers.length > 1 && (
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mr-1">
-                  camada:
+                  {t('briefing.layer')}
                 </span>
                 {briefing.opticalLayers.map((o) => (
                   <button
@@ -235,9 +237,9 @@ export function PhenomenonBriefing() {
               <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/80" />
               {showSar
                 ? pair.diagnostic
-                  ? `${pair.diagnostic}. Polígonos vermelhos marcam a área documentada.`
-                  : 'Sem par SAR disponível. Troque para óptico.'
-                : `${activeOptical.note ?? ''} · polígonos vermelhos sobrepostos marcam onde o fenômeno ocorreu. Troque de camada acima se tiver muita nuvem.`}
+                  ? t('briefing.sarWithDiag', { diag: pair.diagnostic })
+                  : t('briefing.sarEmpty')
+                : t('briefing.opticalNote', { note: activeOptical.note ?? '' })}
             </p>
           </section>
 
@@ -283,7 +285,7 @@ export function PhenomenonBriefing() {
 
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
               <div className="text-[11px] font-mono uppercase tracking-wider text-primary mb-1">
-                Como o radar lê isso
+                {t('briefing.howRadarReads')}
               </div>
               <div className="text-[13px] text-foreground/90 leading-snug">
                 {briefing.sarReading}
@@ -292,7 +294,7 @@ export function PhenomenonBriefing() {
 
             <div className="pt-1">
               <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">
-                Fontes
+                {t('briefing.sources')}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {briefing.sources.map((src, i) => (
@@ -364,7 +366,8 @@ function StatCard({ value, label, source }: { value: string; label: string; sour
 function sarGranuleLabel(
   g: AsfGranule | null,
   platform: AsfPlatform | null,
-  fallbackDate: string
+  fallbackDate: string,
+  t: ReturnType<typeof useT>
 ): string {
   if (g && platform) {
     const band = bandFor(platform)
@@ -372,7 +375,7 @@ function sarGranuleLabel(
     const pol = g.polarization.join('+') || '—'
     return `${platform} ${band}-band · ${pol} · ${d}`
   }
-  return `óptico · ${fallbackDate}`
+  return t('briefing.opticalFallback', { date: fallbackDate })
 }
 
 function boldifyMarkdown(text: string): string {

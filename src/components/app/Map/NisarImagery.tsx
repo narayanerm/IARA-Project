@@ -117,7 +117,8 @@ export function NisarImagery() {
   const m = map?.getMap()
   // Above the coverage/footprint fills (which would wash out the radar image), below the detection polygons.
   const beforeId = m?.getLayer('yano-change-fill') ? 'yano-change-fill' : undefined
-  const showRaster = visible && shown !== null
+  // Only render the SAR raster after the user explicitly clicks a point on the map.
+  const showRaster = visible && shown !== null && point !== null
 
   return (
     <>

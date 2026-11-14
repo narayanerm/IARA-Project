@@ -1,4 +1,3 @@
-import { Radar } from 'lucide-react'
 import { Sidebar } from './Sidebar/Sidebar'
 import { SarMap } from './Map/SarMap'
 import { RightPanel } from './RightPanel/RightPanel'
@@ -25,10 +24,13 @@ export function AppLayout() {
   return (
     <section id="app" className="h-[100svh] w-full flex flex-col bg-background">
       <div className="flex h-12 items-center justify-between border-b border-border/60 bg-card/40 backdrop-blur-xl px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/15 ring-1 ring-primary/30">
-            <Radar className="h-4 w-4 text-primary" />
-          </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <img
+            src="/marca/iara-simbolo-escuro.svg"
+            alt=""
+            aria-hidden="true"
+            className="h-7 w-7 shrink-0"
+          />
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-semibold">{t('app.name')}</div>
           </div>
@@ -64,7 +66,7 @@ export function AppLayout() {
           <button
             onClick={() => triggerTutorial()}
             className="hidden sm:inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-background/40 px-2.5 h-8 text-[13px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-            title="Mostrar tutorial guiado"
+            title={t('appLayout.tour')}
           >
             <HelpCircle className="h-3.5 w-3.5" />
             tour

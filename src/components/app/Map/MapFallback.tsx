@@ -29,15 +29,23 @@ import { useAsfGranules } from '@/lib/useAsfGranules'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
 import { useFunaiTi } from '@/lib/useFunaiTi'
 import {
-  FUNAI_TI_URL,
+  FUNAI_OFFICES_URL,
+  landRecord,
+  useOfficialRecords,
+  type OfficialRecords,
+} from '@/lib/officialRecords'
+import {
   tiProfileUrl,
-  funaiSiciUrl,
   TERRABRASILIS_FUNAI_URL,
   DETER_WFS_URL,
   ISA_TI_PORTAL,
 } from '@/lib/links'
+import { DICT, useI18n, useT, type Lang, type TKey } from '@/lib/i18n'
 
 export function MapFallback({ region }: { region: Region }) {
+  const t = useT()
+  const lang = useI18n((s) => s.lang)
+  const locale = lang === 'en' ? 'en-US' : 'pt-BR'
   const setActiveRegion = useApp((s) => s.setActiveRegion)
   const focusedTi = useApp((s) => s.focusedTi)
   const localTiFeature = useMemo(
@@ -45,6 +53,14 @@ export function MapFallback({ region }: { region: Region }) {
     [focusedTi]
   )
   const funai = useFunaiTi(focusedTi)
+  const officialRecords = useOfficialRecords()
+  const focusedOffice = landRecord(officialRecords, focusedTi)?.office
+  useEffect(() => {
+    officialSnapshot = officialRecords
+  }, [officialRecords])
+  useEffect(() => {
+    langSnapshot = lang
+  }, [lang])
   const focusedTiFeature = funai.feature ?? localTiFeature
   const asf = useAsfGranules(region)
   const browse = asf.data.find((g) => !!g.browseUrl)
@@ -89,7 +105,7 @@ export function MapFallback({ region }: { region: Region }) {
       >
         <TiFocusController />
         <LayersControl position="bottomright">
-          <LayersControl.BaseLayer checked name="NASA GIBS satellite (MODIS)">
+          <LayersControl.BaseLayer checked name={t('fallback.gibsSatellite')}>
             <TileLayer
               url="https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2026-11-13/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg"
               attribution="NASA GIBS · MODIS Terra true color"
@@ -97,21 +113,21 @@ export function MapFallback({ region }: { region: Region }) {
               tileSize={256}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="OpenStreetMap">
+          <LayersControl.BaseLayer name={t('fallback.osm')}>
             <TileLayer
               url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; OpenStreetMap contributors'
               maxZoom={19}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="OSM Humanitarian">
+          <LayersControl.BaseLayer name={t('fallback.osmHot')}>
             <TileLayer
               url="https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png"
               attribution='&copy; OpenStreetMap · HOT'
               maxZoom={19}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="NASA GIBS NDVI (vegetação)">
+          <LayersControl.BaseLayer name={t('fallback.ndvi')}>
             <TileLayer
               url="https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_NDVI_8Day/default/2026-11-12/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png"
               attribution="NASA GIBS · MODIS NDVI 8-day"
@@ -120,24 +136,25 @@ export function MapFallback({ region }: { region: Region }) {
             />
           </LayersControl.BaseLayer>
 
-          <LayersControl.Overlay checked name="Bioma Amazônia (IBGE)">
+          <LayersControl.Overlay checked name={t('fallback.biome')}>
             <GeoJSON data={AMAZON_BIOME} style={biomeStyle} />
           </LayersControl.Overlay>
 
-          <LayersControl.Overlay checked name="Terras Indígenas (FUNAI)">
+          <LayersControl.Overlay checked name={t('fallback.tiLayer')}>
             <GeoJSON
               data={INDIGENOUS_LANDS}
               style={tiStyle as never}
               onEachFeature={(feature, layer) => {
                 const p = feature.properties as TiProps
                 layer.bindTooltip(p.name, { sticky: true, direction: 'top' })
-                layer.bindPopup(buildTiPopupHtml(p))
+                // Built when opened, so it uses the official records once they have loaded.
+                layer.bindPopup(() => buildTiPopupHtml(p))
               }}
             />
           </LayersControl.Overlay>
 
           {browse?.browseUrl && (
-            <LayersControl.Overlay checked name="SAR browse (ASF DAAC)">
+            <LayersControl.Overlay checked name={t('fallback.sarBrowse')}>
               <ImageOverlay
                 url={browse.browseUrl}
                 bounds={sarBounds}
@@ -148,7 +165,7 @@ export function MapFallback({ region }: { region: Region }) {
           )}
 
 
-          <LayersControl.Overlay checked name={`Área afetada · ${region.phenomenonLabel}`}>
+          <LayersControl.Overlay checked name={t('fallback.affectedArea', { label: region.phenomenonLabel })}>
             <GeoJSON
               key={region.id}
               data={AFFECTED_AREAS[region.id]}
@@ -167,7 +184,7 @@ export function MapFallback({ region }: { region: Region }) {
               onEachFeature={(f, layer) => {
                 const p = f.properties as AffectedAreaProps
                 layer.bindTooltip(
-                  `${p.label} · ${p.area_km2.toLocaleString('pt-BR')} km²`,
+                  `${p.label} · ${p.area_km2.toLocaleString(locale)} km²`,
                   { sticky: true, direction: 'top' }
                 )
                 layer.bindPopup(buildAffectedPopupHtml(p))
@@ -239,49 +256,49 @@ export function MapFallback({ region }: { region: Region }) {
           </div>
           <div className="mt-1 text-[12px] font-mono text-muted-foreground leading-snug">
             {funai.loading
-              ? 'Carregando FUNAI…'
+              ? t('fallback.loadingFunai')
               : funai.feature
-              ? 'FUNAI oficial · TerraBrasilis/INPE'
-              : 'contorno simplificado (FUNAI indisp.)'}
+              ? t('focusedTi.funaiOfficial')
+              : t('focusedTi.simplifiedOutline')}
             {funai.error && <span className="text-destructive"> · {funai.error}</span>}
           </div>
           {funai.feature && (
             <div className="mt-1.5 grid gap-0.5 text-[12px] text-foreground/90 leading-snug">
               <div>
-                <span className="text-muted-foreground">Etnia:</span>{' '}
+                <span className="text-muted-foreground">{t('focusedTi.ethnicity')}:</span>{' '}
                 {funai.feature.properties.etnia_nome ?? '—'}
               </div>
               <div>
-                <span className="text-muted-foreground">Fase:</span>{' '}
+                <span className="text-muted-foreground">{t('focusedTi.phase')}:</span>{' '}
                 {funai.feature.properties.fase_ti ?? '—'}
               </div>
               <div className="text-[11px] text-muted-foreground/80">
-                CÓD FUNAI {funai.feature.properties.terrai_cod}
+                {t('focusedTi.funaiCode')} {funai.feature.properties.terrai_cod}
               </div>
             </div>
           )}
           {localTiFeature && (
             <div className="mt-1.5 grid gap-0.5 text-[12px] text-foreground/90 leading-snug border-t border-border/50 pt-1.5">
               <div>
-                <span className="text-muted-foreground">Área ISA:</span>{' '}
-                {localTiFeature.properties.area_km2.toLocaleString('pt-BR')} km²
+                <span className="text-muted-foreground">{t('focusedTi.isaArea')}:</span>{' '}
+                {localTiFeature.properties.area_km2.toLocaleString(locale)} km²
               </div>
               {localTiFeature.properties.population && (
                 <div>
-                  <span className="text-muted-foreground">População ISA:</span>{' '}
-                  {localTiFeature.properties.population.toLocaleString('pt-BR')}
+                  <span className="text-muted-foreground">{t('focusedTi.isaPopulation')}:</span>{' '}
+                  {localTiFeature.properties.population.toLocaleString(locale)}
                 </div>
               )}
             </div>
           )}
           <div className="mt-1.5 flex flex-wrap gap-1 border-t border-border/50 pt-1.5">
             <a
-              href={funaiSiciUrl(focusedTi)}
+              href={focusedOffice?.url ?? FUNAI_OFFICES_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-full border border-sar-cyan/30 bg-sar-cyan/10 px-2 py-0.5 text-[11px] font-mono text-sar-cyan hover:bg-sar-cyan/20 transition-colors"
             >
-              FUNAI · {focusedTi.replace(/^TI\s+/, '')} ↗
+              {focusedOffice?.name ? t('focusedTi.funaiOfficeCr', { name: focusedOffice.name }) : t('focusedTi.funaiOfficesShort')} ↗
             </a>
             {funai.feature && (
               <a
@@ -303,7 +320,7 @@ export function MapFallback({ region }: { region: Region }) {
             </a>
           </div>
           <div className="mt-1 text-[10px] font-mono text-muted-foreground/70 leading-relaxed">
-            Geometria:{' '}
+            {t('focusedTi.geometry')}:{' '}
             <a
               href={TERRABRASILIS_FUNAI_URL}
               target="_blank"
@@ -312,7 +329,7 @@ export function MapFallback({ region }: { region: Region }) {
             >
               FUNAI via TerraBrasilis/INPE WFS
             </a>{' '}
-            · Alertas:{' '}
+            · {t('focusedTi.alertsLabel')}:{' '}
             <a
               href={DETER_WFS_URL}
               target="_blank"
@@ -321,7 +338,7 @@ export function MapFallback({ region }: { region: Region }) {
             >
               DETER/INPE WFS
             </a>{' '}
-            · Metadata:{' '}
+            · {t('focusedTi.metadataLabel')}:{' '}
             <a
               href={ISA_TI_PORTAL}
               target="_blank"
@@ -338,10 +355,9 @@ export function MapFallback({ region }: { region: Region }) {
         <div className="flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-300 shrink-0 mt-0.5" />
           <div>
-            <div className="font-semibold">Mapa em modo 2D (WebGL2 indisponível)</div>
+            <div className="font-semibold">{t('fallback.warningTitle')}</div>
             <div className="opacity-80 mt-0.5">
-              Rodando Leaflet + NASA GIBS + SAR da ASF DAAC. Habilite hardware
-              acceleration no Chrome para o modo 3D.
+              {t('fallback.warningBody')}
             </div>
           </div>
         </div>
@@ -354,20 +370,20 @@ export function MapFallback({ region }: { region: Region }) {
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full bg-sar-amber" />
-          Terras Indígenas (FUNAI)
+          {t('fallback.legendTi')}
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-          AOIs monitoradas
+          {t('fallback.legendAois')}
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-          Bioma Amazônia
+          {t('fallback.legendBiome')}
         </div>
         {browse?.browseUrl && (
           <div className="flex items-center gap-1.5">
             <span className="inline-block h-2 w-2 rounded-full bg-fuchsia-400" />
-            SAR real (ASF DAAC)
+            {t('fallback.legendSar')}
           </div>
         )}
       </div>
@@ -376,20 +392,22 @@ export function MapFallback({ region }: { region: Region }) {
 }
 
 function buildAffectedPopupHtml(p: AffectedAreaProps): string {
+  const ts = (k: TKey) => DICT[langSnapshot][k]
+  const localeNow = langSnapshot === 'en' ? 'en-US' : 'pt-BR'
   const kindLabel = {
-    mining: 'Garimpo',
-    flood: 'Cheia',
-    'drought-shrink': 'Retração da seca',
-    'drought-original': 'Espelho original',
+    mining: ts('fallback.popupMining'),
+    flood: ts('fallback.popupFlood'),
+    'drought-shrink': ts('fallback.popupShrink'),
+    'drought-original': ts('fallback.popupOriginal'),
   }[p.kind]
   return `
     <div style="min-width:200px; font-family:Inter,sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.label}</div>
       <div style="font-size:11px; color:#888; font-family:monospace; text-transform:uppercase;">${kindLabel} · ${p.year}</div>
       <div style="font-size:16px; font-weight:600; margin-top:6px; color:${affectedAreaColor(p.kind)};">
-        ${p.area_km2.toLocaleString('pt-BR')} km²
+        ${p.area_km2.toLocaleString(localeNow)} km²
       </div>
-      <div style="font-size:11px; color:#666; margin-top:4px;">Fonte: ${p.source}</div>
+      <div style="font-size:11px; color:#666; margin-top:4px;">${ts('fallback.popupSource')}: ${p.source}</div>
     </div>
   `
 }
@@ -413,19 +431,29 @@ function TiFocusController() {
   return null
 }
 
+// Latest official records, read by the Leaflet popups (plain HTML, outside React).
+let officialSnapshot: OfficialRecords | null = null
+let langSnapshot: Lang = 'pt'
+
 function buildTiPopupHtml(p: TiProps): string {
+  const ts = (k: TKey) => DICT[langSnapshot][k]
+  const localeNow = langSnapshot === 'en' ? 'en-US' : 'pt-BR'
+  const office = landRecord(officialSnapshot, p.name)?.office
   const ethn = p.ethnicities?.slice(0, 5).join(', ') ?? ''
+  const officeLabel = office?.name
+    ? ts('fallback.popupFunaiOfficeCr').replace('{name}', office.name)
+    : ts('fallback.popupFunaiOffices')
   return `
     <div style="min-width:220px; font-family:Inter,sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.name}</div>
       <div style="font-size:12px; color:#666;">${p.state} · ${p.year} · ${p.status}</div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:6px; font-size:12px;">
-        <div><strong>Área:</strong><br/>${p.area_km2.toLocaleString('pt-BR')} km²</div>
-        ${p.population ? `<div><strong>População:</strong><br/>${p.population.toLocaleString('pt-BR')}</div>` : ''}
+        <div><strong>${ts('fallback.popupArea')}:</strong><br/>${p.area_km2.toLocaleString(localeNow)} km²</div>
+        ${p.population ? `<div><strong>${ts('fallback.popupPopulation')}:</strong><br/>${p.population.toLocaleString(localeNow)}</div>` : ''}
       </div>
-      ${ethn ? `<div style="font-size:11px; margin-top:6px;"><strong>Etnias:</strong> ${ethn}</div>` : ''}
-      <a href="${tiProfileUrl(p.isaId)}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:8px; font-size:12px; color:hsl(28, 95%, 50%);">Ficha da TI →</a>
-      <a href="${FUNAI_TI_URL}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:4px; font-size:12px; color:hsl(28, 95%, 50%);">Dados oficiais FUNAI →</a>
+      ${ethn ? `<div style="font-size:11px; margin-top:6px;"><strong>${ts('fallback.popupEthnicities')}:</strong> ${ethn}</div>` : ''}
+      <a href="${tiProfileUrl(p.isaId)}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:8px; font-size:12px; color:hsl(28, 95%, 50%);">${ts('fallback.popupTiProfile')}</a>
+      <a href="${office?.url ?? FUNAI_OFFICES_URL}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:4px; font-size:12px; color:hsl(28, 95%, 50%);">${officeLabel}</a>
     </div>
   `
 }

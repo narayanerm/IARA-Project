@@ -72,9 +72,9 @@ export function OverlayLegend({
                   ? 'border-primary/40 bg-primary/10 text-foreground'
                   : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
               )}
-              title="Limites municipais (IBGE Malhas, visível ao aproximar)"
+              title={t('overlayLegend.municipiosTitle')}
             >
-              <span>Municípios (IBGE)</span>
+              <span>{t('overlayLegend.municipiosLabel')}</span>
               <span className="font-mono text-[11px] text-muted-foreground/70">
                 {municipiosLoading ? '…' : municipiosOn ? 'on' : 'off'}
               </span>
@@ -84,7 +84,7 @@ export function OverlayLegend({
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center rounded-md border border-border/60 bg-background/40 px-2 text-[11px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-              title="Documentação IBGE Malhas API"
+              title={t('overlayLegend.ibgeDocs')}
             >
               ↗
             </a>

@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { useApp } from '@/lib/store'
+import { useI18n, useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { Entry } from './types'
 import { buildAsfVertexUrl, compact } from './utils'
@@ -13,6 +14,7 @@ export function CommunityList({
   totalFiltered: number
   onShowAll: () => void
 }) {
+  const t = useT()
   const focusedTi = useApp((s) => s.focusedTi)
   const setFocusedTi = useApp((s) => s.setFocusedTi)
   const requestFlyTo = useApp((s) => s.requestFlyTo)
@@ -39,7 +41,7 @@ export function CommunityList({
           onClick={onShowAll}
           className="rounded-md border border-border/60 bg-background/40 px-2 py-1.5 text-[12px] font-mono text-muted-foreground hover:text-foreground hover:bg-background/60 transition-colors"
         >
-          Mostrar todas ({totalFiltered - shown.length} restantes)
+          {t('sidebar.showAll', { n: String(totalFiltered - shown.length) })}
         </button>
       )}
     </div>
@@ -55,8 +57,10 @@ function CommunityCard({
   focused: boolean
   onSelect: () => void
 }) {
+  const t = useT()
+  const locale = useI18n((s) => (s.lang === 'en' ? 'en-US' : 'pt-BR'))
   const isTi = entry.kind === 'ti'
-  const kindColor = isTi ? 'sar-amber' : 'sar-cyan'
+  const dotClass = isTi ? 'bg-sar-amber' : 'bg-sar-cyan'
   const ribAccent = isTi ? 'hover:border-sar-amber/40' : 'hover:border-sar-cyan/40'
   return (
     <button
@@ -71,22 +75,60 @@ function CommunityCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
-            <span className={cn('inline-block h-1.5 w-1.5 rounded-full shrink-0', `bg-${kindColor}`)} />
+            <span className={cn('inline-block h-1.5 w-1.5 rounded-full shrink-0', dotClass)} />
             <span className="truncate">{entry.name}</span>
           </div>
           <div className="text-[11px] font-mono text-muted-foreground truncate">{entry.subtitle}</div>
         </div>
         {focused && (
           <Badge variant="outline" className="shrink-0 text-[10px] font-mono px-1.5 py-0 h-4">
-            focused
+            {t('sidebar.focused')}
           </Badge>
         )}
       </div>
 
       <div className="mt-1.5 grid grid-cols-3 gap-1 text-[11px] font-mono text-muted-foreground">
-        <MiniStat label="área" value={entry.area_km2 != null ? `${compact(entry.area_km2)} km²` : '—'} />
-        <MiniStat label="hab" value={entry.population != null ? compact(entry.population) : '—'} />
-        <MiniStat label="ano" value={entry.year != null ? String(entry.year) : '—'} />
+        {isTi ? (
+          <>
+            <MiniStat
+              label={t('sidebar.area')}
+              hint={t('sidebar.areaHint')}
+              value={entry.area_km2 != null ? `${compact(entry.area_km2)} km²` : '—'}
+            />
+            <MiniStat
+              label={t('sidebar.residents')}
+              hint={t('sidebar.residentsHint')}
+              value={entry.population != null ? compact(entry.population) : '—'}
+            />
+            <MiniStat
+              label={t('sidebar.homologated')}
+              hint={
+                entry.year != null
+                  ? t('sidebar.homologatedHint')
+                  : t('sidebar.notHomologatedHint', { phase: entry.phase ?? '—' })
+              }
+              value={entry.year != null ? String(entry.year) : '—'}
+            />
+          </>
+        ) : (
+          <>
+            <MiniStat
+              label={t('sidebar.munArea')}
+              hint={t('sidebar.munAreaHint', { name: entry.municipio ?? '—' })}
+              value={entry.area_km2 != null ? `${compact(entry.area_km2)} km²` : '—'}
+            />
+            <MiniStat
+              label={t('sidebar.munResidents')}
+              hint={t('sidebar.munResidentsHint', { name: entry.municipio ?? '—' })}
+              value={entry.population != null ? compact(entry.population) : '—'}
+            />
+            <MiniStat
+              label={t('sidebar.toCity')}
+              hint={t('sidebar.toCityHint', { name: entry.nearestCity ?? '—' })}
+              value={entry.distKm != null ? `${entry.distKm.toLocaleString(locale, { maximumFractionDigits: 0 })} km` : '—'}
+            />
+          </>
+        )}
       </div>
 
       {isTi && (
@@ -97,7 +139,7 @@ function CommunityCard({
             rel="noopener noreferrer"
             onClick={(ev) => ev.stopPropagation()}
             className="inline-flex items-center gap-1 rounded-sm border border-sar-cyan/40 bg-sar-cyan/10 px-1.5 py-0.5 text-[10px] font-mono text-sar-cyan hover:bg-sar-cyan/20 transition-colors"
-            title="Abrir catálogo SAR da ASF"
+            title={t('sidebar.openAsf')}
           >
             SAR ↗
           </a>
@@ -107,9 +149,12 @@ function CommunityCard({
   )
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function MiniStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="flex flex-col items-start rounded border border-border/50 bg-background/60 px-1.5 py-0.5">
+    <div
+      className="flex flex-col items-start rounded border border-border/50 bg-background/60 px-1.5 py-0.5"
+      title={hint}
+    >
       <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/70">
         {label}
       </span>

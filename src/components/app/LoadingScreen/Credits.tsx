@@ -1,12 +1,15 @@
+import { useT } from '@/lib/i18n'
+
 export function Credits() {
+  const t = useT()
   return (
     <footer className="iara-creditos">
       <p>
-        <span>Dados: NISAR / ASF DAAC</span>
-        <span>Narrativa: Claude (Anthropic)</span>
+        <span>{t('loadingScreen.credits.data')}</span>
+        <span>{t('loadingScreen.credits.narrative')}</span>
       </p>
       <p>
-        <span>Modelos 3D: Poly by Google e marioba, CC-BY 3.0 via Poly Pizza</span>
+        <span>{t('loadingScreen.credits.models')}</span>
       </p>
     </footer>
   )

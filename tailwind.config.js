@@ -48,8 +48,8 @@ export default {
           foreground: 'hsl(var(--card-foreground))',
         },
         sar: {
-          cyan: 'hsl(190 95% 60%)',
-          amber: 'hsl(38 95% 60%)',
+          cyan: '#F07A45',
+          amber: '#F07A45',
           crimson: 'hsl(348 85% 58%)',
           jade: 'hsl(160 72% 48%)',
           violet: 'hsl(270 80% 65%)',

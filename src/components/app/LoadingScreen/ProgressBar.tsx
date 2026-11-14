@@ -1,4 +1,5 @@
 import { forwardRef } from 'react'
+import { useT } from '@/lib/i18n'
 import { PIXELS } from './constants'
 
 interface ProgressBarProps {
@@ -9,6 +10,7 @@ interface ProgressBarProps {
 
 export const ProgressBar = forwardRef<HTMLButtonElement, ProgressBarProps>(
   function ProgressBar({ progresso, pronto, onEnter }, ref) {
+    const t = useT()
     const acesos = Math.round(progresso * PIXELS)
     return (
       <div className="iara-acao">
@@ -19,13 +21,13 @@ export const ProgressBar = forwardRef<HTMLButtonElement, ProgressBarProps>(
         </div>
         <p className="iara-estado" aria-live="polite">
           {pronto
-            ? 'Cena varrida. O painel está pronto.'
+            ? t('loadingScreen.progressReady')
             : progresso === 0
-              ? 'Carregando os bichos da cena'
-              : `Radar passando pela cena, ${Math.round(progresso * 100)}%`}
+              ? t('loadingScreen.progressStart')
+              : t('loadingScreen.progressBusy', { pct: String(Math.round(progresso * 100)) })}
         </p>
         <button ref={ref} type="button" className="iara-botao" onClick={onEnter} disabled={!pronto}>
-          {pronto ? 'Entrar no painel' : 'Carregando'}
+          {pronto ? t('loadingScreen.enter') : t('loadingScreen.loading')}
         </button>
       </div>
     )
