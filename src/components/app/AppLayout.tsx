@@ -2,6 +2,7 @@ import { Radar } from 'lucide-react'
 import { Sidebar } from './Sidebar/Sidebar'
 import { SarMap } from './Map/SarMap'
 import { RightPanel } from './RightPanel/RightPanel'
+import { AskBar } from './Chatbot/AskBar'
 import { Timeline } from './Timeline/Timeline'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
@@ -11,7 +12,7 @@ import { PhenomenonBriefing } from './Briefing/PhenomenonBriefing'
 import { NisarControl } from './Map/NisarControl'
 import { Layers3, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useApp } from '@/lib/store'
+import { useApp, useUi } from '@/lib/store'
 import { useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 
@@ -21,6 +22,8 @@ export function AppLayout() {
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
   const toggleNasaOverlay = useApp((s) => s.toggleNasaOverlay)
   const toggleTrueColorOverlay = useApp((s) => s.toggleTrueColorOverlay)
+  const rightOpen = useUi((s) => s.rightOpen)
+  const popupOpen = useUi((s) => s.popupOpen)
 
   return (
     <section id="app" className="h-[100svh] w-full flex flex-col bg-background">
@@ -82,9 +85,13 @@ export function AppLayout() {
           <div data-tour="nisar" className="absolute left-4 top-4 hidden md:block">
             <NisarControl />
           </div>
-          <div className="pointer-events-none absolute inset-x-3 bottom-9 flex items-end gap-3">
-            <div className="pointer-events-auto flex-1 min-w-0 max-w-[860px]">
-              <Timeline />
+          <div className="pointer-events-none absolute inset-x-3 bottom-9 flex flex-col items-center gap-2">
+            {/* floating ask bar; it steps aside while the assistant panel or a map card is open */}
+            {!rightOpen && !popupOpen && <AskBar className="pointer-events-auto" />}
+            <div className="flex w-full items-end gap-3">
+              <div className="pointer-events-auto flex-1 min-w-0 max-w-[860px]">
+                <Timeline />
+              </div>
             </div>
           </div>
           <PhenomenonBriefing />

@@ -103,3 +103,35 @@ export const useAoiPopup = create<PopupState>((set) => ({
   openPopup: () => set({ open: true }),
   closePopup: () => set({ open: false }),
 }))
+
+/* ------------------------------------------------------------------ */
+/* Right panel and floating ask bar                                     */
+/* ------------------------------------------------------------------ */
+
+export type RightTab = 'nisar' | 'chat' | 'meta'
+
+interface UiState {
+  rightOpen: boolean
+  rightTab: RightTab
+  /** question typed in the floating ask bar, waiting for the assistant to pick it up */
+  askQueue: { text: string; ts: number } | null
+  /** a map popup (community card, case layers) is open: the ask bar steps aside */
+  popupOpen: boolean
+  setRightOpen: (v: boolean) => void
+  openRight: (tab?: RightTab) => void
+  ask: (text: string) => void
+  clearAsk: () => void
+  setPopupOpen: (v: boolean) => void
+}
+
+export const useUi = create<UiState>((set, get) => ({
+  rightOpen: false,
+  rightTab: 'chat',
+  askQueue: null,
+  popupOpen: false,
+  setRightOpen: (v) => set({ rightOpen: v }),
+  openRight: (tab) => set({ rightOpen: true, rightTab: tab ?? get().rightTab }),
+  ask: (text) => set({ askQueue: { text, ts: Date.now() }, rightOpen: true, rightTab: 'chat' }),
+  clearAsk: () => set({ askQueue: null }),
+  setPopupOpen: (v) => set({ popupOpen: v }),
+}))
