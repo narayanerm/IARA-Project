@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { Radar } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Sidebar } from './Sidebar/Sidebar'
 import { SarMap } from './Map/SarMap'
@@ -28,18 +27,17 @@ export function AppLayout() {
 
   return (
     <section id="app" className="h-[100svh] w-full flex flex-col bg-background">
-      <div className="flex h-12 items-center justify-between border-b border-border/60 bg-card/40 backdrop-blur-xl px-4">
+      <div className="flex h-14 items-center justify-between border-b border-border/60 bg-card px-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/15 ring-1 ring-primary/30">
-            <Radar className="h-4 w-4 text-primary" />
-          </div>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold">
-              {t('app.name')} · {t(`region.${region.id}.phen`)}
-            </div>
-            <div className="text-[13px] text-muted-foreground font-mono">
-              {t(`region.${region.id}.city`)}
-            </div>
+          <img
+            src="/marca/iara-horizontal-sem-subtitulo-escuro.svg"
+            alt={t('app.name')}
+            className="hidden sm:block h-6 w-auto"
+          />
+          <img src="/marca/iara-simbolo-escuro.svg" alt={t('app.name')} className="sm:hidden h-7 w-7" />
+          <div className="hidden sm:block leading-tight border-l border-border/60 pl-3 min-w-0 whitespace-nowrap">
+            <div className="text-sm font-medium">{t(`region.${region.id}.phen`)}</div>
+            <div className="text-[13px] text-muted-foreground">{t(`region.${region.id}.city`)}</div>
           </div>
         </div>
 
@@ -51,7 +49,7 @@ export function AppLayout() {
           <button
             onClick={toggleNasaOverlay}
             className={cn(
-              'hidden sm:inline-flex items-center gap-1.5 rounded-md border px-2.5 h-8 text-[13px] font-mono transition-colors',
+              'hidden sm:inline-flex items-center gap-1.5 rounded-md border px-2.5 h-8 text-[13px] transition-colors',
               nasaOverlay
                 ? 'bg-primary/15 border-primary/40 text-primary'
                 : 'bg-background/40 border-border text-muted-foreground hover:text-foreground'
@@ -64,7 +62,7 @@ export function AppLayout() {
           <button
             onClick={toggleTrueColorOverlay}
             className={cn(
-              'hidden lg:inline-flex items-center gap-1.5 rounded-md border px-2.5 h-8 text-[13px] font-mono transition-colors',
+              'hidden lg:inline-flex items-center gap-1.5 rounded-md border px-2.5 h-8 text-[13px] transition-colors',
               trueColorOverlay
                 ? 'bg-primary/15 border-primary/40 text-primary'
                 : 'bg-background/40 border-border text-muted-foreground hover:text-foreground'
@@ -75,8 +73,8 @@ export function AppLayout() {
             {t('overlay.trueColor')}
           </button>
           <LanguageToggle compact />
-          <Badge variant="outline" className="font-mono hidden sm:flex">
-            NISAR · L-band · HH + HV
+          <Badge variant="outline" className="hidden xl:flex">
+            NISAR L-band, HH + HV
           </Badge>
           <ShareDialog />
           <ExportMenu />

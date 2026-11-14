@@ -34,7 +34,7 @@ export function RightPanel() {
               active={tab === 'chat'}
               onClick={() => setTab('chat')}
               icon={<MessageSquare className="h-3.5 w-3.5" />}
-              label="Conversar"
+              label="Chat"
             />
             <TabButton
               active={tab === 'meta'}
@@ -70,7 +70,7 @@ function TabButton({
     <button
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md border px-2.5 h-7 text-[13px] font-mono transition-colors',
+        'inline-flex items-center gap-1.5 rounded-md border px-2.5 h-7 text-[13px] transition-colors',
         active
           ? 'bg-primary/15 border-primary/40 text-primary'
           : 'bg-background/40 border-border text-muted-foreground hover:text-foreground'

@@ -4,7 +4,7 @@ export type Lang = 'pt' | 'en'
 
 export const DICT = {
   pt: {
-    'app.name': 'AmazonSAR Explorer',
+    'app.name': 'IARA',
     'app.subtitle': 'NASA Space Apps · Dancing with the SARs 2026',
 
     'nav.enterDashboard': 'Entrar no dashboard',
@@ -143,7 +143,7 @@ export const DICT = {
     'preview.na': 'Sem prévia disponível neste granule',
   },
   en: {
-    'app.name': 'AmazonSAR Explorer',
+    'app.name': 'IARA',
     'app.subtitle': 'NASA Space Apps · Dancing with the SARs 2026',
 
     'nav.enterDashboard': 'Enter dashboard',
@@ -192,7 +192,7 @@ export const DICT = {
     'status.ready': 'Full pipeline',
     'status.preview': 'Preview',
     'status.planned': 'Planned',
-    'status.anchor': 'ANCHOR',
+    'status.anchor': 'Anchor',
 
     'sidebar.title': 'AOI navigator',
     'sidebar.heading': 'Monitored regions',
@@ -296,7 +296,7 @@ interface I18nStore {
 }
 
 export const useI18n = create<I18nStore>((set, get) => ({
-  lang: 'pt',
+  lang: 'en',
   setLang: (lang) => set({ lang }),
   toggle: () => set({ lang: get().lang === 'pt' ? 'en' : 'pt' }),
 }))

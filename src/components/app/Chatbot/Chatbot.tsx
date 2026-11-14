@@ -16,7 +16,7 @@ const WELCOME: Message = {
   id: 'welcome',
   role: 'assistant',
   text:
-    'Oi. Sou o assistente do **AmazonSAR Explorer**. Me diz um fenômeno ou lugar e eu dou zoom no mapa + puxo a série temporal.\n\nTente uma das sugestões abaixo.',
+    'Hi, I am the **IARA** assistant. Tell me a phenomenon or a place and I will zoom the map and pull up its time series.\n\nTry one of the suggestions below.',
 }
 
 export function Chatbot() {
@@ -91,9 +91,9 @@ export function Chatbot() {
           <Sparkles className="h-3.5 w-3.5 text-primary" />
         </div>
         <div className="flex-1 leading-tight">
-          <div className="text-xs font-semibold">Assistente AmazonSAR</div>
-          <div className="text-[13px] font-mono text-muted-foreground uppercase tracking-wider">
-            roteador determinístico · stub Claude
+          <div className="text-xs font-semibold">IARA assistant</div>
+          <div className="text-[13px] text-muted-foreground">
+            Deterministic router (Claude stub)
           </div>
         </div>
       </div>
@@ -113,7 +113,7 @@ export function Chatbot() {
             <button
               key={s}
               onClick={() => send(s)}
-              className="rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] font-mono text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+              className="rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
             >
               {s}
             </button>
@@ -132,10 +132,10 @@ export function Chatbot() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Pergunte sobre garimpo, enchente, seca…"
+          placeholder="Ask about mining, floods, drought…"
           className="flex-1 bg-background/40 border border-border rounded-md px-2.5 h-9 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40"
         />
-        <Button type="submit" size="icon" className="h-9 w-9" aria-label="Enviar">
+        <Button type="submit" size="icon" className="h-9 w-9" aria-label="Send">
           <Send className="h-3.5 w-3.5" />
         </Button>
       </form>

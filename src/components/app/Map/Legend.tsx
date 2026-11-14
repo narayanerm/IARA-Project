@@ -6,7 +6,7 @@ export function Legend() {
   return (
     <div className="glass rounded-lg p-3 min-w-[240px]">
       <div className="flex items-baseline justify-between mb-2">
-        <div className="text-[13px] font-mono uppercase tracking-wider text-muted-foreground">
+        <div className="text-[13px] font-medium text-muted-foreground">
           {t('legend.title')}
         </div>
         <div className="text-[12px] font-mono text-muted-foreground">
