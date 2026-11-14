@@ -32,7 +32,7 @@ export function RightPanel() {
       aria-label={t('panel.expandRight')}
       className={cn(
         'relative z-10 h-full shrink-0 border-l border-border bg-card transition-[width] duration-200 motion-reduce:transition-none',
-        open ? 'w-[380px]' : 'w-12'
+        open ? 'w-[340px] 2xl:w-[380px]' : 'w-12'
       )}
     >
       <div className={cn('flex h-12 items-stretch border-b border-border', open ? 'pr-2' : 'justify-center')}>

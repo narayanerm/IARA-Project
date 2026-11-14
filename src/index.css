@@ -194,7 +194,7 @@
   .text-balance {
     text-wrap: balance;
   }
-  /* solid panel for map overlays: no translucency, no blur */
+  /* Opaque on purpose: backdrop blur over the WebGL canvas re-samples the map every frame. */
   .glass {
     @apply bg-card border border-border;
   }

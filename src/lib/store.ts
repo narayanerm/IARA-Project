@@ -10,6 +10,7 @@ interface AppState {
   nasaOverlay: boolean
   trueColorOverlay: boolean
   focusedTi: string | null
+  flyTarget: { center: [number, number]; zoom?: number; ts: number } | null
   // Live NISAR imagery (browse images from the ASF/Vertex API, no download)
   nisarVisible: boolean
   nisarTrack: string | null
@@ -26,6 +27,7 @@ interface AppState {
   toggleNasaOverlay: () => void
   toggleTrueColorOverlay: () => void
   setFocusedTi: (name: string | null) => void
+  requestFlyTo: (center: [number, number], zoom?: number) => void
   setNisarVisible: (v: boolean) => void
   setNisarTrack: (k: string | null) => void
   setNisarScene: (id: string | null) => void
@@ -48,6 +50,7 @@ export const useApp = create<AppState>((set, get) => ({
   nasaOverlay: false,
   trueColorOverlay: false,
   focusedTi: null,
+  flyTarget: null,
   nisarVisible: true,
   nisarTrack: null,
   nisarSceneId: null,
@@ -75,6 +78,7 @@ export const useApp = create<AppState>((set, get) => ({
   toggleNasaOverlay: () => set({ nasaOverlay: !get().nasaOverlay }),
   toggleTrueColorOverlay: () => set({ trueColorOverlay: !get().trueColorOverlay }),
   setFocusedTi: (name) => set({ focusedTi: name }),
+  requestFlyTo: (center, zoom) => set({ flyTarget: { center, zoom, ts: Date.now() } }),
   setNisarVisible: (v) => set({ nisarVisible: v }),
   setNisarTrack: (k) => set({ nisarTrack: k, nisarSceneId: null }),
   setNisarScene: (id) => set({ nisarSceneId: id }),
@@ -102,7 +106,7 @@ export const useAoiPopup = create<PopupState>((set) => ({
 /* Everything starts closed so the first view is the map + one prompt. */
 /* ------------------------------------------------------------------ */
 
-export type LeftSection = 'cases' | 'tis'
+export type LeftSection = 'cases' | 'communities'
 export type RightTab = 'nisar' | 'chat' | 'meta'
 /**
  * Story stage, revealed one click at a time:
@@ -144,4 +148,57 @@ export const useUi = create<UiState>((set, get) => ({
   setBriefingOpen: (v) => set({ briefingOpen: v }),
   setStage: (stage) => set({ stage }),
   flyToRegion: () => set({ flyNonce: get().flyNonce + 1 }),
+}))
+
+/* ------------------------------------------------------------------ */
+/* Map view options and live counts. SarMap writes them; the legend   */
+/* and the "Map options" control outside the map read and toggle them. */
+/* ------------------------------------------------------------------ */
+
+export interface FocusedTiInfo {
+  funaiProps: import('./useFunaiTi').FunaiTiProps | null
+  localProps: import('@/data/layers/indigenous-lands').TiProps | null
+  /** true once the official FUNAI boundary replaced the simplified local outline */
+  official: boolean
+  loading: boolean
+  error: string | null
+  deterCount: number
+  deterLoading: boolean
+}
+
+interface MapViewState {
+  terrainOn: boolean
+  satelliteOn: boolean
+  municipiosOn: boolean
+  municipiosLoading: boolean
+  zoom: number
+  asfCount: number
+  coverageCount: number
+  coverageLoading: boolean
+  /** bumps when something outside the map asks it to ease to a zoom level */
+  zoomRequest: { zoom: number; ts: number } | null
+  focusedInfo: FocusedTiInfo | null
+  toggleTerrain: () => void
+  toggleSatellite: () => void
+  toggleMunicipios: () => void
+  requestZoom: (zoom: number) => void
+  patch: (p: Partial<MapViewState>) => void
+}
+
+export const useMapView = create<MapViewState>((set, get) => ({
+  terrainOn: false,
+  satelliteOn: false,
+  municipiosOn: false,
+  municipiosLoading: false,
+  zoom: 6,
+  asfCount: 0,
+  coverageCount: 0,
+  coverageLoading: false,
+  zoomRequest: null,
+  focusedInfo: null,
+  toggleTerrain: () => set({ terrainOn: !get().terrainOn }),
+  toggleSatellite: () => set({ satelliteOn: !get().satelliteOn }),
+  toggleMunicipios: () => set({ municipiosOn: !get().municipiosOn }),
+  requestZoom: (zoom) => set({ zoomRequest: { zoom, ts: Date.now() } }),
+  patch: (p) => set(p),
 }))

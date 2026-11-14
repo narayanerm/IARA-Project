@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Map, {
   Layer,
   Source,
@@ -13,12 +13,18 @@ import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { INDIGENOUS_LANDS, AMAZON_BIOME, polygonCentroid } from '@/data/layers/indigenous-lands'
 import { AFFECTED_AREAS } from '@/data/layers/affected-areas'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
-import { useApp, useUi } from '@/lib/store'
-import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsTileUrl } from '@/lib/gibs'
+import { useFunaiTi } from '@/lib/useFunaiTi'
+import { useDeterAlerts } from '@/lib/useDeterAlerts'
+import { useIbgeMunicipios, UF_CODE_BY_REGION } from '@/lib/useIbgeMunicipios'
+import { polygonBbox } from '@/lib/polygon-bbox'
+import { useApp, useMapView, useUi } from '@/lib/store'
+import { useAsfGranules } from '@/lib/useAsfGranules'
+import { useBrazilCoverage } from '@/lib/useBrazilCoverage'
+import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsMaxZoom, gibsTileUrl, type GibsLayer } from '@/lib/gibs'
 import { useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
 import { AoiLayersPopup } from './AoiLayersPopup'
-import { TiTargets } from './TiTargets'
+import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
 import { inAmazon } from '@/lib/amazon'
@@ -26,6 +32,77 @@ import { AMAZON_VIEW, markExplore } from '@/lib/story'
 import { CaseMarkers } from './CaseMarkers'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
+
+// Basemap style already credits OpenFreeMap, OpenMapTiles and OpenStreetMap; this adds the community data
+// sources (full list in ATTRIBUTIONS.md). Kept short so the expanded credit stays on one line above the timeline.
+const MAP_ATTRIBUTION = 'Communities: IBGE, FUNAI, MMA via INPE TerraBrasilis'
+
+// Moderate tilt keeps the 3D feel without loading low-detail tiles across a long horizon.
+const PITCH = 40
+const BEARING = -12
+const TERRAIN: maplibregl.TerrainSpecification = { source: 'terrain-dem', exaggeration: 1.4 }
+
+// Cloud-free Sentinel-2 mosaic at 10 m: stays sharp at the zooms where the NASA rasters run out.
+// EOX publishes it under CC BY-NC-SA 4.0 (non-commercial use with credit).
+const SATELLITE_TILES =
+  'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg'
+const SATELLITE_ATTRIBUTION =
+  'Sentinel-2 cloudless 2025 by <a href="https://cloudless.eox.at" target="_blank" rel="noopener">EOX IT Services GmbH</a> (Contains modified Copernicus Sentinel data 2025), CC BY-NC-SA 4.0'
+// Basemap (OpenMapTiles schema) geometry that would cover the imagery; names and borders stay on top.
+const HIDDEN_UNDER_SATELLITE = new Set(['transportation', 'building', 'aeroway', 'park', 'landuse', 'landcover', 'water'])
+
+const isBasemapLayer = (map: maplibregl.Map, layer: maplibregl.LayerSpecification) =>
+  'source' in layer &&
+  typeof layer.source === 'string' &&
+  !layer.source.startsWith('gibs') &&
+  map.getSource(layer.source)?.type === 'vector'
+
+// Restyles the basemap for imagery and returns a function that undoes it. The dark style interleaves
+// labels with roads and buildings, so no single insertion point keeps those under the satellite layer:
+// they are hidden instead. Its labels are dark-on-dark, so they switch to light text with a dark halo.
+function adaptBasemapToImagery(map: maplibregl.Map): () => void {
+  const undo: Array<() => void> = []
+  for (const layer of map.getStyle().layers) {
+    if (!isBasemapLayer(map, layer)) continue
+    if (layer.type === 'symbol') {
+      const color = map.getPaintProperty(layer.id, 'text-color')
+      const halo = map.getPaintProperty(layer.id, 'text-halo-color')
+      const width = map.getPaintProperty(layer.id, 'text-halo-width')
+      map.setPaintProperty(layer.id, 'text-color', 'hsl(0 0% 94%)')
+      map.setPaintProperty(layer.id, 'text-halo-color', 'hsl(222 47% 6% / 0.85)')
+      map.setPaintProperty(layer.id, 'text-halo-width', 1.4)
+      undo.push(() => {
+        map.setPaintProperty(layer.id, 'text-color', color)
+        map.setPaintProperty(layer.id, 'text-halo-color', halo)
+        map.setPaintProperty(layer.id, 'text-halo-width', width)
+      })
+      continue
+    }
+    if (!('source-layer' in layer) || !HIDDEN_UNDER_SATELLITE.has(layer['source-layer'] ?? '')) continue
+    if (map.getLayoutProperty(layer.id, 'visibility') === 'none') continue
+    map.setLayoutProperty(layer.id, 'visibility', 'none')
+    undo.push(() => map.setLayoutProperty(layer.id, 'visibility', 'visible'))
+  }
+  return () => {
+    for (const fn of undo) fn()
+  }
+}
+
+// Coarse NASA rasters (km-scale pixels) fade out past their native zoom instead of smearing over the map.
+function rasterFade(layer: GibsLayer, opacity: number) {
+  const z = gibsMaxZoom(layer)
+  return ['interpolate', ['linear'], ['zoom'], z, opacity, z + 1.5, opacity * 0.4, z + 3, 0] as [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ]
+}
 
 export function SarMap() {
   const mapRef = useRef<MapRef | null>(null)
@@ -43,27 +120,119 @@ export function SarMap() {
   const focusedTi = useApp((s) => s.focusedTi)
   const flyNonce = useUi((s) => s.flyNonce)
   const overview = useUi((s) => s.stage === 'overview')
-  const focusedTiFeature = useMemo(
+  const localTiFeature = useMemo(
     () => INDIGENOUS_LANDS.features.find((f) => f.properties.name === focusedTi) ?? null,
     [focusedTi]
+  )
+  // Real FUNAI boundary via TerraBrasilis WFS (falls back to local simplified polygon while loading or on error).
+  const funai = useFunaiTi(focusedTi)
+  const focusedTiFeature = funai.feature ?? localTiFeature
+
+  const focusedBbox = useMemo(() => {
+    if (!focusedTiFeature) return null
+    if (focusedTiFeature.geometry.type === 'MultiPolygon') {
+      let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity
+      for (const poly of focusedTiFeature.geometry.coordinates) {
+        for (const ring of poly) {
+          for (const [lon, lat] of ring) {
+            if (lon < minLon) minLon = lon
+            if (lat < minLat) minLat = lat
+            if (lon > maxLon) maxLon = lon
+            if (lat > maxLat) maxLat = lat
+          }
+        }
+      }
+      return [minLon, minLat, maxLon, maxLat] as [number, number, number, number]
+    }
+    return polygonBbox(focusedTiFeature.geometry as import('geojson').Polygon)
+  }, [focusedTiFeature])
+
+  const deter = useDeterAlerts(focusedBbox)
+
+  const terrainOn = useMapView((s) => s.terrainOn)
+  const satelliteOn = useMapView((s) => s.satelliteOn)
+  const municipiosOn = useMapView((s) => s.municipiosOn)
+  const zoomRequest = useMapView((s) => s.zoomRequest)
+  const patchMapView = useMapView((s) => s.patch)
+  const ibge = useIbgeMunicipios(UF_CODE_BY_REGION[activeRegion] ?? null, municipiosOn)
+
+  const [mapLoaded, setMapLoaded] = useState(false)
+  // First label layer of the basemap: imagery goes under it so place and river names stay readable.
+  const [labelLayerId, setLabelLayerId] = useState<string>()
+
+  const asf = useAsfGranules(region)
+  const coverage = useBrazilCoverage()
+
+  const coverageFC: FeatureCollection = useMemo(
+    () => ({
+      type: 'FeatureCollection',
+      features: coverage.data.map((g, i) => ({
+        type: 'Feature',
+        geometry: g.footprint,
+        properties: {
+          id: g.id,
+          dataset: g.dataset,
+          startTime: g.startTime,
+          polarization: g.polarization.join('+'),
+          ageIdx: Math.min(i, 100),
+        },
+      })),
+    }),
+    [coverage.data]
+  )
+
+  const footprintsFC: FeatureCollection = useMemo(
+    () => ({
+      type: 'FeatureCollection',
+      features: asf.data.slice(0, 8).map((g, i) => ({
+        type: 'Feature',
+        geometry: g.footprint,
+        properties: {
+          id: g.id,
+          dataset: g.dataset,
+          startTime: g.startTime,
+          polarization: g.polarization.join('+'),
+          flightDirection: g.flightDirection,
+          age: i,
+        },
+      })),
+    }),
+    [asf.data]
   )
 
   useEffect(() => {
     const m = mapRef.current
-    if (!m) return
+    if (!m || !mapLoaded) return
     if (overview) {
       m.flyTo({ ...AMAZON_VIEW, pitch: 0, bearing: 0, duration: 1400, essential: true })
       return
     }
+    // The region's layer balloon opens above its centre, so park the centre low enough for it to fit.
     m.flyTo({
       center: region.center,
       zoom: region.zoom,
-      pitch: 55,
-      bearing: -18,
+      pitch: PITCH,
+      bearing: BEARING,
+      offset: [0, Math.round(m.getContainer().clientHeight * 0.18)],
       duration: 1600,
       essential: true,
     })
-  }, [region, flyNonce, overview])
+  }, [region, mapLoaded, flyNonce, overview])
+
+  // Terrain is opt-in: draping the map over the DEM renders through an offscreen texture,
+  // which costs frames and softens every layer on top of it.
+  useEffect(() => {
+    const m = mapRef.current?.getMap()
+    if (!m || !mapLoaded) return
+    if (terrainOn && !m.getSource(TERRAIN.source)) return
+    m.setTerrain(terrainOn ? TERRAIN : null)
+  }, [terrainOn, mapLoaded])
+
+  useEffect(() => {
+    const m = mapRef.current?.getMap()
+    if (!m || !mapLoaded || !satelliteOn) return
+    return adaptBasemapToImagery(m)
+  }, [satelliteOn, mapLoaded])
 
   useEffect(() => {
     if (!focusedTi) return
@@ -74,6 +243,21 @@ export function SarMap() {
     const [lon, lat] = polygonCentroid(feature.geometry)
     m.flyTo({ center: [lon, lat], zoom: 7.5, pitch: 40, bearing: 0, duration: 1400, essential: true })
   }, [focusedTi])
+
+  const flyTarget = useApp((s) => s.flyTarget)
+  useEffect(() => {
+    if (!flyTarget) return
+    const m = mapRef.current
+    if (!m) return
+    m.flyTo({
+      center: flyTarget.center,
+      zoom: flyTarget.zoom ?? 8,
+      pitch: 40,
+      bearing: 0,
+      duration: 1400,
+      essential: true,
+    })
+  }, [flyTarget])
 
   const changeFC: FeatureCollection = useMemo(
     () => ({
@@ -112,6 +296,33 @@ export function SarMap() {
     selectPolygon(found)
   }
 
+  // Publish what the legend outside the map needs to show.
+  useEffect(() => {
+    patchMapView({ asfCount: asf.data.length, coverageCount: coverage.data.length, coverageLoading: coverage.loading })
+  }, [asf.data.length, coverage.data.length, coverage.loading, patchMapView])
+  useEffect(() => {
+    patchMapView({ municipiosLoading: ibge.loading })
+  }, [ibge.loading, patchMapView])
+  useEffect(() => {
+    patchMapView({
+      focusedInfo: focusedTi
+        ? {
+            funaiProps: funai.feature?.properties ?? null,
+            localProps: localTiFeature?.properties ?? null,
+            official: !!funai.feature,
+            loading: funai.loading,
+            error: funai.error,
+            deterCount: deter.count,
+            deterLoading: deter.loading,
+          }
+        : null,
+    })
+  }, [focusedTi, funai.feature, funai.loading, funai.error, localTiFeature, deter.count, deter.loading, patchMapView])
+  useEffect(() => {
+    if (!zoomRequest) return
+    mapRef.current?.getMap().easeTo({ zoom: zoomRequest.zoom, duration: 900, essential: true })
+  }, [zoomRequest])
+
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
@@ -130,14 +341,18 @@ export function SarMap() {
         initialViewState={
           useUi.getState().stage === 'overview'
             ? { longitude: AMAZON_VIEW.center[0], latitude: AMAZON_VIEW.center[1], zoom: AMAZON_VIEW.zoom, pitch: 0, bearing: 0 }
-            : { longitude: region.center[0], latitude: region.center[1], zoom: region.zoom, pitch: 55, bearing: -18 }
+            : { longitude: region.center[0], latitude: region.center[1], zoom: region.zoom, pitch: PITCH, bearing: BEARING }
         }
-        maxPitch={75}
+        maxPitch={60}
         mapStyle={BASEMAP_URL}
-        terrain={{ source: 'terrain-dem', exaggeration: 1.6 }}
         interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
         onClick={onClick}
-        attributionControl={false}
+        onZoomEnd={(e) => patchMapView({ zoom: e.viewState.zoom })}
+        onLoad={(e) => {
+          setLabelLayerId(e.target.getStyle().layers.find((l) => l.type === 'symbol')?.id ?? 'amazon-biome-fill')
+          setMapLoaded(true)
+        }}
+        attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
         <Source
           id="terrain-dem"
@@ -148,6 +363,24 @@ export function SarMap() {
           maxzoom={15}
           attribution="AWS Terrain Tiles"
         />
+
+        {satelliteOn && labelLayerId && (
+          <Source
+            id="satellite"
+            type="raster"
+            tiles={[SATELLITE_TILES]}
+            tileSize={256}
+            maxzoom={14}
+            attribution={SATELLITE_ATTRIBUTION}
+          >
+            <Layer
+              id="satellite-layer"
+              type="raster"
+              beforeId={labelLayerId}
+              paint={{ 'raster-brightness-max': 0.88, 'raster-saturation': -0.05 }}
+            />
+          </Source>
+        )}
 
         <Source id="amazon-biome" type="geojson" data={AMAZON_BIOME}>
           <Layer
@@ -170,53 +403,63 @@ export function SarMap() {
           />
         </Source>
 
-        <Source id="indigenous-lands" type="geojson" data={INDIGENOUS_LANDS}>
-          <Layer
-            id="ti-fill"
-            type="fill"
-            paint={{
-              'fill-color': 'hsl(135 19% 92%)',
-              'fill-opacity': 0.05,
-            }}
-          />
-          <Layer
-            id="ti-line"
-            type="line"
-            paint={{
-              'line-color': 'hsl(135 19% 92%)',
-              'line-opacity': 0.5,
-              'line-width': 1.2,
-            }}
-          />
-          <Layer
-            id="ti-label"
-            type="symbol"
-            layout={{
-              'text-field': ['get', 'name'],
-              'text-size': 10,
-              'text-font': ['Noto Sans Regular'],
-              'text-letter-spacing': 0.04,
-              'text-max-width': 8,
-            }}
-            paint={{
-              'text-color': 'hsl(135 19% 88%)',
-              'text-halo-color': 'hsla(222, 47%, 5%, 0.9)',
-              'text-halo-width': 1.4,
-            }}
-          />
-        </Source>
+        <CommunityAreas />
+        {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
+        <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
+        {coverage.data.length > 0 && (
+          <Source id="br-coverage" type="geojson" data={coverageFC}>
+            <Layer
+              id="br-coverage-fill" beforeId="reserves-fill"
+              type="fill"
+              paint={{
+                'fill-color': 'hsl(198 51% 57%)',
+                // Swath fills read as a wash once zoomed in; keep them for the national overview only.
+                'fill-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  4,
+                  ['interpolate', ['linear'], ['get', 'ageIdx'], 0, 0.2, 100, 0.05],
+                  7,
+                  0,
+                ],
+              }}
+            />
+            <Layer
+              id="br-coverage-outline" beforeId="reserves-fill"
+              type="line"
+              paint={{
+                'line-color': 'hsl(198 51% 70%)',
+                'line-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  4,
+                  ['interpolate', ['linear'], ['get', 'ageIdx'], 0, 0.7, 100, 0.15],
+                  9,
+                  ['interpolate', ['linear'], ['get', 'ageIdx'], 0, 0.35, 100, 0.08],
+                ],
+                'line-width': 1.0,
+              }}
+            />
+          </Source>
+        )}
+
         {trueColorOverlay && (
           <Source
             id="gibs-truecolor"
             type="raster"
             tiles={[gibsTileUrl(TRUE_COLOR_LAYER)]}
             tileSize={256}
+            maxzoom={gibsMaxZoom(TRUE_COLOR_LAYER)}
             attribution="NASA GIBS, MODIS"
           >
             <Layer
               id="gibs-truecolor-layer"
+              beforeId="reserves-fill"
               type="raster"
-              paint={{ 'raster-opacity': 0.55, 'raster-saturation': -0.1 }}
+              maxzoom={gibsMaxZoom(TRUE_COLOR_LAYER) + 3}
+              paint={{ 'raster-opacity': rasterFade(TRUE_COLOR_LAYER, 0.55), 'raster-saturation': -0.1 }}
             />
           </Source>
         )}
@@ -228,9 +471,16 @@ export function SarMap() {
             type="raster"
             tiles={[gibsTileUrl(gibs)]}
             tileSize={256}
+            maxzoom={gibsMaxZoom(gibs)}
             attribution={`NASA GIBS, ${gibs.sensor}`}
           >
-            <Layer id="gibs-raster-layer" type="raster" paint={{ 'raster-opacity': 0.72 }} />
+            <Layer
+              id="gibs-raster-layer"
+              beforeId="reserves-fill"
+              type="raster"
+              maxzoom={gibsMaxZoom(gibs) + 3}
+              paint={{ 'raster-opacity': rasterFade(gibs, 0.6) }}
+            />
           </Source>
         )}
 
@@ -245,7 +495,18 @@ export function SarMap() {
             attribution={`NASA GIBS, ${gibs.sensor}`}
           >
             <Layer
-              id="gibs-vector-dot"
+              id="gibs-vector-glow" beforeId="community-points-anchor"
+              type="circle"
+              source-layer={gibs.identifier}
+              paint={{
+                'circle-radius': 10,
+                'circle-color': gibs.paintColor,
+                'circle-opacity': 0.25,
+                'circle-blur': 1,
+              }}
+            />
+            <Layer
+              id="gibs-vector-dot" beforeId="community-points-anchor"
               type="circle"
               source-layer={gibs.identifier}
               paint={{
@@ -260,11 +521,50 @@ export function SarMap() {
         )}
 
         <NisarImagery />
+        {asf.data.length > 0 && (
+          <Source id="asf-footprints" type="geojson" data={footprintsFC}>
+            <Layer
+              id="asf-footprints-fill" beforeId="community-points-anchor"
+              type="fill"
+              paint={{
+                'fill-color': 'hsl(198 51% 57%)',
+                // Swaths are ~250 km wide: zoomed in, the whole view sits inside several and the fills stack into a wash.
+                'fill-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  6,
+                  ['interpolate', ['linear'], ['get', 'age'], 0, 0.16, 8, 0.03],
+                  8.5,
+                  0,
+                ],
+              }}
+            />
+            <Layer
+              id="asf-footprints-line" beforeId="community-points-anchor"
+              type="line"
+              paint={{
+                'line-color': 'hsl(198 51% 70%)',
+                'line-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  6,
+                  ['interpolate', ['linear'], ['get', 'age'], 0, 0.95, 8, 0.2],
+                  11,
+                  ['interpolate', ['linear'], ['get', 'age'], 0, 0.45, 8, 0.1],
+                ],
+                'line-width': 1.2,
+                'line-dasharray': [2, 1.5],
+              }}
+            />
+          </Source>
+        )}
 
         {activeRegion === 'YANO' && !overview && (
           <Source id="yano-change" type="geojson" data={changeFC}>
             <Layer
-              id="yano-change-fill"
+              id="yano-change-fill" beforeId="community-points-anchor"
               type="fill"
               paint={{
                 'fill-color': [
@@ -286,7 +586,7 @@ export function SarMap() {
               }}
             />
             <Layer
-              id="yano-change-outline"
+              id="yano-change-outline" beforeId="community-points-anchor"
               type="line"
               paint={{ 'line-color': 'hsl(0 0% 100% / 0.4)', 'line-width': 0.8 }}
             />
@@ -357,14 +657,18 @@ export function SarMap() {
           <>
             <Source
               id="focused-ti-mask"
-              key={`mask-${focusedTi}`}
+              key={`mask-${focusedTi}-${funai.feature ? 'f' : 'l'}`}
               type="geojson"
-              data={worldWithHoleFC(focusedTiFeature.geometry.coordinates[0])}
+              data={worldWithHoleFC(
+                focusedTiFeature.geometry.type === 'MultiPolygon'
+                  ? focusedTiFeature.geometry.coordinates[0][0]
+                  : (focusedTiFeature.geometry.coordinates[0] as number[][])
+              )}
             >
               <Layer
                 id="focused-ti-mask-fill"
                 type="fill"
-                paint={{ 'fill-color': 'hsl(222 47% 5%)', 'fill-opacity': 0.75 }}
+                paint={{ 'fill-color': 'hsl(154 26% 5%)', 'fill-opacity': 0.75 }}
               />
             </Source>
             <Source
@@ -377,7 +681,7 @@ export function SarMap() {
                 id="focused-ti-outline"
                 type="line"
                 paint={{
-                  'line-color': 'hsl(190 95% 70%)',
+                  'line-color': 'hsl(198 51% 70%)',
                   'line-width': 2.5,
                   'line-opacity': 1,
                 }}
@@ -385,37 +689,52 @@ export function SarMap() {
             </Source>
           </>
         )}
-        {!overview && <TiTargets />}
+        {municipiosOn && ibge.data && (
+          <Source id="ibge-municipios" type="geojson" data={ibge.data}>
+            <Layer
+              id="ibge-municipios-line"
+              type="line"
+              paint={{
+                'line-color': 'hsl(0 0% 100% / 0.4)',
+                'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.3, 10, 1.1],
+                'line-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0, 8, 0.6, 11, 0.9],
+              }}
+            />
+          </Source>
+        )}
+        {focusedTi && deter.features.features.length > 0 && (
+          <Source
+            id="deter-alerts"
+            key={`deter-${focusedTi}`}
+            type="geojson"
+            data={deter.features}
+          >
+            <Layer
+              id="deter-alerts-fill"
+              type="fill"
+              paint={{
+                'fill-color': [
+                  'case',
+                  ['boolean', ['in', 'MINERACAO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(17 75% 42%)',
+                  ['boolean', ['in', 'GARIMPO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(17 75% 42%)',
+                  ['boolean', ['in', 'DESMATAMENTO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(19 85% 61%)',
+                  ['boolean', ['in', 'DEGRADACAO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(139 10% 69%)',
+                  'hsl(198 51% 57%)',
+                ],
+                'fill-opacity': 0.55,
+              }}
+            />
+            <Layer
+              id="deter-alerts-line"
+              type="line"
+              paint={{ 'line-color': '#fff', 'line-opacity': 0.75, 'line-width': 0.7 }}
+            />
+          </Source>
+        )}
+        {!overview && <CommunityPoints />}
         <AoiLayersPopup />
         {overview && <CaseMarkers />}
       </Map>
-    </div>
-  )
-}
-
-export function OverlayLegend() {
-  const t = useT()
-  const activeRegion = useApp((s) => s.activeRegion)
-  const nasaOverlay = useApp((s) => s.nasaOverlay)
-  const gibs = GIBS_BY_REGION[activeRegion]
-
-  return (
-    <div className="pointer-events-none flex flex-col items-end gap-2">
-      {nasaOverlay && gibs && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground max-w-[260px] text-right">
-          <span
-            className="inline-block h-2 w-2 rounded-full mr-1 align-middle"
-            style={{ background: gibs.paintColor }}
-          />
-          {gibs.legendLabel}
-          <div className="text-[13px] opacity-70 mt-0.5 leading-tight">{gibs.explanation}</div>
-        </div>
-      )}
-      {activeRegion === 'YANO' && nasaOverlay && !gibs && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground max-w-[260px] text-right">
-          {t('overlay.none')}
-        </div>
-      )}
     </div>
   )
 }

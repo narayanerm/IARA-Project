@@ -24,6 +24,11 @@ export function gibsTileUrl(layer: GibsLayer): string {
   return `${BASE}/${layer.identifier}/default/${layer.time}/${layer.tileMatrixSet}/{z}/{y}/{x}.${fmtExt(layer.format)}`
 }
 
+// Deepest zoom GIBS serves for a layer (GoogleMapsCompatible_LevelN); deeper requests return HTTP 400.
+export function gibsMaxZoom(layer: GibsLayer): number {
+  return Number(/Level(\d+)/.exec(layer.tileMatrixSet)?.[1] ?? 9)
+}
+
 export const GIBS_BY_REGION: Record<RegionId, GibsLayer | null> = {
   YANO: {
     identifier: 'MODIS_Terra_NDVI_8Day',

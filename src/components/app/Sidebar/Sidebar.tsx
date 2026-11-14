@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { ChevronLeft, ChevronRight, ExternalLink, Trees } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ExternalLink, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RailButton } from '@/components/ui/rail-button'
 import { cn } from '@/lib/utils'
 import { REGIONS } from '@/lib/regions'
 import type { RegionId } from '@/lib/types'
 import { useApp, useAoiPopup, useUi } from '@/lib/store'
-import { useT, useI18n } from '@/lib/i18n'
+import { useT } from '@/lib/i18n'
 import { markExplore, openCase } from '@/lib/story'
-import { INDIGENOUS_LANDS, polygonCentroid } from '@/data/layers/indigenous-lands'
+import { INDIGENOUS_LANDS } from '@/data/layers/indigenous-lands'
 import { AFFECTED_AREAS } from '@/data/layers/affected-areas'
 import { ICON_BY_PHENOMENON } from '../Map/CaseMarkers'
+import { CommunityList } from './CommunityList'
 
 export function Sidebar() {
   const t = useT()
-  const lang = useI18n((s) => s.lang)
   const open = useUi((s) => s.leftOpen)
   const section = useUi((s) => s.leftSection)
   const setLeftOpen = useUi((s) => s.setLeftOpen)
@@ -22,11 +22,8 @@ export function Sidebar() {
   const stage = useUi((s) => s.stage)
   const activeRegion = useApp((s) => s.activeRegion)
   const setActiveRegion = useApp((s) => s.setActiveRegion)
-  const focusedTi = useApp((s) => s.focusedTi)
-  const setFocusedTi = useApp((s) => s.setFocusedTi)
   const openPopup = useAoiPopup((s) => s.openPopup)
   const tiRef = useRef<HTMLElement | null>(null)
-  const numberFmt = lang === 'pt' ? 'pt-BR' : 'en-US'
 
   const panorama = useMemo(() => {
     const tiCount = INDIGENOUS_LANDS.features.length
@@ -38,17 +35,9 @@ export function Sidebar() {
     return { tiCount, tiAreaKm2, tiPopulation, miningKm2 }
   }, [])
 
-  const tis = useMemo(
-    () =>
-      INDIGENOUS_LANDS.features
-        .map((f) => ({ ...f.properties, centroid: polygonCentroid(f.geometry) }))
-        .sort((a, b) => b.area_km2 - a.area_km2),
-    []
-  )
-
-  // Opening the panel from the rail's Indigenous Lands icon scrolls to that section.
+  // Opening the panel from the rail's Communities icon scrolls to that section.
   useEffect(() => {
-    if (open && section === 'tis') tiRef.current?.scrollIntoView({ block: 'start' })
+    if (open && section === 'communities') tiRef.current?.scrollIntoView({ block: 'start' })
   }, [open, section])
 
   const inCase = stage !== 'overview'
@@ -107,10 +96,11 @@ export function Sidebar() {
           ))}
           <div className="my-1 h-px w-6 bg-border" />
           <RailButton
-            icon={Trees}
-            label={t('side.tis')}
+            icon={Users}
+            label={inCase ? t('side.communities') : t('side.communitiesLocked')}
+            disabled={!inCase}
             onClick={() => {
-              openLeft('tis')
+              openLeft('communities')
               markExplore()
             }}
           />
@@ -161,41 +151,8 @@ export function Sidebar() {
           </section>
 
           <section ref={tiRef} className="border-t border-border px-3 pt-3 pb-2">
-            <div className="flex items-baseline justify-between px-1 pb-1.5">
-              <h3 className="text-[12px] font-medium text-muted-foreground">{t('side.tis')}</h3>
-              <span className="text-[12px] tabular-nums text-muted-foreground">{tis.length}</span>
-            </div>
-            <ul className="flex flex-col divide-y divide-border">
-              {tis.map((ti) => {
-                const focused = focusedTi === ti.name
-                return (
-                  <li key={ti.name} className={cn('flex min-w-0 items-start gap-2 rounded-md px-1', focused && 'bg-raised')}>
-                    <button
-                      onClick={() => setFocusedTi(focused ? null : ti.name)}
-                      aria-pressed={focused}
-                      title={ti.name}
-                      className="min-w-0 flex-1 py-2 pl-1 text-left"
-                    >
-                      <span className="block truncate text-[13px] font-medium text-foreground">{ti.name}</span>
-                      <span className="block truncate text-[12px] tabular-nums text-muted-foreground">
-                        {ti.state}, {ti.year} · {ti.area_km2.toLocaleString(numberFmt)} km²
-                        {ti.population ? ` · ${(ti.population / 1000).toFixed(0)}k ${t('side.inh')}` : ''}
-                      </span>
-                    </button>
-                    <a
-                      href={buildAsfVertexUrl(ti.centroid)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 shrink-0 rounded-sm px-1.5 py-0.5 text-[12px] font-medium text-water hover:bg-raised"
-                      title={t('side.sarLink')}
-                      aria-label={`${t('side.sarLink')}: ${ti.name}`}
-                    >
-                      SAR ↗
-                    </a>
-                  </li>
-                )
-              })}
-            </ul>
+            <h3 className="px-1 pb-1.5 text-[12px] font-medium text-muted-foreground">{t('side.communities')}</h3>
+            <CommunityList locked={!inCase} />
           </section>
 
           <p className="mt-auto border-t border-border px-4 py-2.5 text-[12px] leading-relaxed text-muted-foreground">
@@ -223,15 +180,4 @@ function Stat({ value, label }: { value: string; label: string }) {
       <dd className="text-[17px] font-semibold leading-tight tabular-nums text-foreground">{value}</dd>
     </div>
   )
-}
-
-function buildAsfVertexUrl([lon, lat]: [number, number]): string {
-  const params = new URLSearchParams({
-    zoom: '8',
-    center: `${lon.toFixed(3)},${lat.toFixed(3)}`,
-    dataset: 'SENTINEL-1',
-    start: '2023-01-01T00:00:00Z',
-    productTypes: 'GRD_HD',
-  })
-  return `https://search.asf.alaska.edu/#/?${params}`
 }

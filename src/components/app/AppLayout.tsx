@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { ArrowRight, ChevronLeft, Layers3, Radar, ScrollText, Sun, type LucideIcon } from 'lucide-react'
 import { Sidebar } from './Sidebar/Sidebar'
-import { SarMap, OverlayLegend } from './Map/SarMap'
+import { SarMap } from './Map/SarMap'
+import { OverlayLegend, FocusedTiBadge } from './Map/OverlayLegend'
+import { SarPreview } from './Map/SarPreview'
 import { Legend } from './Map/Legend'
 import { LayerToggle } from './Map/LayerToggle'
 import { RightPanel } from './RightPanel/RightPanel'
@@ -9,7 +11,6 @@ import { Timeline } from './Timeline/Timeline'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
 import { PhenomenonBriefing } from './Briefing/PhenomenonBriefing'
-import { SarPreview } from './Map/SarPreview'
 import { NisarControl } from './Map/NisarControl'
 import { CaseCard, ICON_BY_PHENOMENON } from './Map/CaseMarkers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -43,9 +44,9 @@ export function AppLayout() {
           <img
             src={`${import.meta.env.BASE_URL}marca/iara-horizontal-sem-subtitulo-escuro.svg`}
             alt={t('app.name')}
-            className="hidden lg:block h-6 w-auto shrink-0"
+            className="hidden lg:block h-9 w-auto shrink-0"
           />
-          <img src={`${import.meta.env.BASE_URL}marca/iara-simbolo-escuro.svg`} alt={t('app.name')} className="lg:hidden h-7 w-7 shrink-0" />
+          <img src={`${import.meta.env.BASE_URL}marca/iara-simbolo-escuro.svg`} alt={t('app.name')} className="lg:hidden h-9 w-9 shrink-0" />
           <CaseCrumb />
         </div>
 
@@ -97,15 +98,16 @@ export function AppLayout() {
 
           {/* top-right column: what the image shows, then view-option legend and SAR preview */}
           {onRadar && (
-            <div className="pointer-events-none absolute right-4 top-4 hidden w-[280px] flex-col items-end gap-2 sm:flex">
+            <div className="pointer-events-none absolute right-4 top-4 bottom-24 hidden w-[280px] flex-col items-end gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none] sm:flex">
               <RadarCaption />
+              <FocusedTiBadge />
               {exploring && (
                 <div className={REVEAL}>
                   <OverlayLegend />
                 </div>
               )}
               {exploring && (
-                <div className={cn('pointer-events-auto hidden min-[1440px]:[@media(min-height:860px)]:block', REVEAL)}>
+                <div className={cn('pointer-events-auto w-full', REVEAL)}>
                   <SarPreview />
                 </div>
               )}
