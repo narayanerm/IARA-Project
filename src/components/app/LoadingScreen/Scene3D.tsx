@@ -60,7 +60,9 @@ const FRAG_VARREDURA = /* glsl */ `
   if (iaraAntes > 0.5) {
     if (iaraSd > 0.0) discard;
     float tom = 0.8 + 0.7 * iaraH;
-    gl_FragColor = vec4(uMosaico * tom, 1.0);
+    // keep the coat pattern (spots, stripes) readable inside the mosaic
+    float iaraLum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+    gl_FragColor = vec4(uMosaico * tom * mix(1.0, mix(0.18, 1.25, iaraLum), uPadrao), 1.0);
   } else {
     float cel = 1.0 - step(0.0, iaraSd);
     vec3 faixa = mix(gl_FragColor.rgb, uFaixa, cel * 0.85);
@@ -69,7 +71,7 @@ const FRAG_VARREDURA = /* glsl */ `
   }
 `
 
-function aplicarVarredura<T extends THREE.Material>(mat: T, v: Varredura, mosaico?: string): T {
+function aplicarVarredura<T extends THREE.Material>(mat: T, v: Varredura, mosaico?: string, padrao = false): T {
   const local = mosaico ? { value: new THREE.Color(mosaico) } : v.uMosaico
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uScan = v.uScan
@@ -78,6 +80,7 @@ function aplicarVarredura<T extends THREE.Material>(mat: T, v: Varredura, mosaic
     sh.uniforms.uPulse = v.uPulse
     sh.uniforms.uMosaico = local
     sh.uniforms.uFaixa = v.uFaixa
+    sh.uniforms.uPadrao = { value: padrao ? 1 : 0 }
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vIaraPos;')
       .replace(
@@ -92,11 +95,11 @@ function aplicarVarredura<T extends THREE.Material>(mat: T, v: Varredura, mosaic
     sh.fragmentShader = sh.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\nvarying vec3 vIaraPos;\nuniform float uScan;\nuniform float uCell;\nuniform float uTime;\nuniform float uPulse;\nuniform vec3 uMosaico;\nuniform vec3 uFaixa;'
+        '#include <common>\nvarying vec3 vIaraPos;\nuniform float uScan;\nuniform float uCell;\nuniform float uTime;\nuniform float uPulse;\nuniform vec3 uMosaico;\nuniform vec3 uFaixa;\nuniform float uPadrao;'
       )
       .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + FRAG_VARREDURA)
   }
-  mat.customProgramCacheKey = () => 'iara-varredura-' + (mosaico || 'base')
+  mat.customProgramCacheKey = () => 'iara-varredura-' + (mosaico || 'base') + (padrao ? '-padrao' : '')
   return mat
 }
 
@@ -110,10 +113,11 @@ interface BichoProps {
   giro?: [number, number, number]
   jeito: Comportamento
   mosaico: string
+  padrao?: boolean // keep the coat pattern visible inside the mosaic
   v: Varredura
 }
 
-function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, v }: BichoProps) {
+function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, padrao = false, v }: BichoProps) {
   const { scene } = useGLTF(url)
   const ref = useRef<THREE.Group>(null)
   const modelo = useMemo(() => {
@@ -129,7 +133,7 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, v }: B
         metalness: 0,
         flatShading: true,
       })
-      m.material = aplicarVarredura(novo, v, mosaico)
+      m.material = aplicarVarredura(novo, v, mosaico, padrao)
     })
     // normalize the size and rest it on the ground
     const caixa = new THREE.Box3().setFromObject(c)
@@ -142,7 +146,7 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, v }: B
     const g = new THREE.Group()
     g.add(c)
     return g
-  }, [scene, tamanho, v, mosaico])
+  }, [scene, tamanho, v, mosaico, padrao])
 
   useFrame((st) => {
     const g = ref.current
@@ -151,10 +155,11 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, v }: B
     const [x, y, z] = posicao
     switch (jeito) {
       case 'andar': {
-        // walks back and forth along the bank, slowly
-        const f = Math.sin(t * 0.18)
-        g.position.set(x + f * 2.6, y + Math.abs(Math.sin(t * 2.4)) * 0.025, z)
-        g.rotation.y = giro[1] + (Math.cos(t * 0.18) > 0 ? 0 : Math.PI)
+        // stands on the bank: slow breathing and an occasional look toward the river
+        g.position.set(x, y, z)
+        g.scale.set(1, 1 + Math.sin(t * 1.1) * 0.012, 1)
+        const olhar = Math.max(0, Math.sin(t * 0.22)) ** 3
+        g.rotation.y = giro[1] + olhar * 0.45
         break
       }
       case 'pastar':
@@ -452,7 +457,7 @@ function Direcao({ v, aoTerminar, aoProgredir, reduz }: Avisos & { v: Varredura 
 
 /* positions: far bank of the river (z near -4.5), the dolphin mid-river, and the tree animals on the back branches */
 const BICHOS: Omit<BichoProps, 'v'>[] = [
-  { url: '/models/jaguar.glb', tamanho: 2.3, posicao: [-3.4, 0, -4.3], giro: [0, Math.PI / 2, 0], jeito: 'andar', mosaico: '#b9481a' },
+  { url: '/models/jaguar.glb', tamanho: 2.3, posicao: [-3.4, 0, -4.3], giro: [0, Math.PI / 2, 0], jeito: 'andar', mosaico: '#d9a441', padrao: true },
   { url: '/models/capybara.glb', tamanho: 1.7, posicao: [5.4, 0, -4.9], giro: [0, -0.9, 0], jeito: 'pastar', mosaico: '#3b6447' },
   { url: '/models/anaconda.glb', tamanho: 2.6, posicao: [-6.4, 0.02, -2.9], giro: [0, 0.5, 0], jeito: 'enrolar', mosaico: '#33593f' },
   { url: '/models/dolphin.glb', tamanho: 1.6, posicao: [1.5, 0.05, -2.0], giro: [0, Math.PI / 2, 0], jeito: 'saltar', mosaico: '#2b7ea6' },
