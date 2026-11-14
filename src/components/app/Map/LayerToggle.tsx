@@ -1,4 +1,4 @@
-import { Activity, Layers, Waves, Zap } from 'lucide-react'
+import { Activity, Layers, Waves, ArrowDownUp } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import type { ProductLayer } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -8,7 +8,7 @@ const LAYERS: Array<{ id: ProductLayer; labelKey: TKey; icon: React.ElementType 
   { id: 'amplitude', labelKey: 'layer.amplitude', icon: Layers },
   { id: 'coherence', labelKey: 'layer.coherence', icon: Activity },
   { id: 'interferogram', labelKey: 'layer.interferogram', icon: Waves },
-  { id: 'displacement', labelKey: 'layer.displacement', icon: Zap },
+  { id: 'displacement', labelKey: 'layer.displacement', icon: ArrowDownUp },
 ]
 
 export function LayerToggle() {

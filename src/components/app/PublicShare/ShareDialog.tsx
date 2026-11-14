@@ -130,8 +130,8 @@ export function ShareDialog() {
       </Dialog.Trigger>
 
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[9998] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[9999] w-[min(560px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border/60 bg-card/95 backdrop-blur-xl shadow-2xl">
+        <Dialog.Overlay className="fixed inset-0 z-[9998] bg-black/70 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[9999] w-[min(560px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border/60 bg-card/95 shadow-md">
           <div className="flex items-start justify-between border-b border-border/60 p-4">
             <div>
               <Dialog.Title className="text-base font-semibold">
@@ -165,7 +165,7 @@ export function ShareDialog() {
                 <input
                   readOnly
                   value={permalink}
-                  className="flex-1 rounded-md border border-border/60 bg-background/60 px-2.5 h-9 text-[12px] font-mono text-foreground truncate"
+                  className="flex-1 rounded-md border border-border/60 bg-background/60 px-2.5 h-9 text-[12px] tabular-nums text-foreground truncate"
                   onFocus={(e) => e.currentTarget.select()}
                 />
                 <Button onClick={copy} size="sm" className="h-9 shrink-0">

@@ -1,6 +1,6 @@
 import { Popup } from 'react-map-gl/maplibre'
 import { useMemo } from 'react'
-import { Activity, Layers, Waves, Zap, X, type LucideIcon } from 'lucide-react'
+import { Activity, Layers, Waves, ArrowDownUp, X, type LucideIcon } from 'lucide-react'
 import { REGIONS } from '@/lib/regions'
 import { useApp, useAoiPopup } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
@@ -13,7 +13,7 @@ const SAR_LAYERS: Array<{ id: ProductLayer; labelKey: TKey; icon: LucideIcon; co
   { id: 'amplitude', labelKey: 'layer.amplitude', icon: Layers, color: 'hsl(210 90% 60%)' },
   { id: 'coherence', labelKey: 'layer.coherence', icon: Activity, color: 'hsl(140 70% 55%)' },
   { id: 'interferogram', labelKey: 'layer.interferogram', icon: Waves, color: 'hsl(270 80% 65%)' },
-  { id: 'displacement', labelKey: 'layer.displacement', icon: Zap, color: 'hsl(348 85% 58%)' },
+  { id: 'displacement', labelKey: 'layer.displacement', icon: ArrowDownUp, color: 'hsl(348 85% 58%)' },
 ]
 
 export function AoiLayersPopup() {
@@ -52,7 +52,7 @@ export function AoiLayersPopup() {
 
         <div className="pr-6">
           <div className="text-[12px] font-medium text-muted-foreground">
-            {t(`region.${region.id}.name`)} · {t(`region.${region.id}.city`)}
+            {t(`region.${region.id}.name`)}, {t(`region.${region.id}.city`)}
           </div>
           <div className="text-sm font-semibold text-foreground mt-0.5">
             {t(`region.${region.id}.phen`)}
@@ -97,16 +97,16 @@ export function AoiLayersPopup() {
               <div className="flex items-center gap-2 rounded-md bg-background/40 border border-border/60 px-2 py-1 text-[13px]">
                 <span
                   className="h-2 w-2 rounded-full shrink-0"
-                  style={{ background: gibs.paintColor, boxShadow: `0 0 8px ${gibs.paintColor}` }}
+                  style={{ background: gibs.paintColor }}
                 />
                 <span className="text-foreground">{gibs.legendLabel}</span>
-                <span className="ml-auto text-[13px] font-mono text-muted-foreground">{gibs.sensor}</span>
+                <span className="ml-auto text-[13px] tabular-nums text-muted-foreground">{gibs.sensor}</span>
               </div>
             )}
             <div className="flex items-center gap-2 rounded-md bg-background/40 border border-border/60 px-2 py-1 text-[13px]">
               <span className="h-2 w-2 rounded-full shrink-0 bg-sar-cyan" />
               <span className="text-foreground">{t('popup.footprints')}</span>
-              <span className="ml-auto text-[13px] font-mono text-muted-foreground">
+              <span className="ml-auto text-[13px] tabular-nums text-muted-foreground">
                 {asf.loading ? '…' : asf.data.length}
               </span>
             </div>

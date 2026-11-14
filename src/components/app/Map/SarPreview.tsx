@@ -19,7 +19,7 @@ export function SarPreview() {
   const src = g.browseUrl ?? g.thumbUrl
 
   return (
-    <div className="glass rounded-lg overflow-hidden w-[260px] shadow-xl border border-border/60">
+    <div className="glass rounded-lg overflow-hidden w-[260px] shadow-md border border-border/60">
       <div className="flex items-center gap-2 border-b border-border/60 px-2.5 py-1.5">
         <ImageIcon className="h-3.5 w-3.5 text-primary" />
         <div className="text-[13px] font-medium text-muted-foreground">
@@ -40,7 +40,7 @@ export function SarPreview() {
         {src && !failed ? (
           <>
             {!loaded && (
-              <div className="absolute inset-0 grid place-items-center text-[12px] font-mono text-muted-foreground animate-pulse">
+              <div className="absolute inset-0 grid place-items-center text-[12px] tabular-nums text-muted-foreground animate-pulse">
                 {t('preview.loading')}
               </div>
             )}
@@ -57,13 +57,13 @@ export function SarPreview() {
             />
           </>
         ) : (
-          <div className="absolute inset-0 grid place-items-center text-[12px] font-mono text-muted-foreground">
+          <div className="absolute inset-0 grid place-items-center text-[12px] tabular-nums text-muted-foreground">
             {t('preview.na')}
           </div>
         )}
       </div>
 
-      <div className="px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground border-t border-border/60">
+      <div className="px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground border-t border-border/60">
         <div className="flex justify-between gap-2">
           <span className="text-foreground truncate">{g.dataset}</span>
           <span>{g.startTime.slice(0, 10)}</span>

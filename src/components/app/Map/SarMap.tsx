@@ -267,7 +267,7 @@ export function SarMap() {
             type="raster"
             tiles={[gibsTileUrl(TRUE_COLOR_LAYER)]}
             tileSize={256}
-            attribution="NASA GIBS · MODIS"
+            attribution="NASA GIBS, MODIS"
           >
             <Layer
               id="gibs-truecolor-layer"
@@ -284,7 +284,7 @@ export function SarMap() {
             type="raster"
             tiles={[gibsTileUrl(gibs)]}
             tileSize={256}
-            attribution={`NASA GIBS · ${gibs.sensor}`}
+            attribution={`NASA GIBS, ${gibs.sensor}`}
           >
             <Layer id="gibs-raster-layer" type="raster" paint={{ 'raster-opacity': 0.72 }} />
           </Source>
@@ -298,19 +298,8 @@ export function SarMap() {
             tiles={[gibsTileUrl(gibs)]}
             minzoom={0}
             maxzoom={7}
-            attribution={`NASA GIBS · ${gibs.sensor}`}
+            attribution={`NASA GIBS, ${gibs.sensor}`}
           >
-            <Layer
-              id="gibs-vector-glow"
-              type="circle"
-              source-layer={gibs.identifier}
-              paint={{
-                'circle-radius': 10,
-                'circle-color': gibs.paintColor,
-                'circle-opacity': 0.25,
-                'circle-blur': 1,
-              }}
-            />
             <Layer
               id="gibs-vector-dot"
               type="circle"
@@ -460,24 +449,24 @@ function OverlayLegend() {
 
   return (
     <div className="pointer-events-none absolute top-4 right-4 flex flex-col items-end gap-2">
-      <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground min-w-[200px] text-right">
+      <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground min-w-[200px] text-right">
         <div>
           <span className="text-sar-cyan">▭</span> {t('coverage.title')}
         </div>
         <div className="mt-0.5 text-[13px] opacity-70">
           {coverage.loading
             ? t('coverage.loading')
-            : `${coverage.data.length} passes · ${t('coverage.footer')}`}
+            : `${coverage.data.length} passes, ${t('coverage.footer')}`}
         </div>
       </div>
 
       {asfCount > 0 && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground">
-          <span className="text-sar-cyan">▭</span> {asfCount} on AOI · ASF
+        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground">
+          <span className="text-sar-cyan">▭</span> {asfCount} on AOI, ASF
         </div>
       )}
       {nasaOverlay && gibs && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground max-w-[260px] text-right">
+        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground max-w-[260px] text-right">
           <span
             className="inline-block h-2 w-2 rounded-full mr-1 align-middle"
             style={{ background: gibs.paintColor }}
@@ -487,7 +476,7 @@ function OverlayLegend() {
         </div>
       )}
       {activeRegion === 'YANO' && nasaOverlay && !gibs && (
-        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground max-w-[260px] text-right">
+        <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground max-w-[260px] text-right">
           {t('overlay.none')}
         </div>
       )}

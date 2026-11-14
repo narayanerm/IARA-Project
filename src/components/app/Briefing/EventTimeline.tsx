@@ -18,11 +18,11 @@ export function EventTimeline({ events, activeId, onSelect }: Props) {
   return (
     <div className="rounded-lg border border-border/60 bg-background/40 p-3">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-          Histórico · clique num ano
+        <div className="text-[11px] tabular-nums text-muted-foreground">
+          Histórico, clique num ano
         </div>
-        <div className="text-[11px] font-mono text-muted-foreground">
-          {events.length} eventos · {minY}—{maxY}
+        <div className="text-[11px] tabular-nums text-muted-foreground">
+          {events.length} eventos, {minY}–{maxY}
         </div>
       </div>
 
@@ -42,12 +42,12 @@ export function EventTimeline({ events, activeId, onSelect }: Props) {
             <button
               key={e.id}
               onClick={() => onSelect(e.id)}
-              title={`${e.label} — ${e.magnitude.value} ${e.magnitude.unit}`}
+              title={`${e.label}: ${e.magnitude.value} ${e.magnitude.unit}`}
               className={cn(
-                'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full transition-all',
+                'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full transition-colors',
                 active
-                  ? 'ring-2 ring-white shadow-[0_0_14px_var(--marker-color)]'
-                  : 'hover:scale-110 opacity-85'
+                  ? 'ring-2 ring-white'
+                  : ' opacity-85'
               )}
               style={{
                 left: `${pct(e.year)}%`,
@@ -65,7 +65,7 @@ export function EventTimeline({ events, activeId, onSelect }: Props) {
           <div
             key={`label-${e.id}`}
             className={cn(
-              'absolute top-full mt-1 text-[10px] font-mono -translate-x-1/2 whitespace-nowrap transition-colors',
+              'absolute top-full mt-1 text-[10px] tabular-nums -translate-x-1/2 whitespace-nowrap transition-colors',
               e.id === activeId ? 'text-foreground font-semibold' : 'text-muted-foreground'
             )}
             style={{ left: `${pct(e.year)}%` }}

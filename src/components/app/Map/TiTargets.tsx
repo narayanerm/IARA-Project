@@ -64,19 +64,19 @@ function TargetReticle({ active }: { active: boolean }) {
     <div
       className={cn(
         'relative grid place-items-center cursor-pointer transition-transform',
-        active ? 'scale-125' : 'hover:scale-110'
+        active ? 'scale-110' : ''
       )}
       style={{ width: 32, height: 32 }}
     >
       <div
         className={cn(
-          'absolute inset-0 rounded-full border',
-          active ? 'border-sar-amber/90 animate-pulse-soft' : 'border-sar-amber/60'
+          'absolute inset-0 rounded-md border',
+          active ? 'border-sar-amber/90' : 'border-sar-amber/60'
         )}
       />
       <div
         className={cn(
-          'absolute rounded-full border',
+          'absolute rounded-md border',
           active ? 'border-sar-amber/90' : 'border-sar-amber/50'
         )}
         style={{ inset: 7 }}
@@ -98,13 +98,13 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
   )}`
 
   return (
-    <div className="bg-card/95 backdrop-blur-xl border border-sar-amber/40 rounded-lg overflow-hidden min-w-[280px]">
+    <div className="bg-card/95 border border-sar-amber/40 rounded-lg overflow-hidden min-w-[280px]">
       <div className="bg-sar-amber/10 px-3 py-2 border-b border-sar-amber/30 flex items-start gap-2">
         <MapPin className="h-4 w-4 text-sar-amber shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-foreground leading-tight">{props.name}</div>
-          <div className="text-[13px] font-mono text-muted-foreground mt-0.5">
-            {props.state} · {props.year}
+          <div className="text-[13px] tabular-nums text-muted-foreground mt-0.5">
+            {props.state}, {props.year}
           </div>
         </div>
         <button
@@ -151,7 +151,7 @@ function TiPopupBody({ props, onClose }: { props: TiProps; onClose: () => void }
           href={funaiHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between rounded-md bg-sar-amber/10 hover:bg-sar-amber/15 border border-sar-amber/30 px-2.5 py-1.5 text-[13px] text-sar-amber font-mono transition-colors"
+          className="flex items-center justify-between rounded-md bg-sar-amber/10 hover:bg-sar-amber/15 border border-sar-amber/30 px-2.5 py-1.5 text-[13px] text-sar-amber tabular-nums transition-colors"
         >
           <span>View on FUNAI</span>
           <ExternalLink className="h-3 w-3" />
