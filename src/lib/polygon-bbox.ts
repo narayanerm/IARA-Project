@@ -57,3 +57,11 @@ export function worldWithHole(holeRing: number[][]): Polygon {
       : [...holeRing, holeRing[0]]
   return { type: 'Polygon', coordinates: [worldRing, closedHole] }
 }
+
+const KM_PER_DEG_LAT = 111.32
+
+export function bboxAround([lon, lat]: [number, number], km: number): Bbox {
+  const dLat = km / KM_PER_DEG_LAT
+  const dLon = km / (KM_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180))
+  return [lon - dLon, lat - dLat, lon + dLon, lat + dLat]
+}

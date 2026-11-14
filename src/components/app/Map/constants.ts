@@ -1,4 +1,4 @@
-import type { TerrainSpecification } from 'maplibre-gl'
+import type { HillshadeLayerSpecification } from 'maplibre-gl'
 
 export const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
@@ -9,7 +9,16 @@ export const MAP_ATTRIBUTION = 'Comunidades: IBGE, FUNAI, MMA via INPE TerraBras
 // Moderate tilt keeps the 3D feel without loading low-detail tiles across a long horizon.
 export const PITCH = 40
 export const BEARING = -12
-export const TERRAIN: TerrainSpecification = { source: 'terrain-dem', exaggeration: 1.4 }
+// Most of the basin sits below 200 m, where a 3D mesh shows no visible change; shading the
+// slopes marks river valleys, terraces and the highlands, and costs one raster layer.
+export const RELIEF_LAYER = 'relief-hillshade'
+export const RELIEF_PAINT: HillshadeLayerSpecification['paint'] = {
+  'hillshade-method': 'multidirectional',
+  'hillshade-exaggeration': 0.75,
+  'hillshade-shadow-color': 'hsl(222 60% 2%)',
+  'hillshade-highlight-color': 'hsl(40 40% 88% / 0.45)',
+  'hillshade-accent-color': 'hsl(222 40% 8%)',
+}
 
 // Centre of the Amazon biome used when no AOI is active.
 export const AMAZON_CENTER: [number, number] = [-61, -5]

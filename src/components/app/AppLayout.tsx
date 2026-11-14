@@ -9,6 +9,7 @@ import { triggerTutorial } from './Tutorial/Tutorial'
 import { HelpCircle } from 'lucide-react'
 import { PhenomenonBriefing } from './Briefing/PhenomenonBriefing'
 import { NisarControl } from './Map/NisarControl'
+import { CommunitySearch } from './Explore/CommunitySearch'
 import { Layers3, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/lib/store'
@@ -79,8 +80,13 @@ export function AppLayout() {
         <Sidebar />
         <div data-tour="map" className="relative flex-1 min-w-0">
           <SarMap />
-          <div data-tour="nisar" className="absolute left-4 top-4 hidden md:block">
-            <NisarControl />
+          <div className="pointer-events-none absolute left-3 right-3 top-3 z-10 flex flex-col items-start gap-2 md:right-auto">
+            <div className="pointer-events-auto w-full md:w-auto">
+              <CommunitySearch />
+            </div>
+            <div data-tour="nisar" className="pointer-events-auto hidden md:block">
+              <NisarControl />
+            </div>
           </div>
           <div className="pointer-events-none absolute inset-x-3 bottom-9 flex items-end gap-3">
             <div className="pointer-events-auto flex-1 min-w-0 max-w-[860px]">
