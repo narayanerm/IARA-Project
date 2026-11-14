@@ -26,7 +26,6 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
   const [progresso, setProgresso] = useState(!webgl || reduz ? 1 : 0)
   const [fase, setFase] = useState<Fase>('capa')
   const [grade, setGrade] = useState({ cols: 16, rows: 10 })
-  const botao = useRef<HTMLButtonElement>(null)
 
   const terminar = useCallback(() => setPronto(true), [])
 
@@ -41,23 +40,21 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
     }
   }, [])
 
-  /* if the scene stalls or the models take too long, allow entering anyway */
+  /* if the scene stalls or the models take too long, move on anyway */
   useEffect(() => {
     if (pronto) {
       ultimo.current = PIXELS
       setProgresso(1)
       return
     }
-    const reserva = window.setTimeout(() => setPronto(true), 12000)
+    const reserva = window.setTimeout(() => setPronto(true), 9000)
     return () => window.clearTimeout(reserva)
   }, [pronto])
 
-  useEffect(() => {
-    if (pronto) botao.current?.focus({ preventScroll: true })
-  }, [pronto])
-
-  const entrar = () => {
-    if (fase !== 'capa') return
+  const saiu = useRef(false)
+  const entrar = useCallback(() => {
+    if (saiu.current) return
+    saiu.current = true
     try {
       window.localStorage.setItem(STORAGE_KEY, '1')
     } catch {
@@ -72,7 +69,14 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
     setFase('cobrindo')
     window.setTimeout(() => setFase('revelando'), 820)
     window.setTimeout(onReady, 820 + 900)
-  }
+  }, [onReady, reduz])
+
+  /* once the radar pass is done, hold the finished scene for a moment, then open the dashboard on its own */
+  useEffect(() => {
+    if (!pronto) return
+    const t = window.setTimeout(entrar, reduz ? 600 : 1300)
+    return () => window.clearTimeout(t)
+  }, [pronto, entrar, reduz])
 
   const celulas = useMemo(() => {
     const r = rnd(7)
@@ -83,13 +87,13 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
   }, [grade])
 
   const acesos = Math.round(progresso * PIXELS)
-  const titulo = ['O', 'radar', 'vê', 'o', 'que', 'a', 'fumaça', 'esconde.']
+  const titulo = ['Radar', 'sees', 'what', 'the', 'smoke', 'hides.']
 
   return (
     <div
       className={`iara-capa ${pronto ? 'pronta' : ''} ${fase === 'revelando' ? 'saindo' : ''}`}
-      role="dialog"
-      aria-modal="true"
+      role="status"
+      aria-busy={fase === 'capa'}
       aria-labelledby="iara-capa-titulo"
     >
       {fase !== 'revelando' && (
@@ -113,19 +117,20 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
               <h1 id="iara-capa-titulo">
                 {titulo.map((p, i) => (
                   <span key={i} className="iara-entra" style={{ ['--i' as string]: i }}>
-                    {p === 'radar' ? <em>{p}</em> : p}
+                    {p === 'Radar' ? <em>{p}</em> : p}
                     {i < titulo.length - 1 ? ' ' : ''}
                   </span>
                 ))}
               </h1>
-              <p className="iara-lead iara-entra" style={{ ['--i' as string]: 8 }}>
-                O Curupira é o painel da equipe sobre o radar NISAR em banda L, que atravessa nuvem, fumaça e
-                copa de árvore. Garimpo, cheia e seca na Amazônia, com as Terras Indígenas em destaque.
+              <p className="iara-lead iara-entra" style={{ ['--i' as string]: 6 }}>
+                Curupira is our team's dashboard built on NISAR L-band radar, which sees through clouds, smoke
+                and tree canopy. Illegal mining, floods and droughts across the Amazon, with Indigenous Lands
+                highlighted.
               </p>
               {!webgl && (
                 <p className="iara-aviso">
-                  Este navegador não liberou o WebGL2, então a cena e o mapa em 3D ficam desligados. Ative a
-                  aceleração de hardware nas configurações do navegador ou abra no Firefox.
+                  This browser has WebGL2 turned off, so the 3D scene and 3D map are disabled. Turn on hardware
+                  acceleration in your browser settings or open the app in Firefox.
                 </p>
               )}
             </div>
@@ -138,23 +143,20 @@ export function LoadingScreen({ onReady }: { onReady: () => void }) {
               </div>
               <p className="iara-estado" aria-live="polite">
                 {pronto
-                  ? 'Cena varrida. O painel está pronto.'
+                  ? 'Scan complete. Opening the dashboard'
                   : progresso === 0
-                    ? 'Carregando os bichos da cena'
-                    : `Radar passando pela cena, ${Math.round(progresso * 100)}%`}
+                    ? 'Loading the scene'
+                    : `Radar sweeping the scene, ${Math.round(progresso * 100)}%`}
               </p>
-              <button ref={botao} type="button" className="iara-botao" onClick={entrar} disabled={!pronto}>
-                {pronto ? 'Entrar no painel' : 'Carregando'}
-              </button>
             </div>
 
             <footer className="iara-creditos">
               <p>
-                <span>Dados: NISAR / ASF DAAC</span>
-                <span>Narrativa: Claude (Anthropic)</span>
+                <span>Data: NISAR / ASF DAAC</span>
+                <span>Narrative: Claude (Anthropic)</span>
               </p>
               <p>
-                <span>Modelos 3D: Poly by Google e marioba, CC-BY 3.0 via Poly Pizza</span>
+                <span>3D models: Poly by Google and marioba, CC-BY 3.0 via Poly Pizza</span>
               </p>
             </footer>
           </section>

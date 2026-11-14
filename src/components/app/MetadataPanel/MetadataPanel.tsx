@@ -51,7 +51,7 @@ export function MetadataPanel() {
           {open ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
         {open && (
-          <div className="text-[13px] font-mono uppercase tracking-wider text-muted-foreground">
+          <div className="text-[13px] font-medium text-muted-foreground">
             {t('metadata.title')}
           </div>
         )}
@@ -209,7 +209,7 @@ function RecentPassesBlock({ granules }: { granules: AsfGranule[] }) {
   const t = useT()
   return (
     <section>
-      <div className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground mb-2">
+      <div className="text-[12px] font-medium text-muted-foreground mb-2">
         {t('metadata.recentPasses')}
       </div>
       <div className="space-y-1">
@@ -326,7 +326,7 @@ function MetaRow({
 }) {
   return (
     <div className="rounded-md bg-background/40 border border-border/60 px-2.5 py-1.5">
-      <div className="flex items-center gap-1.5 text-[12px] font-mono uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
         {Icon && <Icon className="h-3 w-3" />}
         {label}
       </div>
@@ -346,7 +346,7 @@ function MetaRow({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md bg-background/40 border border-border/60 px-2.5 py-2">
-      <div className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground">
+      <div className="text-[12px] font-medium text-muted-foreground">
         {label}
       </div>
       <div className="mt-0.5 text-sm font-semibold text-foreground font-mono">{value}</div>

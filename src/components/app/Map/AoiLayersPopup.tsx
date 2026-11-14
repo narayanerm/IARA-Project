@@ -51,7 +51,7 @@ export function AoiLayersPopup() {
         </button>
 
         <div className="pr-6">
-          <div className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground">
+          <div className="text-[12px] font-medium text-muted-foreground">
             {t(`region.${region.id}.name`)} · {t(`region.${region.id}.city`)}
           </div>
           <div className="text-sm font-semibold text-foreground mt-0.5">
@@ -63,7 +63,7 @@ export function AoiLayersPopup() {
         </div>
 
         <div className="mt-3">
-          <div className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">
+          <div className="text-[12px] font-medium text-muted-foreground mb-1.5">
             {t('popup.layers')}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
@@ -89,7 +89,7 @@ export function AoiLayersPopup() {
         </div>
 
         <div className="mt-3">
-          <div className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">
+          <div className="text-[12px] font-medium text-muted-foreground mb-1.5">
             {t('popup.aux')}
           </div>
           <div className="space-y-1">

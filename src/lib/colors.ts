@@ -16,10 +16,10 @@ export function displacementColor(mmPerYear: number): string {
 }
 
 export const DISPLACEMENT_STOPS = [
-  { value: -20, label: '−20 mm/ano', color: 'hsl(348 85% 40%)' },
+  { value: -20, label: '−20 mm/yr', color: 'hsl(348 85% 40%)' },
   { value: -10, label: '−10', color: 'hsl(348 85% 50%)' },
   { value: -5, label: '−5', color: 'hsl(348 85% 58%)' },
   { value: 0, label: '0', color: 'hsl(220 10% 55%)' },
-  { value: 5, label: '+5', color: 'hsl(190 85% 55%)' },
-  { value: 10, label: '+10 mm/ano', color: 'hsl(190 85% 50%)' },
+  { value: 5, label: '+5', color: 'hsl(198 51% 62%)' },
+  { value: 10, label: '+10 mm/yr', color: 'hsl(198 55% 50%)' },
 ]

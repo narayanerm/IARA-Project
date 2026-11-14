@@ -11,7 +11,7 @@ export type Intent =
 export function routeIntent(raw: string): Intent {
   const s = raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
-  if (/(garimpo|yanomami|homoxi|minera|ouro|pit)/.test(s))
+  if (/(garimpo|yanomami|homoxi|minera|mining|ouro|gold|pit)/.test(s))
     return { kind: 'focus', region: 'YANO', phenomenon: 'mining' }
 
   if (/(enchente|cheia|manaus|solimoes|encontro|flood|inunda)/.test(s))
@@ -21,15 +21,15 @@ export function routeIntent(raw: string): Intent {
     return { kind: 'focus', region: 'SECA', phenomenon: 'drought' }
 
   if (/(toca|play|rodar|evolu|anim)/.test(s)) return { kind: 'timeline', action: 'play' }
-  if (/(voltar|inicio|comeca)/.test(s)) return { kind: 'timeline', action: 'start' }
-  if (/(fim|final|hoje|recente)/.test(s)) return { kind: 'timeline', action: 'end' }
+  if (/(voltar|inicio|comeca|start|beginning|rewind)/.test(s)) return { kind: 'timeline', action: 'start' }
+  if (/(fim|final|hoje|recente|latest|today|recent)/.test(s)) return { kind: 'timeline', action: 'end' }
 
-  if (/(optico|true.?color|modis|vis[ií]vel)/.test(s))
+  if (/(optico|optical|true.?color|modis|vis[ií]vel|visible)/.test(s))
     return { kind: 'layer', action: 'toggle-truecolor' }
-  if (/(nasa|gibs|camada)/.test(s)) return { kind: 'layer', action: 'toggle-nasa' }
+  if (/(nasa|gibs|camada|layer)/.test(s)) return { kind: 'layer', action: 'toggle-nasa' }
 
-  if (/(l.?band|banda|physics|fisica|funciona|como)/.test(s)) return { kind: 'explain-sar' }
-  if (/(sobre|quem|time|about|nisar|dados)/.test(s)) return { kind: 'about' }
+  if (/(l.?band|banda|physics|fisica|funciona|como|how|work)/.test(s)) return { kind: 'explain-sar' }
+  if (/(sobre|quem|time|about|team|who|nisar|dados|data)/.test(s)) return { kind: 'about' }
 
   return { kind: 'unknown', query: raw }
 }
@@ -37,43 +37,43 @@ export function routeIntent(raw: string): Intent {
 // Pre-written narratives per intent; no free-form LLM output to avoid fabricated numbers.
 
 const NARRATIVE_FOCUS: Record<RegionId, string> = {
-  YANO: `Zoom em **Homoxi**, dentro da TI Yanomami.
+  YANO: `Zooming to **Homoxi**, inside the Yanomami Indigenous Land.
 
-Entre 2019 e 2022, a assinatura L-band (HH) mostrou **queda de 6-10 dB** em vários polígonos — consistente com conversão de dossel em solo exposto. A operação federal de fev/2023 marca um ponto de inflexão visível na série temporal.
+Between 2019 and 2022 the L-band (HH) signature showed a **6-10 dB drop** across several polygons, consistent with canopy being converted to bare soil. The federal operation of Feb 2023 marks a turning point that is visible in the time series.
 
-Camadas ativadas: NDVI MODIS + polígonos de detecção.`,
-  ENCH: `Centrando no **encontro Solimões–Negro**, Manaus.
+Layers turned on: MODIS NDVI and detection polygons.`,
+  ENCH: `Centering on the **meeting of the Solimões and Negro rivers**, Manaus.
 
-A cheia de **maio/2024** bateu recorde histórico no porto de Manaus (30,70 m). SAR separa água de vegetação com threshold de amplitude: pixel especular ≈ -18 dB vs floresta inundada ≈ -8 dB.
+The **May 2024** flood set a historic record at the port of Manaus (30.70 m). SAR separates water from vegetation with an amplitude threshold: a specular pixel is about -18 dB, flooded forest about -8 dB.
 
-Camada IMERG mostra o input de precipitação na bacia.`,
-  SECA: `Zoom em **Lago Tefé**.
+The IMERG layer shows the rainfall input over the basin.`,
+  SECA: `Zooming to **Lake Tefé**.
 
-A seca histórica de **2023-24** retraiu a área hidrográfica a níveis associados à mortandade de botos-rosa. O sinal SAR aqui é **extensão** (área em km²) ao longo do tempo, não amplitude.
+The historic **2023-24** drought shrank the water area to levels linked to the die-off of pink river dolphins. The SAR signal here is **extent** (area in km²) over time, not amplitude.
 
-Camada AMSR2 complementa: umidade de solo passivo.`,
+The AMSR2 layer adds passive soil moisture.`,
 }
 
-const NARRATIVE_EXPLAIN_SAR = `**SAR** = Synthetic Aperture Radar. Emite microondas e mede o retroespalhamento.
+const NARRATIVE_EXPLAIN_SAR = `**SAR** = Synthetic Aperture Radar. It sends out microwaves and measures the backscatter.
 
-**NISAR** é L-band (λ ≈ 24 cm). Diferente do óptico, **penetra copa** e enxerga sob nuvem, fumaça e noite.
+**NISAR** is L-band (λ ≈ 24 cm). Unlike optical sensors, it **sees through the canopy** and works under clouds, smoke and at night.
 
-Para cada fenômeno, a física muda:
-- **Garimpo**: queda de backscatter (mata → solo exposto)
-- **Enchente**: reflexão especular (água lisa = pixel preto)
-- **Seca**: retração de área hidrográfica detectável em série temporal`
+The physics changes with each phenomenon:
+- **Mining**: backscatter drops (forest → bare soil)
+- **Flood**: specular reflection (smooth water = black pixel)
+- **Drought**: shrinking water area, visible in the time series`
 
-const NARRATIVE_ABOUT = `**AmazonSAR Explorer** · NASA Space Apps 2026 · desafio "Dancing with the SARs".
+const NARRATIVE_ABOUT = `**IARA**, built by team Curupira for the NASA Space Apps 2026 challenge "Dancing with the SARs".
 
-Dados: NISAR (NASA/ISRO) · análogos históricos Sentinel-1 e ALOS-2 PALSAR via ASF DAAC. Validação: MapBiomas Alerta, DETER/INPE, ANA.
+Data: NISAR (NASA/ISRO), with historical Sentinel-1 and ALOS-2 PALSAR analogues from ASF DAAC. Validation: MapBiomas Alerta, DETER/INPE, ANA.
 
-Chatbot: roteador determinístico atual (stub); evolui para Claude API com tool use. Não gera números, só narra evidência pré-computada.`
+Chatbot: currently a deterministic router (stub) that will grow into the Claude API with tool use. It never generates numbers; it only narrates precomputed evidence.`
 
-const NARRATIVE_UNKNOWN = `Não entendi o pedido. Tente algo como:
-- "mostra o garimpo em Homoxi"
-- "enchente de Manaus 2024"
-- "seca do Tefé"
-- "como o SAR funciona"`
+const NARRATIVE_UNKNOWN = `I did not understand that. Try something like:
+- "show the mining at Homoxi"
+- "Manaus flood 2024"
+- "Tefé drought"
+- "how SAR works"`
 
 export function narrativeFor(intent: Intent): string {
   switch (intent.kind) {
@@ -81,14 +81,14 @@ export function narrativeFor(intent: Intent): string {
       return NARRATIVE_FOCUS[intent.region]
     case 'timeline':
       return intent.action === 'play'
-        ? 'Reproduzindo série temporal. Observe a curva evoluir.'
+        ? 'Playing the time series. Watch the curve change.'
         : intent.action === 'start'
-        ? 'Voltando ao início da série.'
-        : 'Saltando para o frame mais recente.'
+        ? 'Back to the start of the series.'
+        : 'Jumping to the most recent frame.'
     case 'layer':
       return intent.action === 'toggle-truecolor'
-        ? 'Alternando camada óptica (MODIS true color). Note onde o SAR enxerga e o óptico cega.'
-        : 'Alternando camada NASA GIBS auxiliar.'
+        ? 'Toggling the optical layer (MODIS true color). Notice where SAR sees and optical goes blind.'
+        : 'Toggling the auxiliary NASA GIBS layer.'
     case 'explain-sar':
       return NARRATIVE_EXPLAIN_SAR
     case 'about':
@@ -99,8 +99,8 @@ export function narrativeFor(intent: Intent): string {
 }
 
 export const SUGGESTIONS = [
-  'mostra o garimpo em Homoxi',
-  'enchente de Manaus 2024',
-  'seca do Lago Tefé',
-  'como o SAR funciona',
+  'show the mining at Homoxi',
+  'Manaus flood 2024',
+  'Lake Tefé drought',
+  'how SAR works',
 ] as const

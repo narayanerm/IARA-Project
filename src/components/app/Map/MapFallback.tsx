@@ -41,10 +41,10 @@ export function MapFallback({ region }: { region: Region }) {
 
   const biomeStyle = useMemo(
     () => ({
-      color: 'hsl(145 70% 55%)',
+      color: 'hsl(142 32% 46%)',
       weight: 1.2,
       opacity: 0.55,
-      fillColor: 'hsl(145 65% 35%)',
+      fillColor: 'hsl(142 29% 24%)',
       fillOpacity: 0.06,
       dashArray: '4 3',
     }),
@@ -52,10 +52,10 @@ export function MapFallback({ region }: { region: Region }) {
   )
 
   const tiStyle = (feature: { properties: TiProps } | undefined) => ({
-    color: 'hsl(28 95% 65%)',
+    color: 'hsl(19 90% 68%)',
     weight: 1.1,
     opacity: 0.85,
-    fillColor: 'hsl(28 85% 55%)',
+    fillColor: 'hsl(19 85% 61%)',
     fillOpacity: feature?.properties.name === 'TI Yanomami' ? 0.28 : 0.14,
   })
 
@@ -67,7 +67,7 @@ export function MapFallback({ region }: { region: Region }) {
         minZoom={3}
         maxZoom={11}
         className="h-full w-full"
-        style={{ background: 'hsl(222 47% 5%)' }}
+        style={{ background: 'hsl(154 26% 5%)' }}
         attributionControl
       >
         <TiFocusController />
@@ -94,7 +94,7 @@ export function MapFallback({ region }: { region: Region }) {
               maxZoom={19}
             />
           </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="NASA GIBS NDVI (vegetação)">
+          <LayersControl.BaseLayer name="NASA GIBS NDVI (vegetation)">
             <TileLayer
               url="https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_NDVI_8Day/default/2026-11-12/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png"
               attribution="NASA GIBS · MODIS NDVI 8-day"
@@ -103,11 +103,11 @@ export function MapFallback({ region }: { region: Region }) {
             />
           </LayersControl.BaseLayer>
 
-          <LayersControl.Overlay checked name="Bioma Amazônia (IBGE)">
+          <LayersControl.Overlay checked name="Amazon biome (IBGE)">
             <GeoJSON data={AMAZON_BIOME} style={biomeStyle} />
           </LayersControl.Overlay>
 
-          <LayersControl.Overlay checked name="Terras Indígenas (FUNAI)">
+          <LayersControl.Overlay checked name="Indigenous Lands (FUNAI)">
             <GeoJSON
               data={INDIGENOUS_LANDS}
               style={tiStyle as never}
@@ -165,9 +165,9 @@ export function MapFallback({ region }: { region: Region }) {
             center={[r.center[1], r.center[0]]}
             radius={r.id === region.id ? 14 : 9}
             pathOptions={{
-              color: r.id === region.id ? 'hsl(190 95% 70%)' : 'hsl(190 95% 60%)',
+              color: r.id === region.id ? 'hsl(198 55% 70%)' : 'hsl(198 51% 57%)',
               weight: r.id === region.id ? 3 : 1.5,
-              fillColor: 'hsl(190 95% 60%)',
+              fillColor: 'hsl(198 51% 57%)',
               fillOpacity: r.id === region.id ? 0.55 : 0.2,
             }}
             eventHandlers={{ click: () => setActiveRegion(r.id) }}
@@ -185,35 +185,35 @@ export function MapFallback({ region }: { region: Region }) {
         ))}
       </MapContainer>
 
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-md rounded-lg border border-amber-400/40 bg-amber-950/80 backdrop-blur-sm px-4 py-2.5 text-[12px] text-amber-100 leading-snug shadow-lg z-[500] pointer-events-auto">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-md rounded-lg border border-sar-amber/40 bg-card/95 px-4 py-2.5 text-[12px] text-foreground leading-snug z-[500] pointer-events-auto">
         <div className="flex items-start gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-300 shrink-0 mt-0.5" />
+          <AlertTriangle className="h-4 w-4 text-sar-amber shrink-0 mt-0.5" />
           <div>
-            <div className="font-semibold">Mapa em modo 2D (WebGL2 indisponível)</div>
+            <div className="font-semibold">2D map mode (WebGL2 unavailable)</div>
             <div className="opacity-80 mt-0.5">
-              Rodando Leaflet + NASA GIBS + SAR da ASF DAAC. Habilite hardware
-              acceleration no Chrome para o modo 3D.
+              Running Leaflet with NASA GIBS and SAR from ASF DAAC. Turn on hardware
+              acceleration in your browser for the 3D mode.
             </div>
           </div>
         </div>
       </div>
 
-      <div className="absolute left-4 top-4 rounded-lg border border-border/60 bg-card/85 backdrop-blur-sm p-3 text-[12px] font-mono text-muted-foreground max-w-[220px] leading-snug z-[500] pointer-events-auto">
+      <div className="absolute left-4 top-4 rounded-lg border border-border/60 bg-card/85 backdrop-blur-sm p-3 text-[12px] text-muted-foreground max-w-[220px] leading-snug z-[500] pointer-events-auto">
         <div className="text-foreground font-semibold mb-1 flex items-center gap-1.5">
           <MapPin className="h-3.5 w-3.5" />
-          AmazonSAR · 2D
+          IARA 2D map
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full bg-sar-amber" />
-          Terras Indígenas (FUNAI)
+          Indigenous Lands (FUNAI)
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-          AOIs monitoradas
+          Monitored AOIs
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-          Bioma Amazônia
+          <span className="inline-block h-2 w-2 rounded-full bg-sar-jade" />
+          Amazon biome
         </div>
         {browse?.browseUrl && (
           <div className="flex items-center gap-1.5">
@@ -264,15 +264,15 @@ function buildTiPopupHtml(p: TiProps): string {
     p.name.replace(/^TI\s+/, '')
   )}`
   return `
-    <div style="min-width:220px; font-family:Inter,sans-serif;">
+    <div style="min-width:220px; font-family:Geist,sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.name}</div>
       <div style="font-size:12px; color:#666;">${p.state} · ${p.year} · ${p.status}</div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:6px; font-size:12px;">
-        <div><strong>Área:</strong><br/>${p.area_km2.toLocaleString('pt-BR')} km²</div>
-        ${p.population ? `<div><strong>População:</strong><br/>${p.population.toLocaleString('pt-BR')}</div>` : ''}
+        <div><strong>Area:</strong><br/>${p.area_km2.toLocaleString('en-US')} km²</div>
+        ${p.population ? `<div><strong>Population:</strong><br/>${p.population.toLocaleString('en-US')}</div>` : ''}
       </div>
-      ${ethn ? `<div style="font-size:11px; margin-top:6px;"><strong>Etnias:</strong> ${ethn}</div>` : ''}
-      <a href="${funai}" target="_blank" rel="noopener" style="display:inline-block; margin-top:8px; font-size:12px; color:hsl(28, 95%, 50%);">Consultar na FUNAI →</a>
+      ${ethn ? `<div style="font-size:11px; margin-top:6px;"><strong>Ethnic groups:</strong> ${ethn}</div>` : ''}
+      <a href="${funai}" target="_blank" rel="noopener" style="display:inline-block; margin-top:8px; font-size:12px; color:hsl(19, 75%, 45%);">View on FUNAI →</a>
     </div>
   `
 }

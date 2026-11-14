@@ -90,7 +90,7 @@ export function ShareDialog() {
             name: region.name,
             phenomenon: region.phenomenon,
             anchor_city: region.anchorCity,
-            source: 'IARA · AmazonSAR Explorer',
+            source: 'Curupira team, IARA',
             note: 'AOI bounding box for GIS tools (QGIS, ArcGIS).',
           },
           geometry: {
@@ -120,12 +120,12 @@ export function ShareDialog() {
       <Dialog.Trigger asChild>
         <button
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-md border border-sar-amber/40 bg-sar-amber/10 px-2.5 h-8 text-[13px] font-mono text-sar-amber hover:bg-sar-amber/20 transition-colors'
+            'inline-flex items-center gap-1.5 rounded-md border border-sar-amber/40 bg-sar-amber/10 px-2.5 h-8 text-[13px] text-sar-amber hover:bg-sar-amber/20 transition-colors'
           )}
-          aria-label="Compartilhar e exportar"
+          aria-label="Share and export"
         >
           <Share2 className="h-3.5 w-3.5" />
-          Compartilhar
+          Share
         </button>
       </Dialog.Trigger>
 
@@ -135,16 +135,16 @@ export function ShareDialog() {
           <div className="flex items-start justify-between border-b border-border/60 p-4">
             <div>
               <Dialog.Title className="text-base font-semibold">
-                Compartilhar e exportar
+                Share and export
               </Dialog.Title>
               <Dialog.Description className="text-[13px] text-muted-foreground mt-0.5">
-                Para jornalistas, pesquisadores, ONGs e órgãos públicos.
+                For journalists, researchers, NGOs and public agencies.
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
               <button
                 className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted"
-                aria-label="Fechar"
+                aria-label="Close"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -152,14 +152,14 @@ export function ShareDialog() {
           </div>
 
           <div className="p-4 space-y-4">
-            <Badge variant="outline" className="font-mono text-[12px]">
-              AOI atual · {region.name} · {region.phenomenonLabel}
+            <Badge variant="outline" className="text-[12px]">
+              Current AOI: {region.name}, {region.phenomenonLabel}
             </Badge>
 
             <ExportCard
               icon={<LinkIcon className="h-4 w-4" />}
-              title="Link de citação permanente"
-              description="URL com AOI, camada e frame temporal codificados. Compartilhe por e-mail, Slack, redes sociais. Quem abre vê exatamente a mesma visão."
+              title="Permanent citation link"
+              description="URL with the AOI, layer and time frame encoded. Share it by email, Slack or social media; whoever opens it sees exactly the same view."
             >
               <div className="flex gap-2">
                 <input
@@ -171,11 +171,11 @@ export function ShareDialog() {
                 <Button onClick={copy} size="sm" className="h-9 shrink-0">
                   {copied ? (
                     <>
-                      <Check className="h-3.5 w-3.5" /> Copiado
+                      <Check className="h-3.5 w-3.5" /> Copied
                     </>
                   ) : (
                     <>
-                      <Copy className="h-3.5 w-3.5" /> Copiar
+                      <Copy className="h-3.5 w-3.5" /> Copy
                     </>
                   )}
                 </Button>
@@ -184,11 +184,11 @@ export function ShareDialog() {
 
             <ExportCard
               icon={<TableProperties className="h-4 w-4" />}
-              title="Série temporal (CSV)"
+              title="Time series (CSV)"
               description={
                 csvDisabled
-                  ? 'Selecione um polígono no mapa (AOI Yanomami) para baixar a série temporal daquele ponto.'
-                  : 'Para abrir em Excel, Google Sheets, pandas. Inclui data, valor, unidade, ID do polígono.'
+                  ? 'Select a polygon on the map (Yanomami AOI) to download the time series for that spot.'
+                  : 'Opens in Excel, Google Sheets or pandas. Includes date, value, unit and polygon ID.'
               }
             >
               <Button
@@ -198,14 +198,14 @@ export function ShareDialog() {
                 className="w-full justify-start h-9"
                 disabled={csvDisabled}
               >
-                <Download className="h-3.5 w-3.5" /> Baixar CSV
+                <Download className="h-3.5 w-3.5" /> Download CSV
               </Button>
             </ExportCard>
 
             <ExportCard
               icon={<FileJson className="h-4 w-4" />}
               title="AOI (GeoJSON)"
-              description="Bounding box da AOI atual. Abra em QGIS, ArcGIS, geopandas. Útil pra sobrepor com camadas próprias de desmatamento, hidrografia, etc."
+              description="Bounding box of the current AOI. Open it in QGIS, ArcGIS or geopandas to overlay your own deforestation, hydrography or other layers."
             >
               <Button
                 onClick={downloadGeojson}
@@ -213,13 +213,13 @@ export function ShareDialog() {
                 size="sm"
                 className="w-full justify-start h-9"
               >
-                <Download className="h-3.5 w-3.5" /> Baixar GeoJSON
+                <Download className="h-3.5 w-3.5" /> Download GeoJSON
               </Button>
             </ExportCard>
 
             <div className="text-[11px] text-muted-foreground/70 leading-relaxed">
-              Todos os dados exportados carregam origem, unidade e incerteza quando aplicável.
-              Não rotulamos pixel bruto como garimpo / enchente / seca confirmados.
+              All exported data carries its source, unit and uncertainty where applicable.
+              We never label raw pixels as confirmed mining, flood or drought.
             </div>
           </div>
         </Dialog.Content>
