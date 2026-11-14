@@ -5,7 +5,6 @@ import type {
   MapLayerMouseEvent,
   Map as MapLibreMap,
   PointLike,
-  PositionAnchor,
 } from 'maplibre-gl'
 import { ExternalLink, Flame, History, MapPin as MapPinIcon, Navigation, Users, X } from 'lucide-react'
 import { COMMUNITY_DATA, type Risk, type RiversideProps, type TiPointProps } from '@/data/layers/communities'
@@ -21,19 +20,15 @@ const PIN_IMAGE: Record<CommunityKind, string> = { indigenous: 'pin-indigenous',
 const SOURCE: Record<CommunityKind, string> = { indigenous: 'ti-points', riverside: 'riverside-points' }
 const PIN_LAYER: Record<CommunityKind, string> = { indigenous: 'ti-pins', riverside: 'riverside-pins' }
 
-// Pin tip sits on the point, so the balloon needs room for the pin body when it opens above.
+// Pin tip sits on the point, so the balloon clears the pin body and always opens above it.
 const PIN_TIP = 48
-const POPUP_OFFSET: Record<PositionAnchor, PointLike> = {
-  center: [0, -PIN_TIP / 2],
-  top: [0, 6],
-  'top-left': [0, 6],
-  'top-right': [0, 6],
-  bottom: [0, -PIN_TIP],
-  'bottom-left': [0, -PIN_TIP],
-  'bottom-right': [0, -PIN_TIP],
-  left: [18, -PIN_TIP / 2],
-  right: [-18, -PIN_TIP / 2],
-}
+const POPUP_OFFSET: PointLike = [0, -PIN_TIP]
+// Screen space kept free under the pin: the timeline bar plus its gap to the map edge.
+const BOTTOM_CLEARANCE = 128
+const POPUP_MAX_HEIGHT = 460
+const POPUP_MIN_HEIGHT = 200
+// Room left above the balloon (tip arrow plus a margin to the top of the map).
+const POPUP_TOP_ROOM = 24
 
 const IS_VILLAGE: ExpressionSpecification = ['==', ['get', 'tipo'], 'vila']
 
@@ -149,7 +144,13 @@ function PinLayer({ kind }: { kind: CommunityKind }) {
   )
 }
 
-// Zooms toward the pin and parks it in the lower part of the map so the balloon above it fits.
+// Pin's screen y once focused: low in the map but still above the timeline.
+const pinY = (height: number) => Math.max(height * 0.55, height - BOTTOM_CLEARANCE)
+
+const popupMaxHeight = (height: number) =>
+  Math.round(Math.min(POPUP_MAX_HEIGHT, Math.max(POPUP_MIN_HEIGHT, pinY(height) - PIN_TIP - POPUP_TOP_ROOM)))
+
+// Zooms toward the pin and parks it just above the timeline so the balloon has the map's height to open upward.
 function focusOn(map: MapLibreMap, sel: Selected) {
   const height = map.getContainer().clientHeight
   const current = map.getZoom()
@@ -168,7 +169,7 @@ function focusOn(map: MapLibreMap, sel: Selected) {
   map.easeTo({
     center: sel.lngLat,
     zoom,
-    offset: [0, Math.round(height * 0.22)],
+    offset: [0, Math.round(pinY(height) - height / 2)],
     duration: 900,
     essential: true,
   })
@@ -178,6 +179,7 @@ export function CommunityPoints() {
   usePinImages()
   const { current: ref } = useMap()
   const [selected, setSelected] = useState<Selected | null>(null)
+  const [maxHeight, setMaxHeight] = useState(POPUP_MAX_HEIGHT)
 
   useEffect(() => {
     const map = ref?.getMap()
@@ -191,6 +193,7 @@ export function CommunityPoints() {
       if (!f || f.geometry.type !== 'Point') return
       const sel = { kind, lngLat: f.geometry.coordinates as [number, number], props: f.properties } as Selected
       setSelected(sel)
+      setMaxHeight(popupMaxHeight(map.getContainer().clientHeight))
       focusOn(map, sel)
     }
 
@@ -222,18 +225,22 @@ export function CommunityPoints() {
         <Popup
           longitude={selected.lngLat[0]}
           latitude={selected.lngLat[1]}
+          anchor="bottom"
           offset={POPUP_OFFSET}
           onClose={() => setSelected(null)}
           closeOnClick={false}
           closeButton={false}
-          className="ti-popup"
+          className={`ti-popup ti-popup-${selected.kind}`}
           maxWidth="340px"
         >
-          {selected.kind === 'indigenous' ? (
-            <TiPopup props={selected.props} onClose={() => setSelected(null)} />
-          ) : (
-            <RiversidePopup props={selected.props} onClose={() => setSelected(null)} />
-          )}
+          {/* The Popup's own `style` prop is copied key by key and drops CSS variables, so the cap goes here. */}
+          <div style={{ '--popup-max-h': `${maxHeight}px` } as React.CSSProperties}>
+            {selected.kind === 'indigenous' ? (
+              <TiPopup props={selected.props} onClose={() => setSelected(null)} />
+            ) : (
+              <RiversidePopup props={selected.props} onClose={() => setSelected(null)} />
+            )}
+          </div>
         </Popup>
       )}
     </>
@@ -272,7 +279,7 @@ function PopupShell({
   const t = useT()
   return (
     <div
-      className="w-[min(320px,calc(100vw-48px))] max-h-[min(460px,calc(100dvh-140px))] overflow-y-auto overscroll-contain rounded-xl border bg-card shadow-2xl"
+      className="w-[min(320px,calc(100vw-48px))] max-h-[var(--popup-max-h,460px)] overflow-y-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent] rounded-xl border bg-card shadow-2xl"
       style={{ borderColor: `color-mix(in srgb, ${KIND_COLOR[kind].fill} 45%, transparent)` }}
     >
       <div className="flex items-start gap-2.5 px-3.5 pt-3 pb-2.5">

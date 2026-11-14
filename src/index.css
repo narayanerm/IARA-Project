@@ -67,6 +67,9 @@
 .ti-popup .maplibregl-popup-tip {
   border-top-color: hsl(28 85% 55% / 0.4) !important;
 }
+.ti-popup-riverside .maplibregl-popup-tip {
+  border-top-color: hsl(174 72% 52% / 0.45) !important;
+}
 
 @layer utilities {
   .grid-bg {

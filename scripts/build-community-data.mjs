@@ -18,6 +18,8 @@ const read = async (name) => JSON.parse(await readFile(join(src, 'mapas_geojson'
 const write = (name, fc) => writeFile(join(OUT, name), JSON.stringify(fc) + '\n')
 const fc = (features) => ({ type: 'FeatureCollection', features })
 const round = (n, d = 5) => (typeof n === 'number' ? Math.round(n * 10 ** d) / 10 ** d : n)
+// Source lists come as "A,B,C"; show them as "A, B, C".
+const listText = (s) => (s ? String(s).split(/\s*,\s*/).filter(Boolean).join(', ') : null)
 
 const norm = (s) =>
   String(s ?? '')
@@ -188,7 +190,7 @@ async function main() {
     const props = {
       id,
       nome: main.properties.nome,
-      etnia: main.properties.etnia ?? null,
+      etnia: listText(main.properties.etnia),
       fase: main.properties.fase ?? null,
       area_km2: main.properties.area_km2 ?? null,
       revisao_fase: revision?.properties.fase ?? null,

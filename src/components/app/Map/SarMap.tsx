@@ -34,7 +34,17 @@ const MAP_ATTRIBUTION = 'Comunidades: IBGE, FUNAI, MMA via INPE TerraBrasilis'
 // Moderate tilt keeps the 3D feel without loading low-detail tiles across a long horizon.
 const PITCH = 40
 const BEARING = -12
-const TERRAIN: maplibregl.TerrainSpecification = { source: 'terrain-dem', exaggeration: 1.4 }
+
+// Most of the basin sits below 200 m, where a 3D mesh shows no visible change; shading the
+// slopes marks river valleys, terraces and the highlands, and costs one raster layer.
+const RELIEF_LAYER = 'relief-hillshade'
+const RELIEF_PAINT: maplibregl.HillshadeLayerSpecification['paint'] = {
+  'hillshade-method': 'multidirectional',
+  'hillshade-exaggeration': 0.75,
+  'hillshade-shadow-color': 'hsl(222 60% 2%)',
+  'hillshade-highlight-color': 'hsl(40 40% 88% / 0.45)',
+  'hillshade-accent-color': 'hsl(222 40% 8%)',
+}
 
 // Cloud-free Sentinel-2 mosaic at 10 m: stays sharp at the zooms where the NASA rasters run out.
 // EOX publishes it under CC BY-NC-SA 4.0 (non-commercial use with credit).
@@ -113,7 +123,7 @@ export function SarMap() {
   const gibs = GIBS_BY_REGION[activeRegion]
 
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [terrainOn, setTerrainOn] = useState(false)
+  const [reliefOn, setReliefOn] = useState(false)
   const [satelliteOn, setSatelliteOn] = useState(false)
   // First label layer of the basemap: imagery goes under it so place and river names stay readable.
   const [labelLayerId, setLabelLayerId] = useState<string>()
@@ -134,15 +144,6 @@ export function SarMap() {
       essential: true,
     })
   }, [region, mapLoaded])
-
-  // Terrain is opt-in: draping the map over the DEM renders through an offscreen texture,
-  // which costs frames and softens every layer on top of it.
-  useEffect(() => {
-    const m = mapRef.current?.getMap()
-    if (!m || !mapLoaded) return
-    if (terrainOn && !m.getSource(TERRAIN.source)) return
-    m.setTerrain(terrainOn ? TERRAIN : null)
-  }, [terrainOn, mapLoaded])
 
   useEffect(() => {
     const m = mapRef.current?.getMap()
@@ -256,15 +257,27 @@ export function SarMap() {
         }}
         attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
-        <Source
-          id="terrain-dem"
-          type="raster-dem"
-          tiles={['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']}
-          tileSize={256}
-          encoding="terrarium"
-          maxzoom={15}
-          attribution="AWS Terrain Tiles"
-        />
+        {labelLayerId && (
+          <Source
+            id="terrain-dem"
+            type="raster-dem"
+            tiles={['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']}
+            tileSize={256}
+            encoding="terrarium"
+            maxzoom={13}
+            attribution="AWS Terrain Tiles"
+          >
+            {/* Always in the style (hidden while off, so no DEM tiles load): it marks where imagery ends
+                and labels begin, so the satellite stays under the shading whichever is switched on first. */}
+            <Layer
+              id={RELIEF_LAYER}
+              type="hillshade"
+              beforeId={labelLayerId}
+              layout={{ visibility: reliefOn ? 'visible' : 'none' }}
+              paint={RELIEF_PAINT}
+            />
+          </Source>
+        )}
 
         {satelliteOn && labelLayerId && (
           <Source
@@ -278,7 +291,7 @@ export function SarMap() {
             <Layer
               id="satellite-layer"
               type="raster"
-              beforeId={labelLayerId}
+              beforeId={RELIEF_LAYER}
               // No cross-fade: each arriving tile would otherwise keep the map repainting for 300 ms mid-zoom.
               paint={{ 'raster-brightness-max': 0.88, 'raster-saturation': -0.05, 'raster-fade-duration': 0 }}
             />
@@ -503,8 +516,8 @@ export function SarMap() {
         {...counts}
         zoom={zoom}
         onZoomToData={(z) => mapRef.current?.getMap().easeTo({ zoom: z, duration: 900, essential: true })}
-        terrainOn={terrainOn}
-        onToggleTerrain={() => setTerrainOn((v) => !v)}
+        reliefOn={reliefOn}
+        onToggleRelief={() => setReliefOn((v) => !v)}
         satelliteOn={satelliteOn}
         onToggleSatellite={() => setSatelliteOn((v) => !v)}
       />
@@ -518,8 +531,8 @@ function OverlayLegend({
   coverageLoading,
   zoom,
   onZoomToData,
-  terrainOn,
-  onToggleTerrain,
+  reliefOn,
+  onToggleRelief,
   satelliteOn,
   onToggleSatellite,
 }: {
@@ -528,8 +541,8 @@ function OverlayLegend({
   coverageLoading: boolean
   zoom?: number
   onZoomToData?: (zoom: number) => void
-  terrainOn?: boolean
-  onToggleTerrain?: () => void
+  reliefOn?: boolean
+  onToggleRelief?: () => void
   satelliteOn?: boolean
   onToggleSatellite?: () => void
 }) {
@@ -597,7 +610,7 @@ function OverlayLegend({
           {activeRegion === 'YANO' && nasaOverlay && !gibs && <div>{t('overlay.none')}</div>}
         </div>
 
-        {(onToggleSatellite || onToggleTerrain) && (
+        {(onToggleSatellite || onToggleRelief) && (
           <div className="mt-2.5 grid grid-cols-2 gap-1.5">
             {onToggleSatellite && (
               <MapToggle
@@ -608,8 +621,14 @@ function OverlayLegend({
                 onToggle={onToggleSatellite}
               />
             )}
-            {onToggleTerrain && (
-              <MapToggle icon={Mountain} label={t('map.terrain')} on={!!terrainOn} onToggle={onToggleTerrain} />
+            {onToggleRelief && (
+              <MapToggle
+                icon={Mountain}
+                label={t('map.relief')}
+                hint={t('map.reliefHint')}
+                on={!!reliefOn}
+                onToggle={onToggleRelief}
+              />
             )}
           </div>
         )}
