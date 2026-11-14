@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ExternalLink, Image as ImageIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
 import { useAsfGranules } from '@/lib/useAsfGranules'
+import { useNisarSelection } from '@/lib/useNisarCatalog'
 import { useT } from '@/lib/i18n'
 
 export function SarPreview() {
@@ -11,10 +12,27 @@ export function SarPreview() {
   const activeRegion = useApp((s) => s.activeRegion)
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const asf = useAsfGranules(region)
+  const nisar = useNisarSelection(region)
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
 
-  const g = asf.data.find((x) => !!x.browseUrl) ?? asf.data[0]
+  const fallback = asf.data.find((x) => !!x.browseUrl) ?? asf.data[0]
+  // Follow the NISAR image selected on the map (region, clicked spot, date); else the latest ASF granule.
+  const g = nisar.scene
+    ? {
+        id: nisar.scene.id,
+        dataset: `NISAR ${nisar.scene.product}`,
+        startTime: nisar.scene.startTime,
+        vertexUrl: nisar.scene.vertexUrl,
+        browseUrl: nisar.scene.browsePng,
+        thumbUrl: nisar.scene.browseThumb,
+      }
+    : fallback
+  const gid = g?.id
+  useEffect(() => {
+    setLoaded(false)
+    setFailed(false)
+  }, [gid])
   if (!g) return null
   const src = g.browseUrl ?? g.thumbUrl
 

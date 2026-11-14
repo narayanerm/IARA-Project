@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { searchGranules, type AsfGranule } from './asf'
+import { AMAZON_BBOX, footprintInAmazon } from './amazon'
 
-const BRAZIL_BBOX: [number, number, number, number] = [-74, -34, -34, 6]
+// NISAR passes over the Amazon biome only.
+const BRAZIL_BBOX = AMAZON_BBOX
 // One full NISAR repeat cycle (12 days)
 const DAYS_WINDOW = 12
 const MAX_RESULTS = 2000
 
-const CACHE_KEY = 'sarbrasil.coverage.nisar.v1'
+const CACHE_KEY = 'sarbrasil.coverage.nisar.amazon.v1'
 const CACHE_TTL_MS = 30 * 60 * 1000
 
 interface CacheEntry {
@@ -70,6 +72,7 @@ export function useBrazilCoverage(): Result {
     )
       .then((data) => {
         if (cancelled) return
+        data = data.filter((g) => footprintInAmazon(g.footprint))
         writeCache(data)
         setState({ data, loading: false, error: null })
       })

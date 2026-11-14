@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, Pause, Play, Satellite } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, MapPin, MousePointerClick, Pause, Play, Satellite } from 'lucide-react'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
 import { useNisarSelection } from '@/lib/useNisarCatalog'
-import { brandDate, trackLabel, type NisarProduct } from '@/lib/nisar'
+import { ALL_TRACKS, brandDate, trackKey, trackLabel, type NisarProduct } from '@/lib/nisar'
 import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +20,8 @@ export function NisarControl() {
   const setTrack = useApp((s) => s.setNisarTrack)
   const setScene = useApp((s) => s.setNisarScene)
   const setProduct = useApp((s) => s.setNisarProduct)
+  const setPoint = useApp((s) => s.setNisarPoint)
+  const notice = useApp((s) => s.nisarNotice)
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const sel = useNisarSelection(region)
   const [playing, setPlaying] = useState(false)
@@ -86,6 +88,30 @@ export function NisarControl() {
         ))}
       </div>
 
+      <div className="mt-2 flex items-start gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 leading-snug text-foreground">
+        <MousePointerClick className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+        <span>{t('nisar.clickHint')}</span>
+      </div>
+      {notice && <div className="mt-1.5 leading-snug text-sar-amber">{notice}</div>}
+      <div className="mt-1.5 flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+        <span className="flex-1">
+          {sel.point
+            ? `${t('nisar.pointMode')} ${formatPoint(sel.point)}`
+            : t(`region.${activeRegion}.name`)}{' '}
+          · {sel.tracks[0]?.scenes.length ?? 0} {t('nisar.images')}
+        </span>
+        {sel.point && (
+          <button
+            onClick={() => setPoint(null)}
+            className="rounded p-0.5 hover:text-foreground"
+            title={t('nisar.backToRegion')}
+            aria-label={t('nisar.backToRegion')}
+          >
+            <MapPin className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
       {sel.error && <div className="mt-2 text-destructive">{t('nisar.error')}: {sel.error}</div>}
       {!sel.loading && !sel.error && sel.tracks.length === 0 && (
         <div className="mt-2 text-muted-foreground">{t('nisar.empty')}</div>
@@ -101,12 +127,18 @@ export function NisarControl() {
             onChange={(e) => setTrack(e.target.value)}
             className="mt-1 w-full rounded-md border border-border/60 bg-background/60 px-2 py-1 font-mono text-foreground"
           >
-            {sel.tracks.map((tr) => (
-              <option key={tr.key} value={tr.key}>
-                {trackLabel(tr.key)} · {tr.scenes.length} {t('nisar.dates')}
-                {tr.dualPol ? ` · ${t('nisar.dualpol')}` : ''} · {Math.round(tr.coverage * 100)}%
-              </option>
-            ))}
+            {sel.tracks.map((tr) =>
+              tr.key === ALL_TRACKS ? (
+                <option key={tr.key} value={tr.key}>
+                  {t('nisar.allTracks')} · {tr.scenes.length} {t('nisar.images')}
+                </option>
+              ) : (
+                <option key={tr.key} value={tr.key}>
+                  {trackLabel(tr.key)} · {tr.scenes.length} {t('nisar.dates')}
+                  {tr.dualPol ? ` · ${t('nisar.dualpol')}` : ''} · {Math.round(tr.coverage * 100)}%
+                </option>
+              )
+            )}
           </select>
 
           <div className="mt-2 flex items-center gap-1">
@@ -166,6 +198,10 @@ export function NisarControl() {
               {scene.product === 'GUNW'
                 ? t('nisar.captionPair', { date: brandDate(scene.date), date2: brandDate(scene.date2) })
                 : t('nisar.caption', { date: brandDate(scene.date) })}
+              <span className="ml-1 font-mono text-[11px] text-muted-foreground">
+                {trackLabel(trackKey(scene))}
+                {scene.beta ? ' · BETA' : ''}
+              </span>
             </div>
           )}
           <div className="mt-1 leading-snug text-muted-foreground">
@@ -175,4 +211,10 @@ export function NisarControl() {
       )}
     </div>
   )
+}
+
+function formatPoint([lon, lat]: [number, number]): string {
+  const ns = lat < 0 ? 'S' : 'N'
+  const ew = lon < 0 ? 'O' : 'L'
+  return `${Math.abs(lat).toFixed(2)}°${ns} ${Math.abs(lon).toFixed(2)}°${ew}`
 }
