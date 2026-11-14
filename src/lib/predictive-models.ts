@@ -2,13 +2,24 @@ export type ForecastPoint = [longitude: number, latitude: number]
 
 export type ForecastMapProps = {
   fireDate: string | null
+  floodLayer: FloodLayer | null
   onRiverSelect?: (point: ForecastPoint) => void
   onFireTileError: () => void
+  onFloodTileError: () => void
 }
 
+export const FLOOD_WMS = 'https://ows.globalfloods.eu/glofas-ows/ows.py'
+export const FLOOD_LAYER = 'FloodSummary1_30'
+export const FLOOD_EXTENT_LAYER = 'RapidFloodMapping'
+export type FloodLayer = typeof FLOOD_LAYER | typeof FLOOD_EXTENT_LAYER
+export const FLOOD_ATTRIBUTION = '© European Union · Copernicus EMS / GloFAS'
+export const FLOOD_VIEWER = 'https://global-flood.emergency.copernicus.eu/'
+export const floodLegend = (layer: FloodLayer) => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetLegendGraphic&sld_version=1.1.0&layer=${layer}&format=image/png&STYLE=default`
+export const floodTiles = (layer: FloodLayer) => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetMap&layers=${layer}&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png&transparent=true`
+
 export const GWIS_VIEWER = 'https://gwis.jrc.ec.europa.eu/apps/gwis_current_situation/index.html'
-export const GWIS_WMS = 'https://maps.effis.emergency.copernicus.eu/gwis'
-export const FIRE_LAYER = 'nasa_geos5.fwi'
+const GWIS_WMS = 'https://maps.effis.emergency.copernicus.eu/gwis'
+const FIRE_LAYER = 'nasa_geos5.fwi'
 export const GWIS_ATTRIBUTION = '© European Union · Copernicus EMS / GWIS · NASA GEOS-5'
 export const GWIS_LEGEND = `${GWIS_WMS}?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=${FIRE_LAYER}&format=image/png&STYLE=default`
 export const GEOGLOWS_VIEWER = 'https://geoglows.ecmwf.int/'

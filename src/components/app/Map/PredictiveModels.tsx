@@ -3,17 +3,23 @@ import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import {
   fetchFlowForecast,
+  FLOOD_ATTRIBUTION,
+  FLOOD_EXTENT_LAYER,
+  FLOOD_LAYER,
+  floodLegend,
+  FLOOD_VIEWER,
   GEOGLOWS_VIEWER,
   GWIS_ATTRIBUTION,
   GWIS_LEGEND,
   GWIS_VIEWER,
   type FlowForecast,
+  type FloodLayer,
   type ForecastPoint,
 } from '@/lib/predictive-models'
 
 type FlowResult = { point: ForecastPoint; data: FlowForecast | null } | { point: ForecastPoint; error: true }
 
-export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError }: {
+export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer }: {
   mode: 'river' | 'fire'
   onModeChange: (mode: 'river' | 'fire') => void
   onClose: () => void
@@ -22,6 +28,9 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   fireDates: string[]
   onFireDate: (date: string) => void
   fireError: boolean
+  floodError: boolean
+  floodLayer: FloodLayer
+  onFloodLayer: (layer: FloodLayer) => void
 }) {
   const lang = useI18n((s) => s.lang)
   const pt = lang === 'pt'
@@ -53,7 +62,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
       </div>
       <div className="mb-3 flex gap-1">
         <button type="button" aria-pressed={mode === 'river'} onClick={() => onModeChange('river')} className="rounded-md border border-border px-2 py-1 aria-pressed:bg-primary/20">
-          {pt ? 'Vazão dos rios' : 'River flow'}
+          {pt ? 'Risco de cheia' : 'Flood risk'}
         </button>
         <button type="button" aria-pressed={mode === 'fire'} onClick={() => onModeChange('fire')} className="rounded-md border border-border px-2 py-1 aria-pressed:bg-primary/20">
           {pt ? 'Perigo de fogo' : 'Fire danger'}
@@ -61,7 +70,21 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
       </div>
       {mode === 'river' ? (
         <>
-          <p>{pt ? 'Selecione um rio no mapa. O modelo usa o trecho mais próximo do ponto escolhido.' : 'Select a river on the map. The model uses the closest reach to the selected point.'}</p>
+          <label className="mb-2 flex flex-wrap items-center gap-2">
+            {pt ? 'Camada' : 'Layer'}
+            <select value={floodLayer} onChange={(e) => onFloodLayer(e.target.value === FLOOD_LAYER ? FLOOD_LAYER : FLOOD_EXTENT_LAYER)} className="rounded border border-border bg-background p-1">
+              <option value={FLOOD_LAYER}>{pt ? 'Trechos em risco' : 'River reaches at risk'}</option>
+              <option value={FLOOD_EXTENT_LAYER}>{pt ? 'Inundação estimada' : 'Estimated inundation'}</option>
+            </select>
+          </label>
+          <p className="text-xs">{floodLayer === FLOOD_LAYER
+            ? (pt ? 'Trechos com sinal de cheia nos próximos 15 dias. As cores comparam a vazão prevista com o histórico.' : 'River reaches with a flood signal over the next 15 days. Colors compare forecast discharge with historical flows.')
+            : (pt ? 'Estimativa experimental das áreas inundáveis em grandes bacias com sinal de cheia intensa.' : 'Experimental estimate of inundation in large basins with a severe flood signal.')}
+          </p>
+          <img src={floodLegend(floodLayer)} alt={pt ? 'Legenda da previsão de cheia' : 'Flood forecast legend'} className="mt-2 max-w-full rounded bg-white" />
+          {floodError && <p role="status" className="mt-2">{pt ? 'Parte do mapa de cheias não pôde ser carregada.' : 'Some flood forecast tiles could not be loaded.'}</p>}
+          <a href={FLOOD_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{FLOOD_ATTRIBUTION}</a>
+          <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio para ver a previsão de vazão do trecho mais próximo.' : 'Click near a river to see the streamflow forecast for the closest modeled reach.'}</p>
           <div aria-live="polite" className="mt-2">
             {selected && !current && <p>{pt ? 'Carregando previsão…' : 'Loading forecast…'}</p>}
             {current && 'error' in current && (

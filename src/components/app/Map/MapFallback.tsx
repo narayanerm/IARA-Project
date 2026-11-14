@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   MapContainer,
   TileLayer,
@@ -12,6 +12,7 @@ import {
   useMapEvents,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+import { GridLayer, type Coords, type DoneCallback } from 'leaflet'
 import { AlertTriangle, MapPin } from 'lucide-react'
 import {
   AMAZON_BIOME,
@@ -27,7 +28,8 @@ import {
 import type { Region } from '@/lib/types'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
-import { GWIS_ATTRIBUTION, GWIS_WMS, FIRE_LAYER, type ForecastMapProps, type ForecastPoint } from '@/lib/predictive-models'
+import { FLOOD_ATTRIBUTION, FLOOD_WMS, GWIS_ATTRIBUTION, type ForecastMapProps, type ForecastPoint } from '@/lib/predictive-models'
+import { drawAmazonFireTile } from '@/lib/amazon-fire-tiles'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
 import { useFunaiTi } from '@/lib/useFunaiTi'
@@ -45,7 +47,33 @@ function RiverSelection({ onSelect }: { onSelect: (point: ForecastPoint) => void
   return null
 }
 
-export function MapFallback({ region, fireDate, onRiverSelect, onFireTileError }: { region: Region } & ForecastMapProps) {
+function AmazonFireLayer({ date, onError }: { date: string; onError: () => void }) {
+  const map = useMap()
+  const onErrorRef = useRef(onError)
+  useEffect(() => { onErrorRef.current = onError }, [onError])
+
+  useEffect(() => {
+    const requests = new WeakMap<HTMLElement, AbortController>()
+    const layer = new class extends GridLayer {
+      createTile(coords: Coords, done: DoneCallback) {
+        const tile = document.createElement('canvas')
+        const controller = new AbortController()
+        requests.set(tile, controller)
+        drawAmazonFireTile(tile, date, coords, controller.signal)
+          .then(() => { if (!controller.signal.aborted) done(undefined, tile) })
+          .catch((error: Error) => { if (!controller.signal.aborted) done(error, tile) })
+        return tile
+      }
+    }({ attribution: GWIS_ATTRIBUTION, maxNativeZoom: 8, opacity: 0.7, zIndex: 450 })
+    layer.on('tileerror', () => onErrorRef.current())
+    layer.on('tileunload', ({ tile }) => requests.get(tile)?.abort())
+    layer.addTo(map)
+    return () => { layer.remove() }
+  }, [map, date])
+  return null
+}
+
+export function MapFallback({ region, fireDate, floodLayer, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
   const setActiveRegion = useApp((s) => s.setActiveRegion)
   const focusedTi = useApp((s) => s.focusedTi)
   const localTiFeature = useMemo(
@@ -97,15 +125,14 @@ export function MapFallback({ region, fireDate, onRiverSelect, onFireTileError }
       >
         <TiFocusController />
         {onRiverSelect && <RiverSelection onSelect={onRiverSelect} />}
-        {fireDate && (
+        {fireDate && <AmazonFireLayer date={fireDate} onError={onFireTileError} />}
+        {floodLayer && (
           <WMSTileLayer
-            key={fireDate}
-            url={`${GWIS_WMS}?time=${fireDate}`}
-            params={{ layers: FIRE_LAYER, styles: 'default', format: 'image/png', transparent: true }}
-            attribution={GWIS_ATTRIBUTION}
-            eventHandlers={{ tileerror: onFireTileError }}
-            maxNativeZoom={8}
-            opacity={0.7}
+            key={floodLayer}
+            url={FLOOD_WMS}
+            params={{ layers: floodLayer, format: 'image/png', transparent: true, version: '1.3.0' }}
+            attribution={FLOOD_ATTRIBUTION}
+            eventHandlers={{ tileerror: onFloodTileError }}
             zIndex={450}
           />
         )}

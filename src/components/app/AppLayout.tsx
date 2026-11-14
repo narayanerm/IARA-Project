@@ -18,7 +18,7 @@ import { useApp } from '@/lib/store'
 import { useI18n, useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 import { PredictiveModels } from './Map/PredictiveModels'
-import { gwisDates, type ForecastPoint } from '@/lib/predictive-models'
+import { FLOOD_LAYER, gwisDates, type FloodLayer, type ForecastPoint } from '@/lib/predictive-models'
 
 export function AppLayout() {
   const t = useT()
@@ -28,6 +28,8 @@ export function AppLayout() {
   const [forecastDates, setForecastDates] = useState(gwisDates)
   const [fireDate, setFireDate] = useState<string | null>(null)
   const [fireError, setFireError] = useState(false)
+  const [floodError, setFloodError] = useState(false)
+  const [floodLayer, setFloodLayer] = useState<FloodLayer>(FLOOD_LAYER)
   const selectedFireDate = fireDate && forecastDates.includes(fireDate) ? fireDate : forecastDates[0]
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
@@ -97,6 +99,7 @@ export function AppLayout() {
               }
               setForecastDates(gwisDates())
               setFireError(false)
+              setFloodError(false)
               setForecastMode('river')
             }}
             className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2 text-xs hover:bg-secondary aria-expanded:bg-primary/20"
@@ -117,8 +120,10 @@ export function AppLayout() {
         <div className="relative isolate flex-1 min-w-0">
           <SarMap
             fireDate={forecastMode === 'fire' ? selectedFireDate : null}
+            floodLayer={forecastMode === 'river' ? floodLayer : null}
             onRiverSelect={forecastMode === 'river' ? setForecastPoint : undefined}
             onFireTileError={() => setFireError(true)}
+            onFloodTileError={() => setFloodError(true)}
           />
           {forecastMode && (
             <PredictiveModels
@@ -126,6 +131,7 @@ export function AppLayout() {
               onModeChange={(mode) => {
                 if (mode === forecastMode) return
                 setFireError(false)
+                setFloodError(false)
                 setForecastMode(mode)
               }}
               onClose={() => setForecastMode(null)}
@@ -134,6 +140,9 @@ export function AppLayout() {
               fireDates={forecastDates}
               onFireDate={(date) => { setFireError(false); setFireDate(date) }}
               fireError={fireError}
+              floodError={floodError}
+              floodLayer={floodLayer}
+              onFloodLayer={(layer) => { setFloodError(false); setFloodLayer(layer) }}
             />
           )}
           <div className="absolute left-3 top-3 xl:hidden">

@@ -38,11 +38,21 @@ import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { CommunityPin } from './CommunityPin'
 import { SarPreview } from './SarPreview'
 import { MapFallback } from './MapFallback'
-import { gwisMapUrl, GWIS_ATTRIBUTION, type ForecastMapProps } from '@/lib/predictive-models'
+import { FLOOD_ATTRIBUTION, floodTiles, GWIS_ATTRIBUTION, type ForecastMapProps } from '@/lib/predictive-models'
+import { drawAmazonFireTile } from '@/lib/amazon-fire-tiles'
 import { NisarImagery } from './NisarImagery'
 import { inAmazon } from '@/lib/amazon'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
+
+maplibregl.addProtocol('amazon-fire', async ({ url }, { signal }) => {
+  const [date, zoom, column, row] = url.slice('amazon-fire://'.length).split('/')
+  const canvas = document.createElement('canvas')
+  await drawAmazonFireTile(canvas, date, { z: Number(zoom), x: Number(column), y: Number(row) }, signal)
+  const blob = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((image) => image ? resolve(image) : reject(new Error('Could not encode the fire tile'))))
+  return { data: await blob.arrayBuffer() }
+})
 
 // Basemap style already credits OpenFreeMap, OpenMapTiles and OpenStreetMap; this adds the community data
 // sources (full list in ATTRIBUTIONS.md). Kept short so the expanded credit stays on one line above the timeline.
@@ -115,7 +125,7 @@ function rasterFade(layer: GibsLayer, opacity: number) {
   ]
 }
 
-export function SarMap({ fireDate, onRiverSelect, onFireTileError }: ForecastMapProps) {
+export function SarMap({ fireDate, floodLayer, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
   const mapRef = useRef<MapRef | null>(null)
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
@@ -314,7 +324,7 @@ export function SarMap({ fireDate, onRiverSelect, onFireTileError }: ForecastMap
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
-        <MapFallback region={region} fireDate={fireDate} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} />
+        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
         <OverlayLegend {...counts} />
       </div>
     )
@@ -340,6 +350,7 @@ export function SarMap({ fireDate, onRiverSelect, onFireTileError }: ForecastMap
         onClick={onClick}
         onError={(e) => {
           if ('sourceId' in e && e.sourceId === 'gwis-fire') onFireTileError()
+          else if ('sourceId' in e && e.sourceId === 'glofas-flood') onFloodTileError()
           else console.error(e.error)
         }}
         onZoomEnd={(e) => setZoom(e.viewState.zoom)}
@@ -516,11 +527,16 @@ export function SarMap({ fireDate, onRiverSelect, onFireTileError }: ForecastMap
         )}
 
         <NisarImagery />
+        {floodLayer && (
+          <Source id="glofas-flood" type="raster" tiles={[floodTiles(floodLayer)]} tileSize={256} maxzoom={11} attribution={FLOOD_ATTRIBUTION}>
+            <Layer id="glofas-flood-overlay" type="raster" paint={{ 'raster-fade-duration': 0 }} />
+          </Source>
+        )}
         {fireDate && (
           <Source
             id="gwis-fire"
             type="raster"
-            tiles={[gwisMapUrl(fireDate, '{bbox-epsg-3857}')]}
+            tiles={[`amazon-fire://${fireDate}/{z}/{x}/{y}`]}
             tileSize={256}
             maxzoom={8}
             attribution={GWIS_ATTRIBUTION}
