@@ -25,6 +25,9 @@ interface AppState {
   caseYear: number | null
   /** Risk hotspot highlighted on the map and in the alerts list. */
   hotspotId: string | null
+  /** True once the camera has finished flying into the active case. */
+  caseArrived: boolean
+  setCaseArrived: (v: boolean) => void
   setCaseYear: (y: number | null) => void
   setHotspot: (id: string | null) => void
   setActiveRegion: (id: RegionId) => void
@@ -68,12 +71,15 @@ export const useApp = create<AppState>((set, get) => ({
   nisarNotice: null,
   caseYear: null,
   hotspotId: null,
+  caseArrived: false,
+  setCaseArrived: (v) => set({ caseArrived: v }),
   setCaseYear: (y) => set({ caseYear: y }),
   setHotspot: (id) => set({ hotspotId: id }),
   setActiveRegion: (id) => {
     set({
       caseYear: null,
       hotspotId: null,
+      caseArrived: false,
       activeRegion: id,
       aoiActive: true,
       focusedTi: null,
@@ -83,7 +89,7 @@ export const useApp = create<AppState>((set, get) => ({
       nisarNotice: null,
     })
   },
-  clearAoi: () => set({ aoiActive: false, focusedTi: null, caseYear: null, hotspotId: null }),
+  clearAoi: () => set({ aoiActive: false, focusedTi: null, caseYear: null, hotspotId: null, caseArrived: false }),
   setActiveLayer: (l) => {
     const changed = nisarProductFor(l) !== nisarProductFor(get().activeLayer)
     set(changed ? { activeLayer: l, nisarTrack: null, nisarSceneId: null } : { activeLayer: l })

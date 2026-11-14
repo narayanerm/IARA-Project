@@ -8,8 +8,9 @@ export function CaseMarkers() {
   const activeRegion = useApp((s) => s.activeRegion)
   const hotspotId = useApp((s) => s.hotspotId)
   const setHotspot = useApp((s) => s.setHotspot)
+  const arrived = useApp((s) => s.caseArrived)
 
-  if (!aoiActive) return null
+  if (!aoiActive || !arrived) return null
 
   return (
     <>
@@ -17,8 +18,8 @@ export function CaseMarkers() {
         <Marker key={h.id} longitude={h.center[0]} latitude={h.center[1]} anchor="center">
           <button
             type="button"
-            className={`hotspot${hotspotId === h.id ? ' is-active' : ''}`}
-            style={{ '--c': RISK_COLOR[h.level], '--delay': `${i * 0.35}s` } as React.CSSProperties}
+            className={`hotspot hotspot-in${hotspotId === h.id ? ' is-active' : ''}${h.labelLeft ? ' is-left' : ''}`}
+            style={{ '--c': RISK_COLOR[h.level], '--delay': `${i * 0.35}s`, '--delay-in': `${200 + i * 120}ms` } as React.CSSProperties}
             onClick={(e) => {
               e.stopPropagation()
               setHotspot(h.id)

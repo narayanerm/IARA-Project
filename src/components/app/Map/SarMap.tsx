@@ -10,13 +10,12 @@ import { useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
 import { inAmazon } from '@/lib/amazon'
 
-import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
 
-import { AMAZON_CENTER, AMAZON_ZOOM, BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN, TERRAIN_MIN_ZOOM } from './constants'
+import { BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN, TERRAIN_MIN_ZOOM } from './constants'
 import { useBasemapAdapter } from './hooks/useBasemapAdapter'
-import { useMapCamera } from './hooks/useMapCamera'
+import { OVERVIEW_CENTER, OVERVIEW_ZOOM, useMapCamera } from './hooks/useMapCamera'
 import { useFocusedTi } from './hooks/useFocusedTi'
 
 import { TerrainSource } from './layers/TerrainSource'
@@ -27,6 +26,7 @@ import { FocusedTiMask } from './layers/FocusedTiMask'
 import { DeterLayer } from './layers/DeterLayer'
 
 import { CaseMarkers } from './layers/CaseMarkers'
+import { CaseOutlineLayer } from './layers/CaseOutlineLayer'
 import { YANO_DETER_BBOX } from '../Cases/CaseAlerts'
 
 export function SarMap() {
@@ -98,9 +98,9 @@ export function SarMap() {
         }}
         mapLib={maplibregl}
         initialViewState={{
-          longitude: aoiActive ? region.center[0] : AMAZON_CENTER[0],
-          latitude: aoiActive ? region.center[1] : AMAZON_CENTER[1],
-          zoom: aoiActive ? region.zoom : AMAZON_ZOOM,
+          longitude: aoiActive ? region.center[0] : OVERVIEW_CENTER[0],
+          latitude: aoiActive ? region.center[1] : OVERVIEW_CENTER[1],
+          zoom: aoiActive ? region.zoom : OVERVIEW_ZOOM,
           pitch: aoiActive ? PITCH : 0,
           bearing: aoiActive ? BEARING : 0,
         }}
@@ -120,7 +120,7 @@ export function SarMap() {
 
         <AmazonBiomeLayer />
 
-        {aoiActive && <CommunityAreas />}
+        <CaseOutlineLayer />
         {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
         <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
 
@@ -131,7 +131,6 @@ export function SarMap() {
         <FocusedTiMask focused={focused} />
         <DeterLayer focusedTi={focused.name ?? (yanoCase ? 'TI Yanomami' : null)} deter={deter} />
 
-        {aoiActive && <CommunityPoints />}
         <CaseMarkers />
       </Map>
 

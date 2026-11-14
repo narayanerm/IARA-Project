@@ -9,31 +9,17 @@ import { readUrlState } from '@/lib/url-state'
 const TUTORIAL_STEPS = [
   {
     anchor: 'cases',
-    title: 'Três recortes',
+    title: 'Três regiões, três problemas',
     body:
-      'Garimpo na Terra Yanomami, enchente em Manaus e seca em Manaquiri. Escolha um e o mapa leva você até lá; dá para trocar a qualquer momento.',
-    placement: 'bottom' as const,
+      'Garimpo na Terra Yanomami, enchente em Manaus e seca nas comunidades de Manaquiri. Escolha um cartão e o mapa leva você até lá.',
+    placement: 'top' as const,
   },
   {
     anchor: 'map',
-    title: 'Mapa da região',
+    title: 'Dentro de cada recorte',
     body:
-      'Os pontos pulsando são as zonas de atenção. No topo você liga ou desliga a imagem de satélite, o relevo 3D e o radar NISAR.',
-    placement: 'left' as const,
-  },
-  {
-    anchor: 'share',
-    title: 'Compartilhar com fonte',
-    body:
-      'Link permanente com a tela atual, CSV da série temporal e GeoJSON da área, para qualquer pessoa conferir direto nas fontes.',
+      'O mapa fica preso à região escolhida. O painel traz a história do lugar, a linha do tempo com imagens de radar e os alertas. Para ver outro problema, volte aos cartões.',
     placement: 'bottom' as const,
-  },
-  {
-    anchor: 'chat',
-    title: 'Assistente IARA',
-    body:
-      'Pergunte em linguagem natural: "como o radar enxerga a enchente?", "onde o garimpo mais cresceu?". O assistente também move o mapa.',
-    placement: 'left' as const,
   },
 ]
 

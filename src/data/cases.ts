@@ -57,10 +57,21 @@ export interface Hotspot {
   level: RiskLevel
   note: L
   approx?: boolean
+  /** Put the map label on the left when a neighbour sits to the right. */
+  labelLeft?: boolean
 }
+
+export type CaseOutline = { kind: 'ti'; name: string } | { kind: 'ibge'; code: number }
 
 export interface CaseStudy {
   id: RegionId
+  /** Satellite still used as the card cover (Sentinel-2 cloudless tiles). */
+  cover: { center: [number, number]; zoom: number }
+  /** Official boundary drawn as the cut-out on the map. */
+  outline: CaseOutline
+  /** IBGE municipality code for the live census figure, when the case is a municipality. */
+  ibgeCode?: number
+  meta: Array<{ label: L; value: L }>
   /** Short theme word and the full "analysis of" label used on the entry cards. */
   theme: L
   analysis: L
@@ -97,6 +108,13 @@ export const CASES: Record<RegionId, CaseStudy> = {
     placeShort: 'Yanomami',
     color: '#F07A45',
     camera: { center: [-63.38, 2.92], zoom: 8.2 },
+    cover: { center: [-62.95, 3.4], zoom: 11 },
+    outline: { kind: 'ti', name: 'Yanomami' },
+    meta: [
+      { label: { pt: 'Onde', en: 'Where' }, value: { pt: 'Roraima e Amazonas', en: 'Roraima and Amazonas' } },
+      { label: { pt: 'Quem', en: 'Who' }, value: { pt: "Yanomami e Ye'kwana", en: "Yanomami and Ye'kwana" } },
+      { label: { pt: 'Período', en: 'Period' }, value: { pt: '2018–2023', en: '2018–2023' } },
+    ],
     headline: {
       pt: 'A maior terra indígena do Brasil, cercada pelo ouro ilegal',
       en: "Brazil's largest Indigenous land, besieged by illegal gold",
@@ -255,6 +273,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
         id: 'mucajai',
         name: 'Alto Mucajaí',
         center: [-63.65, 2.42],
+        labelLeft: true,
         level: 'high',
         note: { pt: 'Poços e dragas ao longo do rio.', en: 'Pits and dredges along the river.' },
       },
@@ -299,6 +318,14 @@ export const CASES: Record<RegionId, CaseStudy> = {
     placeShort: 'Manaus',
     color: '#4DA3F7',
     camera: { center: [-60.0, -3.1], zoom: 11 },
+    cover: { center: [-60.0, -3.11], zoom: 12 },
+    outline: { kind: 'ibge', code: 1302603 },
+    ibgeCode: 1302603,
+    meta: [
+      { label: { pt: 'Onde', en: 'Where' }, value: { pt: 'Manaus, Amazonas', en: 'Manaus, Amazonas' } },
+      { label: { pt: 'Rio', en: 'River' }, value: { pt: 'Negro', en: 'Negro' } },
+      { label: { pt: 'Série', en: 'Record' }, value: { pt: '1902–2024', en: '1902–2024' } },
+    ],
     headline: {
       pt: 'Dois milhões de pessoas à beira de um rio que sobe cada vez mais',
       en: 'Two million people beside a river that keeps rising higher',
@@ -448,6 +475,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
         id: 'centro',
         name: 'Centro Histórico',
         center: [-60.0236, -3.139],
+        labelLeft: true,
         level: 'high',
         note: {
           pt: 'Ruas da orla e o prédio da Alfândega ficaram sob água em 2021.',
@@ -459,6 +487,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
         id: 'sao-raimundo',
         name: 'São Raimundo',
         center: [-60.0405, -3.1255],
+        labelLeft: true,
         level: 'high',
         note: { pt: 'Margem baixa do igarapé de mesmo nome.', en: 'Low bank of the stream of the same name.' },
         approx: true,
@@ -493,7 +522,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
       OLIVEIRA_2025,
       { label: 'SGB · Alerta de Cheias', url: 'https://www.sgb.gov.br/sace/' },
       { label: 'Porto de Manaus', url: 'https://portodemanaus.com.br/' },
-      { label: 'IBGE Cidades · Manaus', url: 'https://cidades.ibge.gov.br/brasil/am/manaus/panorama' },
+      { label: 'IBGE SIDRA · Censo 2022', url: 'https://sidra.ibge.gov.br/tabela/4714' },
     ],
     questions: [
       { pt: 'Como o radar enxerga a enchente?', en: 'How does radar see a flood?' },
@@ -509,6 +538,14 @@ export const CASES: Record<RegionId, CaseStudy> = {
     placeShort: 'Manaquiri',
     color: '#F2C14E',
     camera: { center: [-60.39, -3.45], zoom: 10.3 },
+    cover: { center: [-60.4, -3.47], zoom: 11 },
+    outline: { kind: 'ibge', code: 1302553 },
+    ibgeCode: 1302553,
+    meta: [
+      { label: { pt: 'Onde', en: 'Where' }, value: { pt: 'Manaquiri, Amazonas', en: 'Manaquiri, Amazonas' } },
+      { label: { pt: 'Quem', en: 'Who' }, value: { pt: 'Andiroba, Jutaí, Barro Alto, Janauacá', en: 'Andiroba, Jutaí, Barro Alto, Janauacá' } },
+      { label: { pt: 'Secas', en: 'Droughts' }, value: { pt: '1963–2024', en: '1963–2024' } },
+    ],
     headline: {
       pt: 'Quando o lago seca, a comunidade fica sem caminho',
       en: 'When the lake dries up, the community loses its way out',
@@ -663,6 +700,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
         id: 'barro-alto',
         name: 'Barro Alto',
         center: [-60.4256, -3.3993],
+        labelLeft: true,
         level: 'watch',
         note: { pt: 'No Paraná Manaquiri, a 5 km da sede.', en: 'On the Manaquiri channel, 5 km from town.' },
       },
@@ -679,7 +717,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
     sources: [
       OLIVEIRA_2025,
       { label: 'Portal Amazônia · Manaquiri sem água', url: 'https://portalamazonia.com/cidades/comunidades-do-manaquiri-sofrem-sem-abastecimento-de-agua-no-am/' },
-      { label: 'IBGE Cidades · Manaquiri', url: 'https://cidades.ibge.gov.br/brasil/am/manaquiri/panorama' },
+      { label: 'IBGE SIDRA · Censo 2022', url: 'https://sidra.ibge.gov.br/tabela/4714' },
       { label: 'SGB · Monitoramento hidrológico', url: 'https://www.sgb.gov.br/sace/' },
     ],
     questions: [
