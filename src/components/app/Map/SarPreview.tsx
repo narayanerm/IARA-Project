@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ExternalLink, Image as ImageIcon } from 'lucide-react'
+import { ChevronDown, ExternalLink, Image as ImageIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
@@ -15,6 +15,7 @@ export function SarPreview() {
   const nisar = useNisarSelection(region)
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   const fallback = asf.data.find((x) => !!x.browseUrl) ?? asf.data[0]
   // Follow the NISAR image selected on the map (region, clicked spot, date); else the latest ASF granule.
@@ -37,12 +38,18 @@ export function SarPreview() {
   const src = g.browseUrl ?? g.thumbUrl
 
   return (
-    <div className="glass rounded-lg overflow-hidden w-[260px] shadow-xl border border-border/60">
-      <div className="flex items-center gap-2 border-b border-border/60 px-2.5 py-1.5">
-        <ImageIcon className="h-3.5 w-3.5 text-primary" />
-        <div className="text-[13px] font-mono uppercase tracking-wider text-muted-foreground">
+    <div className="glass rounded-xl overflow-hidden w-full shadow-xl">
+      <div className="flex items-center gap-2 px-3 py-2">
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex flex-1 items-center gap-2 text-left text-[13px] font-semibold text-foreground"
+          aria-expanded={expanded}
+          aria-label={expanded ? t('community.hidePreview') : t('community.showPreview')}
+        >
+          <ImageIcon className="h-4 w-4 text-primary" />
           {t('preview.title')}
-        </div>
+          <ChevronDown className={`ml-auto h-4 w-4 text-foreground/60 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </button>
         <a
           href={g.vertexUrl}
           target="_blank"
@@ -54,7 +61,9 @@ export function SarPreview() {
         </a>
       </div>
 
-      <div className="relative aspect-[3/4] bg-black">
+      {expanded && (
+      <>
+      <div className="relative aspect-[4/3] border-t border-border/60 bg-black">
         {src && !failed ? (
           <>
             {!loaded && (
@@ -88,6 +97,8 @@ export function SarPreview() {
         </div>
         <div className="mt-0.5 opacity-70 truncate">{g.id}</div>
       </div>
+      </>
+      )}
     </div>
   )
 }

@@ -10,6 +10,7 @@ interface AppState {
   nasaOverlay: boolean
   trueColorOverlay: boolean
   focusedTi: string | null
+  flyTarget: { center: [number, number]; zoom?: number; ts: number } | null
   // Live NISAR imagery (browse images from the ASF/Vertex API, no download)
   nisarVisible: boolean
   nisarTrack: string | null
@@ -26,6 +27,7 @@ interface AppState {
   toggleNasaOverlay: () => void
   toggleTrueColorOverlay: () => void
   setFocusedTi: (name: string | null) => void
+  requestFlyTo: (center: [number, number], zoom?: number) => void
   setNisarVisible: (v: boolean) => void
   setNisarTrack: (k: string | null) => void
   setNisarScene: (id: string | null) => void
@@ -48,6 +50,7 @@ export const useApp = create<AppState>((set, get) => ({
   nasaOverlay: true,
   trueColorOverlay: false,
   focusedTi: null,
+  flyTarget: null,
   nisarVisible: true,
   nisarTrack: null,
   nisarSceneId: null,
@@ -74,6 +77,7 @@ export const useApp = create<AppState>((set, get) => ({
   toggleNasaOverlay: () => set({ nasaOverlay: !get().nasaOverlay }),
   toggleTrueColorOverlay: () => set({ trueColorOverlay: !get().trueColorOverlay }),
   setFocusedTi: (name) => set({ focusedTi: name }),
+  requestFlyTo: (center, zoom) => set({ flyTarget: { center, zoom, ts: Date.now() } }),
   setNisarVisible: (v) => set({ nisarVisible: v }),
   setNisarTrack: (k) => set({ nisarTrack: k, nisarSceneId: null }),
   setNisarScene: (id) => set({ nisarSceneId: id }),

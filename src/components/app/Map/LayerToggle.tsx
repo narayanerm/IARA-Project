@@ -26,7 +26,7 @@ export function LayerToggle() {
             key={l.id}
             onClick={() => setActive(l.id)}
             className={cn(
-              'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
+              'flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
               isActive
                 ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'

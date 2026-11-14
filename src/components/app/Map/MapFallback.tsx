@@ -27,14 +27,25 @@ import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
+import { useFunaiTi } from '@/lib/useFunaiTi'
+import {
+  FUNAI_TI_URL,
+  tiProfileUrl,
+  funaiSiciUrl,
+  TERRABRASILIS_FUNAI_URL,
+  DETER_WFS_URL,
+  ISA_TI_PORTAL,
+} from '@/lib/links'
 
 export function MapFallback({ region }: { region: Region }) {
   const setActiveRegion = useApp((s) => s.setActiveRegion)
   const focusedTi = useApp((s) => s.focusedTi)
-  const focusedTiFeature = useMemo(
+  const localTiFeature = useMemo(
     () => INDIGENOUS_LANDS.features.find((f) => f.properties.name === focusedTi) ?? null,
     [focusedTi]
   )
+  const funai = useFunaiTi(focusedTi)
+  const focusedTiFeature = funai.feature ?? localTiFeature
   const asf = useAsfGranules(region)
   const browse = asf.data.find((g) => !!g.browseUrl)
 
@@ -168,8 +179,12 @@ export function MapFallback({ region }: { region: Region }) {
         {focusedTi && focusedTiFeature && (
           <>
             <GeoJSON
-              key={`focus-mask-${focusedTi}`}
-              data={worldWithHoleFC(focusedTiFeature.geometry.coordinates[0])}
+              key={`focus-mask-${focusedTi}-${funai.feature ? 'f' : 'l'}`}
+              data={worldWithHoleFC(
+                focusedTiFeature.geometry.type === 'MultiPolygon'
+                  ? focusedTiFeature.geometry.coordinates[0][0]
+                  : (focusedTiFeature.geometry.coordinates[0] as number[][])
+              )}
               style={{
                 color: 'transparent',
                 weight: 0,
@@ -178,7 +193,7 @@ export function MapFallback({ region }: { region: Region }) {
               }}
             />
             <GeoJSON
-              key={`focus-outline-${focusedTi}`}
+              key={`focus-outline-${focusedTi}-${funai.feature ? 'f' : 'l'}`}
               data={focusedTiFeature}
               style={{
                 color: 'hsl(190 95% 70%)',
@@ -215,6 +230,109 @@ export function MapFallback({ region }: { region: Region }) {
           </CircleMarker>
         ))}
       </MapContainer>
+
+      {focusedTi && (
+        <div className="absolute left-4 top-20 max-w-[320px] rounded-lg border border-sar-cyan/40 bg-card/95 backdrop-blur-md px-3 py-2 shadow-xl z-[600] pointer-events-auto">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-sar-cyan">
+            <span className="inline-block h-2 w-2 rounded-full bg-sar-cyan animate-pulse-soft" />
+            {focusedTi}
+          </div>
+          <div className="mt-1 text-[12px] font-mono text-muted-foreground leading-snug">
+            {funai.loading
+              ? 'Carregando FUNAI…'
+              : funai.feature
+              ? 'FUNAI oficial · TerraBrasilis/INPE'
+              : 'contorno simplificado (FUNAI indisp.)'}
+            {funai.error && <span className="text-destructive"> · {funai.error}</span>}
+          </div>
+          {funai.feature && (
+            <div className="mt-1.5 grid gap-0.5 text-[12px] text-foreground/90 leading-snug">
+              <div>
+                <span className="text-muted-foreground">Etnia:</span>{' '}
+                {funai.feature.properties.etnia_nome ?? '—'}
+              </div>
+              <div>
+                <span className="text-muted-foreground">Fase:</span>{' '}
+                {funai.feature.properties.fase_ti ?? '—'}
+              </div>
+              <div className="text-[11px] text-muted-foreground/80">
+                CÓD FUNAI {funai.feature.properties.terrai_cod}
+              </div>
+            </div>
+          )}
+          {localTiFeature && (
+            <div className="mt-1.5 grid gap-0.5 text-[12px] text-foreground/90 leading-snug border-t border-border/50 pt-1.5">
+              <div>
+                <span className="text-muted-foreground">Área ISA:</span>{' '}
+                {localTiFeature.properties.area_km2.toLocaleString('pt-BR')} km²
+              </div>
+              {localTiFeature.properties.population && (
+                <div>
+                  <span className="text-muted-foreground">População ISA:</span>{' '}
+                  {localTiFeature.properties.population.toLocaleString('pt-BR')}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="mt-1.5 flex flex-wrap gap-1 border-t border-border/50 pt-1.5">
+            <a
+              href={funaiSiciUrl(focusedTi)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border border-sar-cyan/30 bg-sar-cyan/10 px-2 py-0.5 text-[11px] font-mono text-sar-cyan hover:bg-sar-cyan/20 transition-colors"
+            >
+              FUNAI · {focusedTi.replace(/^TI\s+/, '')} ↗
+            </a>
+            {funai.feature && (
+              <a
+                href={TERRABRASILIS_FUNAI_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-full border border-sar-cyan/30 bg-sar-cyan/10 px-2 py-0.5 text-[11px] font-mono text-sar-cyan hover:bg-sar-cyan/20 transition-colors"
+              >
+                TerraBrasilis WFS ↗
+              </a>
+            )}
+            <a
+              href={ISA_TI_PORTAL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border border-sar-cyan/30 bg-sar-cyan/10 px-2 py-0.5 text-[11px] font-mono text-sar-cyan hover:bg-sar-cyan/20 transition-colors"
+            >
+              ISA ↗
+            </a>
+          </div>
+          <div className="mt-1 text-[10px] font-mono text-muted-foreground/70 leading-relaxed">
+            Geometria:{' '}
+            <a
+              href={TERRABRASILIS_FUNAI_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground"
+            >
+              FUNAI via TerraBrasilis/INPE WFS
+            </a>{' '}
+            · Alertas:{' '}
+            <a
+              href={DETER_WFS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground"
+            >
+              DETER/INPE WFS
+            </a>{' '}
+            · Metadata:{' '}
+            <a
+              href={ISA_TI_PORTAL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground"
+            >
+              ISA
+            </a>
+          </div>
+        </div>
+      )}
 
       <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-md rounded-lg border border-amber-400/40 bg-amber-950/80 backdrop-blur-sm px-4 py-2.5 text-[12px] text-amber-100 leading-snug shadow-lg z-[500] pointer-events-auto">
         <div className="flex items-start gap-2">
@@ -279,6 +397,7 @@ function buildAffectedPopupHtml(p: AffectedAreaProps): string {
 function TiFocusController() {
   const map = useMap()
   const focusedTi = useApp((s) => s.focusedTi)
+  const flyTarget = useApp((s) => s.flyTarget)
   useEffect(() => {
     if (!focusedTi) return
     const f = INDIGENOUS_LANDS.features.find((x) => x.properties.name === focusedTi)
@@ -286,14 +405,16 @@ function TiFocusController() {
     const [lon, lat] = polygonCentroid(f.geometry)
     map.flyTo([lat, lon], 7, { duration: 1.4 })
   }, [focusedTi, map])
+  useEffect(() => {
+    if (!flyTarget) return
+    const [lon, lat] = flyTarget.center
+    map.flyTo([lat, lon], flyTarget.zoom ?? 8, { duration: 1.4 })
+  }, [flyTarget, map])
   return null
 }
 
 function buildTiPopupHtml(p: TiProps): string {
   const ethn = p.ethnicities?.slice(0, 5).join(', ') ?? ''
-  const funai = `https://sistemas.funai.gov.br/sici/busca.php?nome=${encodeURIComponent(
-    p.name.replace(/^TI\s+/, '')
-  )}`
   return `
     <div style="min-width:220px; font-family:Inter,sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.name}</div>
@@ -303,7 +424,8 @@ function buildTiPopupHtml(p: TiProps): string {
         ${p.population ? `<div><strong>População:</strong><br/>${p.population.toLocaleString('pt-BR')}</div>` : ''}
       </div>
       ${ethn ? `<div style="font-size:11px; margin-top:6px;"><strong>Etnias:</strong> ${ethn}</div>` : ''}
-      <a href="${funai}" target="_blank" rel="noopener" style="display:inline-block; margin-top:8px; font-size:12px; color:hsl(28, 95%, 50%);">Consultar na FUNAI →</a>
+      <a href="${tiProfileUrl(p.isaId)}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:8px; font-size:12px; color:hsl(28, 95%, 50%);">Ficha da TI →</a>
+      <a href="${FUNAI_TI_URL}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:4px; font-size:12px; color:hsl(28, 95%, 50%);">Dados oficiais FUNAI →</a>
     </div>
   `
 }

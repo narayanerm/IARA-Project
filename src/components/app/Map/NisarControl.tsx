@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, MapPin, MousePointerClick, Pause, Play, Satellite } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eye, EyeOff, Loader2, MapPin, MousePointerClick, Pause, Play, Satellite } from 'lucide-react'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
 import { useNisarSelection } from '@/lib/useNisarCatalog'
@@ -25,6 +25,7 @@ export function NisarControl() {
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const sel = useNisarSelection(region)
   const [playing, setPlaying] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   const scenes = sel.track?.scenes ?? []
   const n = scenes.length
@@ -63,14 +64,34 @@ export function NisarControl() {
         {sel.loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
         <button
           onClick={() => setVisible(!visible)}
-          className="ml-auto rounded p-1 text-muted-foreground hover:text-foreground"
+          className={cn(
+            'ml-auto rounded p-1 transition-colors',
+            visible
+              ? 'text-primary hover:text-foreground'
+              : 'text-muted-foreground/60 hover:text-foreground'
+          )}
           aria-label={t('nisar.show')}
-          title={t('nisar.show')}
+          title={visible ? 'Esconder imagem NISAR do mapa' : 'Mostrar imagem NISAR no mapa'}
         >
           {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
         </button>
+        <button
+          onClick={() => setCollapsed((v) => !v)}
+          className="rounded p-1 text-muted-foreground hover:text-foreground"
+          aria-label={collapsed ? 'Expandir painel' : 'Colapsar painel'}
+          aria-expanded={!collapsed}
+          title={collapsed ? 'Expandir painel' : 'Colapsar painel'}
+        >
+          {collapsed ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronUp className="h-3.5 w-3.5" />
+          )}
+        </button>
       </div>
 
+      {collapsed ? null : (
+      <>
       <div className="mt-2 grid grid-cols-2 gap-1">
         {(['GCOV', 'GUNW'] as NisarProduct[]).map((p) => (
           <button
@@ -208,6 +229,8 @@ export function NisarControl() {
             {t(sel.product === 'GCOV' ? 'nisar.gcov.legend' : 'nisar.gunw.legend')}
           </div>
         </>
+      )}
+      </>
       )}
     </div>
   )

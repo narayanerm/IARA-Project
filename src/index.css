@@ -82,7 +82,8 @@
   .text-balance {
     text-wrap: balance;
   }
+  /* Opaque on purpose: backdrop blur over the WebGL canvas re-samples the map every frame. */
   .glass {
-    @apply backdrop-blur-xl bg-card/60 border border-border/60;
+    @apply bg-card/90 border border-border/60 shadow-lg shadow-black/20;
   }
 }
