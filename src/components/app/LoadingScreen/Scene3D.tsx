@@ -71,7 +71,7 @@ const FRAG_VARREDURA = /* glsl */ `
   }
 `
 
-function aplicarVarredura<T extends THREE.Material>(mat: T, v: Varredura, mosaico?: string, padrao = false): T {
+function aplicarVarredura<T extends THREE.Material>(mat: T, v: Varredura, mosaico?: string, padrao = 0): T {
   const local = mosaico ? { value: new THREE.Color(mosaico) } : v.uMosaico
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uScan = v.uScan
@@ -80,7 +80,7 @@ function aplicarVarredura<T extends THREE.Material>(mat: T, v: Varredura, mosaic
     sh.uniforms.uPulse = v.uPulse
     sh.uniforms.uMosaico = local
     sh.uniforms.uFaixa = v.uFaixa
-    sh.uniforms.uPadrao = { value: padrao ? 1 : 0 }
+    sh.uniforms.uPadrao = { value: padrao }
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vIaraPos;')
       .replace(
@@ -99,12 +99,40 @@ function aplicarVarredura<T extends THREE.Material>(mat: T, v: Varredura, mosaic
       )
       .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' + FRAG_VARREDURA)
   }
-  mat.customProgramCacheKey = () => 'iara-varredura-' + (mosaico || 'base') + (padrao ? '-padrao' : '')
+  mat.customProgramCacheKey = () => 'iara-varredura-' + (mosaico || 'base') + (padrao ? '-p' + padrao : '')
   return mat
 }
 
 /* ---------- animals ---------- */
-type Comportamento = 'andar' | 'pastar' | 'enrolar' | 'saltar' | 'voar' | 'pousar' | 'pendurar' | 'balancar'
+// the sloth model is in a T-pose with no skeleton: rotate each arm up around its shoulder
+// so it hangs from the branch by its paws instead of looking like a stiff cross
+function dobrarBracos(c: THREE.Group) {
+  const caixa = new THREE.Box3().setFromObject(c)
+  const dim = caixa.getSize(new THREE.Vector3())
+  const cx = (caixa.min.x + caixa.max.x) / 2
+  const ombroX = dim.x * 0.13
+  const ombroY = caixa.min.y + dim.y * 0.56
+  const ang = THREE.MathUtils.degToRad(78)
+  c.traverse((o) => {
+    const m = o as THREE.Mesh
+    if (!m.isMesh) return
+    const pos = m.geometry.getAttribute('position') as THREE.BufferAttribute
+    for (let i = 0; i < pos.count; i++) {
+      const px = pos.getX(i) - cx
+      const py = pos.getY(i)
+      if (Math.abs(px) <= ombroX || py < caixa.min.y + dim.y * 0.35) continue
+      const lado = Math.sign(px)
+      const dx = px - lado * ombroX
+      const dy = py - ombroY
+      const a = lado * ang
+      pos.setXY(i, cx + lado * ombroX + dx * Math.cos(a) - dy * Math.sin(a), ombroY + dx * Math.sin(a) + dy * Math.cos(a))
+    }
+    pos.needsUpdate = true
+    m.geometry.computeVertexNormals()
+  })
+}
+
+type Comportamento = 'andar' | 'pastar' | 'enrolar' | 'saltar' | 'voar' | 'pousar' | 'pendurar' | 'balancar' | 'sentar'
 
 interface BichoProps {
   url: string
@@ -113,15 +141,25 @@ interface BichoProps {
   giro?: [number, number, number]
   jeito: Comportamento
   mosaico: string
-  padrao?: boolean // keep the coat pattern visible inside the mosaic
+  padrao?: number // 0..1: how much of the coat pattern shows inside the mosaic
   v: Varredura
 }
 
-function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, padrao = false, v }: BichoProps) {
+function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, padrao = 0.5, v }: BichoProps) {
   const { scene } = useGLTF(url)
   const ref = useRef<THREE.Group>(null)
   const modelo = useMemo(() => {
-    const c = scene.clone(true)
+    // bake every mesh into one flat group so the geometry can be reshaped safely
+    scene.updateMatrixWorld(true)
+    const c = new THREE.Group()
+    scene.traverse((o) => {
+      const m = o as THREE.Mesh
+      if (!m.isMesh) return
+      const geo = m.geometry.clone()
+      geo.applyMatrix4(m.matrixWorld)
+      c.add(new THREE.Mesh(geo, m.material))
+    })
+    if (jeito === 'pendurar') dobrarBracos(c)
     c.traverse((o) => {
       const m = o as THREE.Mesh
       if (!m.isMesh) return
@@ -142,11 +180,12 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, padrao
     c.scale.setScalar(k)
     const caixa2 = new THREE.Box3().setFromObject(c)
     const centro = caixa2.getCenter(new THREE.Vector3())
-    c.position.set(-centro.x, -caixa2.min.y, -centro.z)
+    // hanging animals hang from their highest point (the paws on the branch)
+    c.position.set(-centro.x, jeito === 'pendurar' ? -caixa2.max.y : -caixa2.min.y, -centro.z)
     const g = new THREE.Group()
     g.add(c)
     return g
-  }, [scene, tamanho, v, mosaico, padrao])
+  }, [scene, tamanho, v, mosaico, padrao, jeito])
 
   useFrame((st) => {
     const g = ref.current
@@ -162,10 +201,14 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, padrao
         g.rotation.y = giro[1] + olhar * 0.45
         break
       }
-      case 'pastar':
-        g.rotation.x = Math.max(0, Math.sin(t * 0.9)) * 0.12
-        g.rotation.y = giro[1] + Math.sin(t * 0.25) * 0.25
+      case 'pastar': {
+        // grazes: head down for a while, then up to look around
+        const baixa = Math.max(0, Math.sin(t * 0.35)) ** 2
+        g.rotation.x = baixa * 0.07
+        g.rotation.y = giro[1] + Math.sin(t * 0.12) * 0.18
+        g.position.set(x, y, z)
         break
+      }
       case 'enrolar':
         g.rotation.y = giro[1] + Math.sin(t * 0.3) * 0.12
         g.scale.setScalar(1 + Math.sin(t * 0.9) * 0.015)
@@ -190,14 +233,26 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, padrao
         g.rotation.z = Math.sin(t * 7) * 0.12
         break
       }
-      case 'pousar':
-        g.rotation.y = giro[1] + Math.round(Math.sin(t * 0.7) * 2) * 0.35
+      case 'pousar': {
+        // perched bird: smooth head turns and a small bob now and then
+        const fase = t * 0.5 + x
+        g.rotation.y = giro[1] + Math.sin(fase) * 0.35 + Math.sin(fase * 2.3) * 0.08
+        g.position.set(x, y + Math.max(0, Math.sin(t * 1.7 + x)) ** 8 * 0.05, z)
         break
+      }
       case 'pendurar':
-        g.rotation.z = giro[2] + Math.sin(t * 0.5) * 0.06
+        // sloth: hangs from its paws, slow sway, inching along the branch
+        g.position.set(x + Math.sin(t * 0.06) * 0.5, y, z)
+        g.rotation.z = giro[2] + Math.sin(t * 0.4) * 0.05
+        g.rotation.x = giro[0] + Math.sin(t * 0.27) * 0.03
+        break
+      case 'sentar':
+        // sits on the branch: breathing, looks around
+        g.position.set(x, y + Math.sin(t * 1.2) * 0.008, z)
+        g.rotation.y = giro[1] + Math.sin(t * 0.3) * 0.5
         break
       case 'balancar':
-        g.rotation.z = giro[2] + Math.sin(t * 1.3) * 0.55
+        g.rotation.z = giro[2] + Math.sin(t * 0.6) * 0.15
         g.position.x = x
         break
     }
@@ -205,12 +260,7 @@ function Bicho({ url, tamanho, posicao, giro = [0, 0, 0], jeito, mosaico, padrao
 
   return (
     <group ref={ref} position={posicao} rotation={giro}>
-      {jeito === 'pendurar' ? (
-        // sloth: paws on the branch, body hanging upside down
-        <group rotation={[0, 0, Math.PI]}>
-          <primitive object={modelo} />
-        </group>
-      ) : jeito === 'balancar' ? (
+      {jeito === 'balancar' ? (
         // the pivot sits on the branch, above the animal
         <group position={[0, -tamanho * 0.95, 0]}>
           <primitive object={modelo} />
@@ -457,14 +507,14 @@ function Direcao({ v, aoTerminar, aoProgredir, reduz }: Avisos & { v: Varredura 
 
 /* positions: far bank of the river (z near -4.5), the dolphin mid-river, and the tree animals on the back branches */
 const BICHOS: Omit<BichoProps, 'v'>[] = [
-  { url: '/models/jaguar.glb', tamanho: 2.3, posicao: [-3.4, 0, -4.3], giro: [0, Math.PI / 2, 0], jeito: 'andar', mosaico: '#d9a441', padrao: true },
-  { url: '/models/capybara.glb', tamanho: 1.7, posicao: [5.4, 0, -4.9], giro: [0, -0.9, 0], jeito: 'pastar', mosaico: '#3b6447' },
-  { url: '/models/anaconda.glb', tamanho: 2.6, posicao: [-6.4, 0.02, -2.9], giro: [0, 0.5, 0], jeito: 'enrolar', mosaico: '#33593f' },
-  { url: '/models/dolphin.glb', tamanho: 1.6, posicao: [1.5, 0.05, -2.0], giro: [0, Math.PI / 2, 0], jeito: 'saltar', mosaico: '#2b7ea6' },
+  { url: '/models/jaguar.glb', tamanho: 2.3, posicao: [-3.4, 0, -4.3], giro: [0, Math.PI / 2, 0], jeito: 'andar', mosaico: '#d9a441', padrao: 1 },
+  { url: '/models/capybara.glb', tamanho: 1.7, posicao: [5.4, 0, -4.9], giro: [0, -0.9, 0], jeito: 'pastar', mosaico: '#c08d5c', padrao: 0.6 },
+  { url: '/models/anaconda.glb', tamanho: 2.6, posicao: [-6.4, 0.02, -2.9], giro: [0, 0.5, 0], jeito: 'enrolar', mosaico: '#8fb35a', padrao: 1 },
+  { url: '/models/dolphin.glb', tamanho: 1.6, posicao: [1.5, 0.05, -2.0], giro: [0, Math.PI / 2, 0], jeito: 'saltar', mosaico: '#e58aa6' },
   { url: '/models/macaw.glb', tamanho: 1.1, posicao: [4.0, 3.42, -5.62], giro: [0, -0.3, 0], jeito: 'pousar', mosaico: '#f07a45' },
   { url: '/models/toucan.glb', tamanho: 0.95, posicao: [6.3, 2.62, -5.3], giro: [0, -0.6, 0], jeito: 'pousar', mosaico: '#f07a45' },
-  { url: '/models/sloth.glb', tamanho: 1.35, posicao: [-1.8, 3.2, -5.4], giro: [0, 0.4, 0], jeito: 'pendurar', mosaico: '#4f9a6a' },
-  { url: '/models/spider-monkey.glb', tamanho: 1.6, posicao: [2.4, 3.4, -5.6], giro: [0, 0.3, 0], jeito: 'balancar', mosaico: '#3b6447' },
+  { url: '/models/sloth.glb', tamanho: 1.35, posicao: [-1.8, 3.27, -5.4], giro: [0, 0.4, 0], jeito: 'pendurar', mosaico: '#c9b48a', padrao: 0.8 },
+  { url: '/models/spider-monkey.glb', tamanho: 1.6, posicao: [2.4, 3.5, -5.6], giro: [0, 0.3, 0], jeito: 'sentar', mosaico: '#9cc79a', padrao: 0 },
 ]
 
 function Cena(props: Avisos) {
