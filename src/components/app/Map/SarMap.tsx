@@ -6,6 +6,7 @@ import Map, {
   type MapRef,
 } from 'react-map-gl/maplibre'
 import * as maplibregl from 'maplibre-gl'
+import { Mountain } from 'lucide-react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import { REGIONS } from '@/lib/regions'
@@ -14,8 +15,9 @@ import { AMAZON_BIOME } from '@/data/layers/indigenous-lands'
 import { useApp } from '@/lib/store'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { useBrazilCoverage } from '@/lib/useBrazilCoverage'
-import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsTileUrl } from '@/lib/gibs'
+import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsMaxZoom, gibsTileUrl, type GibsLayer } from '@/lib/gibs'
 import { useT } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 import { hasWebGL2 } from '@/lib/webgl-support'
 import { AoiLayersPopup } from './AoiLayersPopup'
 import { CommunityAreas, CommunityPoints } from './CommunityLayers'
@@ -25,8 +27,30 @@ import { MapFallback } from './MapFallback'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
-// Basemap style already credits OpenFreeMap, OpenMapTiles and OpenStreetMap; this adds the community data sources.
-const MAP_ATTRIBUTION = 'Comunidades: IBGE BC250 · TIs FUNAI e RESEX/RDS MMA via INPE TerraBrasilis'
+// Basemap style already credits OpenFreeMap, OpenMapTiles and OpenStreetMap; this adds the community data
+// sources (full list in ATTRIBUTIONS.md). Kept short so the expanded credit stays on one line above the timeline.
+const MAP_ATTRIBUTION = 'Comunidades: IBGE, FUNAI, MMA via INPE TerraBrasilis'
+
+// Moderate tilt keeps the 3D feel without loading low-detail tiles across a long horizon.
+const PITCH = 40
+const BEARING = -12
+const TERRAIN: maplibregl.TerrainSpecification = { source: 'terrain-dem', exaggeration: 1.4 }
+
+// Coarse NASA rasters (km-scale pixels) fade out past their native zoom instead of smearing over the map.
+function rasterFade(layer: GibsLayer, opacity: number) {
+  const z = gibsMaxZoom(layer)
+  return ['interpolate', ['linear'], ['zoom'], z, opacity, z + 1.5, opacity * 0.4, z + 3, 0] as [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ]
+}
 
 export function SarMap() {
   const mapRef = useRef<MapRef | null>(null)
@@ -41,19 +65,32 @@ export function SarMap() {
   const gibs = GIBS_BY_REGION[activeRegion]
 
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [terrainOn, setTerrainOn] = useState(false)
+  const [zoom, setZoom] = useState(region.zoom)
 
   useEffect(() => {
     const m = mapRef.current
     if (!m || !mapLoaded) return
+    // The region's layer balloon opens above its centre, so park the centre low enough for it to fit.
     m.flyTo({
       center: region.center,
       zoom: region.zoom,
-      pitch: 55,
-      bearing: -18,
+      pitch: PITCH,
+      bearing: BEARING,
+      offset: [0, Math.round(m.getContainer().clientHeight * 0.18)],
       duration: 1600,
       essential: true,
     })
   }, [region, mapLoaded])
+
+  // Terrain is opt-in: draping the map over the DEM renders through an offscreen texture,
+  // which costs frames and softens every layer on top of it.
+  useEffect(() => {
+    const m = mapRef.current?.getMap()
+    if (!m || !mapLoaded) return
+    if (terrainOn && !m.getSource(TERRAIN.source)) return
+    m.setTerrain(terrainOn ? TERRAIN : null)
+  }, [terrainOn, mapLoaded])
 
   const changeFC: FeatureCollection = useMemo(
     () => ({
@@ -121,11 +158,17 @@ export function SarMap() {
     selectPolygon(found)
   }
 
+  const counts = {
+    asfCount: asf.data.length,
+    coverageCount: coverage.data.length,
+    coverageLoading: coverage.loading,
+  }
+
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
         <MapFallback region={region} />
-        <OverlayLegend />
+        <OverlayLegend {...counts} />
       </div>
     )
   }
@@ -141,14 +184,14 @@ export function SarMap() {
           longitude: region.center[0],
           latitude: region.center[1],
           zoom: region.zoom,
-          pitch: 55,
-          bearing: -18,
+          pitch: PITCH,
+          bearing: BEARING,
         }}
-        maxPitch={75}
+        maxPitch={60}
         mapStyle={BASEMAP_URL}
-        terrain={{ source: 'terrain-dem', exaggeration: 1.6 }}
         interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
         onClick={onClick}
+        onZoomEnd={(e) => setZoom(e.viewState.zoom)}
         onLoad={() => setMapLoaded(true)}
         attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
@@ -193,14 +236,15 @@ export function SarMap() {
               type="fill"
               paint={{
                 'fill-color': 'hsl(190 95% 55%)',
+                // Swath fills read as a wash once zoomed in; keep them for the national overview only.
                 'fill-opacity': [
                   'interpolate',
                   ['linear'],
-                  ['get', 'ageIdx'],
+                  ['zoom'],
+                  4,
+                  ['interpolate', ['linear'], ['get', 'ageIdx'], 0, 0.2, 100, 0.05],
+                  7,
                   0,
-                  0.32,
-                  100,
-                  0.08,
                 ],
               }}
             />
@@ -212,11 +256,11 @@ export function SarMap() {
                 'line-opacity': [
                   'interpolate',
                   ['linear'],
-                  ['get', 'ageIdx'],
-                  0,
-                  0.85,
-                  100,
-                  0.18,
+                  ['zoom'],
+                  4,
+                  ['interpolate', ['linear'], ['get', 'ageIdx'], 0, 0.7, 100, 0.15],
+                  9,
+                  ['interpolate', ['linear'], ['get', 'ageIdx'], 0, 0.35, 100, 0.08],
                 ],
                 'line-width': 1.0,
               }}
@@ -230,12 +274,15 @@ export function SarMap() {
             type="raster"
             tiles={[gibsTileUrl(TRUE_COLOR_LAYER)]}
             tileSize={256}
+            maxzoom={gibsMaxZoom(TRUE_COLOR_LAYER)}
             attribution="NASA GIBS · MODIS"
           >
             <Layer
-              id="gibs-truecolor-layer" beforeId="reserves-fill"
+              id="gibs-truecolor-layer"
+              beforeId="reserves-fill"
               type="raster"
-              paint={{ 'raster-opacity': 0.55, 'raster-saturation': -0.1 }}
+              maxzoom={gibsMaxZoom(TRUE_COLOR_LAYER) + 3}
+              paint={{ 'raster-opacity': rasterFade(TRUE_COLOR_LAYER, 0.55), 'raster-saturation': -0.1 }}
             />
           </Source>
         )}
@@ -247,9 +294,16 @@ export function SarMap() {
             type="raster"
             tiles={[gibsTileUrl(gibs)]}
             tileSize={256}
+            maxzoom={gibsMaxZoom(gibs)}
             attribution={`NASA GIBS · ${gibs.sensor}`}
           >
-            <Layer id="gibs-raster-layer" beforeId="reserves-fill" type="raster" paint={{ 'raster-opacity': 0.72 }} />
+            <Layer
+              id="gibs-raster-layer"
+              beforeId="reserves-fill"
+              type="raster"
+              maxzoom={gibsMaxZoom(gibs) + 3}
+              paint={{ 'raster-opacity': rasterFade(gibs, 0.6) }}
+            />
           </Source>
         )}
 
@@ -296,7 +350,16 @@ export function SarMap() {
               type="fill"
               paint={{
                 'fill-color': 'hsl(190 95% 60%)',
-                'fill-opacity': ['interpolate', ['linear'], ['get', 'age'], 0, 0.18, 8, 0.04],
+                // Swaths are ~250 km wide: zoomed in, the whole view sits inside several and the fills stack into a wash.
+                'fill-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  6,
+                  ['interpolate', ['linear'], ['get', 'age'], 0, 0.16, 8, 0.03],
+                  8.5,
+                  0,
+                ],
               }}
             />
             <Layer
@@ -304,7 +367,15 @@ export function SarMap() {
               type="line"
               paint={{
                 'line-color': 'hsl(190 95% 70%)',
-                'line-opacity': ['interpolate', ['linear'], ['get', 'age'], 0, 0.95, 8, 0.2],
+                'line-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  6,
+                  ['interpolate', ['linear'], ['get', 'age'], 0, 0.95, 8, 0.2],
+                  11,
+                  ['interpolate', ['linear'], ['get', 'age'], 0, 0.45, 8, 0.1],
+                ],
                 'line-width': 1.2,
                 'line-dasharray': [2, 1.5],
               }}
@@ -348,21 +419,42 @@ export function SarMap() {
         <AoiLayersPopup />
       </Map>
 
-      <OverlayLegend />
+      <OverlayLegend
+        {...counts}
+        zoom={zoom}
+        onZoomToData={(z) => mapRef.current?.getMap().easeTo({ zoom: z, duration: 900, essential: true })}
+        terrainOn={terrainOn}
+        onToggleTerrain={() => setTerrainOn((v) => !v)}
+      />
     </div>
   )
 }
 
-function OverlayLegend() {
+function OverlayLegend({
+  asfCount,
+  coverageCount,
+  coverageLoading,
+  zoom,
+  onZoomToData,
+  terrainOn,
+  onToggleTerrain,
+}: {
+  asfCount: number
+  coverageCount: number
+  coverageLoading: boolean
+  zoom?: number
+  onZoomToData?: (zoom: number) => void
+  terrainOn?: boolean
+  onToggleTerrain?: () => void
+}) {
   const t = useT()
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
-  const asfCount = useAsfGranules(REGIONS.find((r) => r.id === activeRegion)!).data.length
-  const coverage = useBrazilCoverage()
   const gibs = GIBS_BY_REGION[activeRegion]
+  const coarse = !!gibs && gibs.kind === 'raster' && zoom !== undefined && zoom > gibsMaxZoom(gibs) + 1
 
   return (
-    <div className="pointer-events-none absolute right-3 top-3 bottom-32 flex w-[min(272px,calc(100%-24px))] flex-col items-stretch gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none]">
+    <div className="pointer-events-none absolute right-3 top-3 bottom-24 hidden w-[min(272px,calc(100%-24px))] sm:flex flex-col items-stretch gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none]">
       <div className="pointer-events-auto glass rounded-xl px-3 py-2.5 text-[13px] text-foreground/85">
         <div className="text-[13px] font-semibold text-foreground mb-1.5">{t('community.legend')}</div>
         <div className="grid gap-1.5">
@@ -384,7 +476,7 @@ function OverlayLegend() {
           <div>
             <span className="text-sar-cyan">▭</span> {t('coverage.title')}{' '}
             <span className="text-foreground/50">
-              {coverage.loading ? t('coverage.loading') : `(${coverage.data.length})`}
+              {coverageLoading ? t('coverage.loading') : `(${coverageCount})`}
             </span>
           </div>
           {asfCount > 0 && (
@@ -393,15 +485,55 @@ function OverlayLegend() {
             </div>
           )}
           {nasaOverlay && gibs && (
-            <div className="flex items-center gap-1.5">
-              <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: gibs.paintColor }} />
-              <span className="truncate" title={gibs.explanation}>
-                {gibs.legendLabel}
-              </span>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: gibs.paintColor }} />
+                <span className="truncate" title={gibs.explanation}>
+                  {gibs.legendLabel}
+                </span>
+              </div>
+              {coarse && (
+                <div className="pl-3.5 text-[11px] leading-snug text-foreground/50">
+                  {t('overlay.coarse')}
+                  {onZoomToData && (
+                    <button
+                      type="button"
+                      onClick={() => onZoomToData(gibsMaxZoom(gibs) + 0.5)}
+                      className="ml-1 rounded-sm font-medium text-sar-cyan underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {t('overlay.zoomOut')}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {activeRegion === 'YANO' && nasaOverlay && !gibs && <div>{t('overlay.none')}</div>}
         </div>
+
+        {onToggleTerrain && (
+          <button
+            type="button"
+            onClick={onToggleTerrain}
+            aria-pressed={terrainOn}
+            className={cn(
+              'mt-2.5 flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              terrainOn
+                ? 'border-sar-cyan/60 bg-sar-cyan/15 text-foreground'
+                : 'border-border/70 text-foreground/70 hover:bg-muted/60 hover:text-foreground'
+            )}
+          >
+            <Mountain className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {t('map.terrain')}
+            <span
+              className={cn(
+                'ml-auto h-1.5 w-1.5 rounded-full',
+                terrainOn ? 'bg-sar-cyan' : 'bg-foreground/25'
+              )}
+            />
+          </button>
+        )}
       </div>
 
       <div className="pointer-events-auto hidden md:block">

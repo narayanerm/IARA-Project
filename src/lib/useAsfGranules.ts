@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { searchGranules, type AsfGranule, type AsfPlatform } from './asf'
 import type { Region } from './types'
 
@@ -8,6 +8,8 @@ interface Result {
   loading: boolean
   error: string | null
 }
+
+type Outcome = Omit<Result, 'loading'>
 
 const FALLBACK_CHAIN: Array<{ platform: AsfPlatform; processingLevel?: string }> = [
   { platform: 'NISAR' },
@@ -28,64 +30,60 @@ function windowDates() {
   }
 }
 
+async function searchRegion(region: Region): Promise<Outcome> {
+  const { start, end } = windowDates()
+  let error: string | null = null
+  for (const { platform, processingLevel } of FALLBACK_CHAIN) {
+    try {
+      const data = await searchGranules({
+        platform,
+        processingLevel,
+        bbox: region.bbox,
+        start,
+        end,
+        maxResults: MAX_RESULTS,
+      })
+      if (data.length > 0) return { data, platform, error: null }
+      error = null
+    } catch (err) {
+      error = (err as Error).message
+    }
+  }
+  return { data: [], platform: null, error }
+}
+
+// Map, preview, popup and metadata panel all ask for the same region at once; share one search per region.
+const searches = new Map<Region['id'], Promise<Outcome>>()
+
+function granulesFor(region: Region): Promise<Outcome> {
+  let search = searches.get(region.id)
+  if (!search) {
+    search = searchRegion(region)
+    searches.set(region.id, search)
+    search.then((r) => {
+      if (r.error) searches.delete(region.id)
+    })
+  }
+  return search
+}
+
+const LOADING: Result = { data: [], platform: null, loading: true, error: null }
+
 export function useAsfGranules(region: Region): Result {
-  const [state, setState] = useState<Result>({
-    data: [],
-    platform: null,
-    loading: true,
-    error: null,
-  })
+  const [settled, setSettled] = useState<{ regionId: Region['id']; outcome: Outcome } | null>(null)
 
   useEffect(() => {
-    const ctrl = new AbortController()
     let cancelled = false
-    setState((s) => ({ ...s, loading: true, error: null }))
-
-    const run = async () => {
-      const { start, end } = windowDates()
-      for (let i = 0; i < FALLBACK_CHAIN.length; i++) {
-        const { platform, processingLevel } = FALLBACK_CHAIN[i]
-        try {
-          const data = await searchGranules(
-            {
-              platform,
-              processingLevel,
-              bbox: region.bbox,
-              start,
-              end,
-              maxResults: MAX_RESULTS,
-            },
-            { signal: ctrl.signal }
-          )
-          if (cancelled) return
-          if (data.length > 0) {
-            setState({ data, platform, loading: false, error: null })
-            return
-          }
-        } catch (err) {
-          if (ctrl.signal.aborted) return
-          if (i === FALLBACK_CHAIN.length - 1) {
-            setState({
-              data: [],
-              platform: null,
-              loading: false,
-              error: (err as Error).message,
-            })
-            return
-          }
-        }
-      }
-      if (!cancelled) {
-        setState({ data: [], platform: null, loading: false, error: null })
-      }
-    }
-
-    run()
+    granulesFor(region).then((outcome) => {
+      if (!cancelled) setSettled({ regionId: region.id, outcome })
+    })
     return () => {
       cancelled = true
-      ctrl.abort()
     }
   }, [region])
 
-  return state
+  return useMemo(
+    () => (settled?.regionId === region.id ? { ...settled.outcome, loading: false } : LOADING),
+    [settled, region.id]
+  )
 }

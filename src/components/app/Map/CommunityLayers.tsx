@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Layer, Popup, Source, useMap } from 'react-map-gl/maplibre'
-import type { GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl'
-import { ExternalLink, Flame, MapPin as MapPinIcon, Navigation, Users, X } from 'lucide-react'
+import type {
+  ExpressionSpecification,
+  MapLayerMouseEvent,
+  Map as MapLibreMap,
+  PointLike,
+  PositionAnchor,
+} from 'maplibre-gl'
+import { ExternalLink, Flame, History, MapPin as MapPinIcon, Navigation, Users, X } from 'lucide-react'
 import { COMMUNITY_DATA, type Risk, type RiversideProps, type TiPointProps } from '@/data/layers/communities'
 import { FUNAI_TI_URL, tiProfileUrl } from '@/lib/links'
 import { useT, type TKey } from '@/lib/i18n'
@@ -14,7 +20,22 @@ const PIN_CSS_SIZE = 40
 const PIN_IMAGE: Record<CommunityKind, string> = { indigenous: 'pin-indigenous', riverside: 'pin-riverside' }
 const SOURCE: Record<CommunityKind, string> = { indigenous: 'ti-points', riverside: 'riverside-points' }
 const PIN_LAYER: Record<CommunityKind, string> = { indigenous: 'ti-pins', riverside: 'riverside-pins' }
-const CLUSTER_LAYER: Record<CommunityKind, string> = { indigenous: 'ti-clusters', riverside: 'riverside-clusters' }
+
+// Pin tip sits on the point, so the balloon needs room for the pin body when it opens above.
+const PIN_TIP = 48
+const POPUP_OFFSET: Record<PositionAnchor, PointLike> = {
+  center: [0, -PIN_TIP / 2],
+  top: [0, 6],
+  'top-left': [0, 6],
+  'top-right': [0, 6],
+  bottom: [0, -PIN_TIP],
+  'bottom-left': [0, -PIN_TIP],
+  'bottom-right': [0, -PIN_TIP],
+  left: [18, -PIN_TIP / 2],
+  right: [-18, -PIN_TIP / 2],
+}
+
+const IS_VILLAGE: ExpressionSpecification = ['==', ['get', 'tipo'], 'vila']
 
 type Selected =
   | { kind: 'indigenous'; lngLat: [number, number]; props: TiPointProps }
@@ -91,62 +112,66 @@ export function CommunityAreas() {
   )
 }
 
-function PointLayers({ kind, labelZoom }: { kind: CommunityKind; labelZoom: number }) {
-  const { fill, ink } = KIND_COLOR[kind]
+// Each point carries the zoom at which it is revealed (scripts/build-community-data.mjs),
+// so the overview shows a spaced-out subset and every pin is visible from zoom 11 on.
+function PinLayer({ kind }: { kind: CommunityKind }) {
+  const riverside = kind === 'riverside'
+  const scale: ExpressionSpecification | number = riverside ? ['case', IS_VILLAGE, 1.2, 0.9] : 1
+  const label: ExpressionSpecification = riverside
+    ? ['step', ['zoom'], '', 7, ['case', IS_VILLAGE, ['get', 'nome'], ''], 9, ['get', 'nome']]
+    : ['step', ['zoom'], '', 6, ['get', 'nome']]
   return (
-    <>
-      <Layer
-        id={CLUSTER_LAYER[kind]}
-        source={SOURCE[kind]}
-        type="circle"
-        filter={['has', 'point_count']}
-        paint={{
-          'circle-color': fill,
-          'circle-opacity': 0.92,
-          'circle-radius': ['step', ['get', 'point_count'], 15, 10, 19, 50, 24, 200, 30],
-          'circle-stroke-color': ink,
-          'circle-stroke-width': 2,
-        }}
-      />
-      <Layer
-        id={`${CLUSTER_LAYER[kind]}-count`}
-        source={SOURCE[kind]}
-        type="symbol"
-        filter={['has', 'point_count']}
-        layout={{
-          'text-field': ['get', 'point_count_abbreviated'],
-          'text-font': ['Noto Sans Bold'],
-          'text-size': 13,
-          'text-allow-overlap': true,
-        }}
-        paint={{ 'text-color': ink }}
-      />
-      <Layer
-        id={PIN_LAYER[kind]}
-        source={SOURCE[kind]}
-        type="symbol"
-        filter={['!', ['has', 'point_count']]}
-        layout={{
-          'icon-image': PIN_IMAGE[kind],
-          'icon-anchor': 'bottom',
-          'icon-size': ['interpolate', ['linear'], ['zoom'], 4, 0.8, 9, 1, 13, 1.15],
-          'icon-allow-overlap': true,
-          'text-field': ['step', ['zoom'], '', labelZoom, ['get', 'nome']],
-          'text-font': ['Noto Sans Regular'],
-          'text-size': ['interpolate', ['linear'], ['zoom'], labelZoom, 12, 13, 14],
-          'text-anchor': 'top',
-          'text-offset': [0, 0.35],
-          'text-max-width': 10,
-          'text-optional': true,
-        }}
-        paint={{
-          'text-color': 'hsl(0 0% 96%)',
-          'text-halo-color': 'hsl(222 47% 6% / 0.95)',
-          'text-halo-width': 1.6,
-        }}
-      />
-    </>
+    <Layer
+      id={PIN_LAYER[kind]}
+      source={SOURCE[kind]}
+      type="symbol"
+      filter={['>=', ['zoom'], ['get', 'minzoom']]}
+      layout={{
+        'icon-image': PIN_IMAGE[kind],
+        'icon-anchor': 'bottom',
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 4, ['*', 0.8, scale], 9, ['*', 1, scale], 13, ['*', 1.15, scale]],
+        'icon-allow-overlap': true,
+        'symbol-sort-key': ['get', 'minzoom'],
+        'text-field': label,
+        'text-font': ['Noto Sans Regular'],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 6, 11.5, 13, 14],
+        'text-anchor': 'top',
+        'text-offset': [0, 0.35],
+        'text-max-width': 10,
+        'text-optional': true,
+      }}
+      paint={{
+        'text-color': 'hsl(0 0% 96%)',
+        'text-halo-color': 'hsl(222 47% 6% / 0.95)',
+        'text-halo-width': 1.6,
+      }}
+    />
   )
+}
+
+// Zooms toward the pin and parks it in the lower part of the map so the balloon above it fits.
+function focusOn(map: MapLibreMap, sel: Selected) {
+  const height = map.getContainer().clientHeight
+  const current = map.getZoom()
+  let zoom = Math.max(current, 10.5)
+  if (sel.kind === 'indigenous') {
+    const { bw, bs, be, bn } = sel.props
+    const fit = map.cameraForBounds(
+      [
+        [bw, bs],
+        [be, bn],
+      ],
+      { padding: 48, maxZoom: 11 }
+    )
+    zoom = Math.max(current, fit?.zoom ?? current)
+  }
+  map.easeTo({
+    center: sel.lngLat,
+    zoom,
+    offset: [0, Math.round(height * 0.22)],
+    duration: 900,
+    essential: true,
+  })
 }
 
 export function CommunityPoints() {
@@ -164,22 +189,12 @@ export function CommunityPoints() {
     const onPin = (kind: CommunityKind) => (e: MapLayerMouseEvent) => {
       const f = e.features?.[0]
       if (!f || f.geometry.type !== 'Point') return
-      const lngLat = f.geometry.coordinates as [number, number]
-      setSelected({ kind, lngLat, props: f.properties } as Selected)
-    }
-    const onCluster = (kind: CommunityKind) => async (e: MapLayerMouseEvent) => {
-      const f = e.features?.[0]
-      if (!f || f.geometry.type !== 'Point') return
-      const source = map.getSource(SOURCE[kind]) as GeoJSONSource | undefined
-      if (!source) return
-      const zoom = await source.getClusterExpansionZoom(f.properties.cluster_id as number)
-      map.easeTo({ center: f.geometry.coordinates as [number, number], zoom: zoom + 0.5, duration: 700 })
+      const sel = { kind, lngLat: f.geometry.coordinates as [number, number], props: f.properties } as Selected
+      setSelected(sel)
+      focusOn(map, sel)
     }
 
-    const handlers = kinds.flatMap((kind) => [
-      [PIN_LAYER[kind], onPin(kind)] as const,
-      [CLUSTER_LAYER[kind], onCluster(kind)] as const,
-    ])
+    const handlers = kinds.map((kind) => [PIN_LAYER[kind], onPin(kind)] as const)
     for (const [layer, fn] of handlers) {
       map.on('click', layer, fn)
       map.on('mouseenter', layer, pointer)
@@ -196,33 +211,18 @@ export function CommunityPoints() {
 
   return (
     <>
-      <Source
-        id={SOURCE.riverside}
-        type="geojson"
-        data={COMMUNITY_DATA.riverside}
-        cluster
-        clusterRadius={48}
-        clusterMaxZoom={10}
-      >
-        <PointLayers kind="riverside" labelZoom={9} />
+      <Source id={SOURCE.riverside} type="geojson" data={COMMUNITY_DATA.riverside}>
+        <PinLayer kind="riverside" />
       </Source>
-      <Source
-        id={SOURCE.indigenous}
-        type="geojson"
-        data={COMMUNITY_DATA.tiPoints}
-        cluster
-        clusterRadius={36}
-        clusterMaxZoom={6}
-      >
-        <PointLayers kind="indigenous" labelZoom={6} />
+      <Source id={SOURCE.indigenous} type="geojson" data={COMMUNITY_DATA.tiPoints}>
+        <PinLayer kind="indigenous" />
       </Source>
 
       {selected && (
         <Popup
           longitude={selected.lngLat[0]}
           latitude={selected.lngLat[1]}
-          anchor="bottom"
-          offset={PIN_CSS_SIZE + 4}
+          offset={POPUP_OFFSET}
           onClose={() => setSelected(null)}
           closeOnClick={false}
           closeButton={false}
@@ -272,7 +272,7 @@ function PopupShell({
   const t = useT()
   return (
     <div
-      className="w-[min(320px,calc(100vw-48px))] rounded-xl border bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+      className="w-[min(320px,calc(100vw-48px))] max-h-[min(460px,calc(100dvh-140px))] overflow-y-auto overscroll-contain rounded-xl border bg-card shadow-2xl"
       style={{ borderColor: `color-mix(in srgb, ${KIND_COLOR[kind].fill} 45%, transparent)` }}
     >
       <div className="flex items-start gap-2.5 px-3.5 pt-3 pb-2.5">
@@ -352,6 +352,15 @@ function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void 
       {props.etnia && <Fact icon={Users} label={t('community.ethnicities')} value={props.etnia} />}
       {props.area_km2 != null && (
         <Fact icon={MapPinIcon} label={t('community.area')} value={`${fmt(props.area_km2)} km²`} />
+      )}
+      {props.revisao_fase && (
+        <Fact
+          icon={History}
+          label={t('community.revision')}
+          value={[props.revisao_fase, props.revisao_area_km2 != null ? `${fmt(props.revisao_area_km2)} km²` : null]
+            .filter(Boolean)
+            .join(' · ')}
+        />
       )}
       <Fact icon={Flame} label={t('community.fires2026')} value={fmt(props.focos_2026)} />
       <div className="grid gap-1.5 pt-1">

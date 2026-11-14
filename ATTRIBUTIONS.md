@@ -30,7 +30,7 @@ License: https://creativecommons.org/licenses/by/3.0/
 | MapBiomas Alerta | Deforestation / mining validation | CC-BY-SA 4.0 |
 | DETER / PRODES (INPE) | Deforestation ground truth | Open data (INPE) |
 | ANA cotas fluviais | Water level ground truth | Open data (ANA) |
-| FUNAI via INPE TerraBrasilis (`indigenous_area_legal_amazon`) | 386 Indigenous Land boundaries, simplified at 0.01° | Open data (FUNAI / INPE) |
+| FUNAI via INPE TerraBrasilis (`indigenous_area_legal_amazon`) | 380 Indigenous Lands (386 source records; 6 boundary revisions merged into their land), simplified at 0.01° | Open data (FUNAI / INPE) |
 | MMA/CNUC via INPE TerraBrasilis (`conservation_units_legal_amazon`) | 102 RESEX and RDS boundaries | Open data (MMA / INPE) |
 | IBGE BC250 2023 (aglomerados rurais e vilas) | 1,538 riverside communities in Amazonas (within 2 km of water) | Open data (IBGE) |
 | INPE Programa Queimadas (AQUA tarde) | Fire hotspots and fire-risk class per community and territory | Open data (INPE) |
@@ -41,9 +41,14 @@ License: https://creativecommons.org/licenses/by/3.0/
 Community layers come from the team data package (ITACUBE, 2026-11-14) and are
 converted by `scripts/build-community-data.mjs` (`npm run data:communities`)
 into `public/data/`. The TerraBrasilis TI layer may lag behind the records
-FUNAI itself publishes; each TI popup links to its ISA profile (350 of 386
-matched by name) and to the official FUNAI geodata page. Hand-drawn TI outlines
-remain only for the Leaflet fallback map shown when WebGL is unavailable.
+FUNAI itself publishes. It lists six lands twice (the regularized area and a
+boundary revision under way); the build keeps one entry per land with the
+larger outline and shows the revision phase and area in the popup. Each TI popup
+links to its ISA profile (344 of 380 matched by name) and to the official FUNAI
+geodata page. The build also assigns each pin the zoom at which it appears, so
+the overview shows a spaced-out subset and every pin is on the map from zoom 9
+(TIs) or 11 (riverside communities). Hand-drawn TI outlines remain only for the
+Leaflet fallback map shown when WebGL is unavailable.
 
 ## Base Map
 

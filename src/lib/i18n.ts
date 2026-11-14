@@ -165,6 +165,10 @@ export const DICT = {
     'community.riversideSource': 'Localização: IBGE BC250. Focos: INPE.',
     'community.showPreview': 'Mostrar prévia',
     'community.hidePreview': 'Ocultar prévia',
+    'community.revision': 'Revisão de limites',
+    'map.terrain': 'Relevo 3D',
+    'overlay.coarse': 'Dado de baixa resolução: some ao aproximar',
+    'overlay.zoomOut': 'Afastar para ver',
   },
   en: {
     'app.name': 'AmazonSAR Explorer',
@@ -332,6 +336,10 @@ export const DICT = {
     'community.riversideSource': 'Location: IBGE BC250. Hotspots: INPE.',
     'community.showPreview': 'Show preview',
     'community.hidePreview': 'Hide preview',
+    'community.revision': 'Boundary revision',
+    'map.terrain': '3D terrain',
+    'overlay.coarse': 'Coarse data: fades out as you zoom in',
+    'overlay.zoomOut': 'Zoom out to view',
   },
 } satisfies Record<Lang, Record<string, string>>
 
