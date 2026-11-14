@@ -18,7 +18,7 @@ export function Sidebar() {
     >
       <div className="flex h-12 items-center justify-between border-b border-border/60 px-3">
         {open && (
-          <div className="text-[13px] font-mono uppercase tracking-wider text-muted-foreground">
+          <div className="text-[13px] font-medium text-muted-foreground">
             {t('sidebar.title')}
           </div>
         )}

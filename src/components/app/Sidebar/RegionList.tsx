@@ -21,7 +21,7 @@ export function RegionList() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between px-1">
-        <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+        <div className="text-xs font-medium text-muted-foreground">
           {t('sidebar.heading')}
         </div>
         <div className="text-[12px] font-mono text-muted-foreground">{REGIONS.length}</div>
@@ -61,7 +61,7 @@ function RegionCard({
       className={cn(
         'group w-full rounded-lg border border-border/60 bg-card/60 p-3 text-left transition-all',
         'hover:border-primary/50 hover:bg-card',
-        isActive && 'border-primary/70 bg-primary/5 shadow-[0_0_24px_-10px_hsl(var(--primary)/0.6)]'
+        isActive && 'border-primary/70 bg-primary/5'
       )}
     >
       <div className="flex items-start gap-3">
@@ -81,12 +81,12 @@ function RegionCard({
               {t(`region.${region.id}.phen`)}
             </div>
             {region.isAnchor && (
-              <Badge variant="default" className="text-[13px] px-1.5 py-0 h-4 font-mono">
+              <Badge variant="default" className="text-[12px] px-1.5 py-0 h-4">
                 {t('status.anchor')}
               </Badge>
             )}
           </div>
-          <div className="text-[13px] text-muted-foreground truncate font-mono mt-0.5">
+          <div className="text-[13px] text-muted-foreground truncate mt-0.5">
             {t(`region.${region.id}.name`)} · {t(`region.${region.id}.city`)}
           </div>
           <div className="text-xs text-muted-foreground/90 mt-1.5 line-clamp-2 leading-snug">
@@ -97,7 +97,7 @@ function RegionCard({
       <div className="mt-2.5 flex items-center justify-between pl-12">
         <StatusPill status={region.status} />
         {isActive && (
-          <span className="text-[12px] font-mono text-primary">
+          <span className="text-[12px] text-primary">
             {t('sidebar.selected')}
           </span>
         )}
@@ -121,7 +121,7 @@ function StatusPill({ status }: { status: Region['status'] }) {
   return (
     <span
       className={cn(
-        'rounded-full px-1.5 py-0.5 text-[13px] font-mono tracking-wide',
+        'rounded-full px-1.5 py-0.5 text-[13px]',
         classes[status]
       )}
     >

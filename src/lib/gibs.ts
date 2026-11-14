@@ -31,10 +31,10 @@ export const GIBS_BY_REGION: Record<RegionId, GibsLayer | null> = {
     tileMatrixSet: 'GoogleMapsCompatible_Level9',
     format: 'png',
     time: '2026-11-12',
-    legendLabel: 'MODIS · NDVI 8-dias',
+    legendLabel: 'MODIS NDVI, 8-day',
     sensor: 'MODIS',
     explanation:
-      'Índice de vegetação (NDVI). Óptico cai sob nuvem; L-band SAR detecta clareira de garimpo sob copa.',
+      'Vegetation index (NDVI). Optical fails under cloud; L-band SAR detects mining clearings under the canopy.',
     paintColor: 'hsl(140 70% 55%)',
   },
   ENCH: {
@@ -43,10 +43,10 @@ export const GIBS_BY_REGION: Record<RegionId, GibsLayer | null> = {
     tileMatrixSet: 'GoogleMapsCompatible_Level6',
     format: 'png',
     time: '2026-11-11',
-    legendLabel: 'IMERG · precipitação',
+    legendLabel: 'IMERG precipitation',
     sensor: 'GPM IMERG',
     explanation:
-      'Taxa de precipitação (mm/h) — contexto da cheia. SAR mapeia a lâmina de água; IMERG mostra o input.',
+      'Precipitation rate (mm/h), context for the flood. SAR maps the water surface; IMERG shows the rainfall input.',
     paintColor: 'hsl(210 95% 62%)',
   },
   SECA: {
@@ -55,10 +55,10 @@ export const GIBS_BY_REGION: Record<RegionId, GibsLayer | null> = {
     tileMatrixSet: 'GoogleMapsCompatible_Level6',
     format: 'png',
     time: '2025-09-01',
-    legendLabel: 'AMSR2 · umidade de solo',
+    legendLabel: 'AMSR2 soil moisture',
     sensor: 'AMSR2',
     explanation:
-      'Umidade superficial de solo (passivo). Complementa SAR na análise de retração de corpos d\'água.',
+      'Surface soil moisture (passive). Complements SAR when analyzing shrinking water bodies.',
     paintColor: 'hsl(270 80% 65%)',
   },
 }
@@ -73,5 +73,5 @@ export const TRUE_COLOR_LAYER: GibsLayer = {
   sensor: 'MODIS',
   explanation:
     'Visão óptica diária. Contraste "o que o olho vê" vs. "o que o SAR vê sob nuvem/fumaça/noite".',
-  paintColor: 'hsl(190 95% 60%)',
+  paintColor: 'hsl(198 51% 57%)',
 }

@@ -10,8 +10,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        sans: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Bricolage Grotesque', 'Geist', 'ui-sans-serif', 'sans-serif'],
+        mono: ['Geist Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -47,12 +48,27 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        /* data colors, mapped onto the IARA palette */
         sar: {
-          cyan: 'hsl(190 95% 60%)',
-          amber: 'hsl(38 95% 60%)',
-          crimson: 'hsl(348 85% 58%)',
-          jade: 'hsl(160 72% 48%)',
-          violet: 'hsl(270 80% 65%)',
+          cyan: 'hsl(198 51% 57%)', // água #5AA7C9
+          amber: 'hsl(19 85% 61%)', // laranja #F07A45
+          crimson: 'hsl(17 75% 42%)', // laranja profundo #B9481A
+          jade: 'hsl(142 32% 46%)', // folha #4F9A6A
+          violet: 'hsl(265 45% 68%)',
+        },
+        iara: {
+          bg: '#0A110E',
+          surface: '#13201A',
+          ink: '#E6EEE8',
+          muted: '#9DB1A6',
+          water: '#5AA7C9',
+          'water-deep': '#2B7EA6',
+          orange: '#F07A45',
+          'orange-deep': '#B9481A',
+          leaf: '#4F9A6A',
+          mata1: '#2C5039',
+          mata2: '#33593F',
+          mata3: '#3B6447',
         },
       },
       borderRadius: {
