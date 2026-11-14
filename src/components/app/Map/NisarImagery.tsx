@@ -12,8 +12,10 @@ export function NisarImagery() {
   const activeRegion = useApp((s) => s.activeRegion)
   const visible = useApp((s) => s.nisarVisible)
   const opacity = useApp((s) => s.nisarOpacity)
+  const nasaOverlay = useApp((s) => s.nasaOverlay)
+  const trueColorOverlay = useApp((s) => s.trueColorOverlay)
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
-  const { scene, track } = useNisarSelection(region)
+  const { scene, track, point } = useNisarSelection(region)
   const [shown, setShown] = useState<{ url: string; corners: ImageCorners } | null>(null)
 
   useEffect(() => {
@@ -63,13 +65,63 @@ export function NisarImagery() {
     }
   }, [track, firstShown])
 
-  if (!visible || !shown) return null
+  // Other layers (NASA GIBS, footprints) are re-added when the region or toggles change and would
+  // land on top of the radar image; keep the NISAR image above them (below the detection polygons).
+  useEffect(() => {
+    const m = map?.getMap()
+    if (!m || !shown) return
+    const raise = () => {
+      if (!m.getLayer('nisar-browse-layer')) return
+      const ids = m.getStyle().layers.map((l) => l.id)
+      const before = m.getLayer('nisar-point-halo')
+        ? 'nisar-point-halo'
+        : m.getLayer('yano-change-fill')
+          ? 'yano-change-fill'
+          : undefined
+      const want = before ? ids.indexOf(before) - 1 : ids.length - 1
+      // Only move when out of place: moveLayer itself fires 'styledata'.
+      if (ids.indexOf('nisar-browse-layer') !== want) m.moveLayer('nisar-browse-layer', before)
+    }
+    const id = window.setTimeout(raise, 0)
+    m.on('styledata', raise)
+    return () => {
+      window.clearTimeout(id)
+      m.off('styledata', raise)
+    }
+  }, [map, shown, activeRegion, nasaOverlay, trueColorOverlay, point])
+
+  const pointMarker = point && (
+    <Source
+      id="nisar-point"
+      type="geojson"
+      data={{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: point } }}
+    >
+      <Layer
+        id="nisar-point-halo"
+        type="circle"
+        paint={{ 'circle-radius': 14, 'circle-color': 'hsl(190 95% 60%)', 'circle-opacity': 0.25 }}
+      />
+      <Layer
+        id="nisar-point-dot"
+        type="circle"
+        paint={{
+          'circle-radius': 5,
+          'circle-color': 'hsl(190 95% 60%)',
+          'circle-stroke-color': '#fff',
+          'circle-stroke-width': 1.5,
+        }}
+      />
+    </Source>
+  )
+
+  if (!visible || !shown) return pointMarker || null
 
   const m = map?.getMap()
   // Above the coverage/footprint fills (which would wash out the radar image), below the detection polygons.
   const beforeId = m?.getLayer('yano-change-fill') ? 'yano-change-fill' : undefined
 
   return (
+    <>
     <Source
       id="nisar-browse"
       type="image"
@@ -83,5 +135,7 @@ export function NisarImagery() {
         paint={{ 'raster-opacity': opacity, 'raster-fade-duration': 0, 'raster-resampling': 'linear' }}
       />
     </Source>
+    {pointMarker}
+    </>
   )
 }

@@ -21,6 +21,7 @@ import { AoiLayersPopup } from './AoiLayersPopup'
 import { TiTargets } from './TiTargets'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
+import { inAmazon } from '@/lib/amazon'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
@@ -30,6 +31,9 @@ export function SarMap() {
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
   const selectPolygon = useApp((s) => s.selectPolygon)
+  const setNisarPoint = useApp((s) => s.setNisarPoint)
+  const setNisarNotice = useApp((s) => s.setNisarNotice)
+  const t = useT()
 
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const asf = useAsfGranules(region)
@@ -107,6 +111,10 @@ export function SarMap() {
     const f = e.features?.[0]
     if (!f) {
       selectPolygon(null)
+      // Click on the map → every NISAR image of that spot (Amazon biome only).
+      const { lng, lat } = e.lngLat
+      if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
+      else setNisarNotice(t('nisar.outsideAmazon'))
       return
     }
     const id = (f.properties as { id?: string })?.id

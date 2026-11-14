@@ -8,6 +8,10 @@ export type NisarProduct = 'GCOV' | 'GUNW'
 
 /** First acquisition of the public, calibrated (PROVISIONAL) NISAR L-band release. */
 export const NISAR_PROVISIONAL_START = '2026-06-17T00:00:00Z'
+/** Earliest public NISAR L-band products (pre-calibration BETA, from Oct 2025). */
+export const NISAR_FIRST_DATA = '2025-10-01T00:00:00Z'
+/** Pseudo track key: every track merged into one chronological series. */
+export const ALL_TRACKS = 'all'
 
 const SEARCH_URL = 'https://api.daac.asf.alaska.edu/services/search/param'
 
@@ -63,6 +67,8 @@ export interface NisarScene {
   browseThumb: string | null
   browseKml: string | null
   qaReportUrl: string | null
+  /** Pre-calibration BETA product (before the PROVISIONAL release). */
+  beta: boolean
 }
 
 /** MapLibre image-source corners: top-left, top-right, bottom-right, bottom-left. */
@@ -135,6 +141,7 @@ function normalize(r: NisarRaw): NisarScene | null {
     browseThumb,
     browseKml,
     qaReportUrl,
+    beta: /BETA/i.test(r.collectionName ?? ''),
   }
 }
 
@@ -161,7 +168,7 @@ export async function searchNisar(q: NisarQuery): Promise<NisarScene[]> {
   url.searchParams.set('platform', 'NISAR')
   url.searchParams.set('processingLevel', q.products.join(','))
   url.searchParams.set('bbox', q.bbox.join(','))
-  url.searchParams.set('start', q.start ?? NISAR_PROVISIONAL_START)
+  url.searchParams.set('start', q.start ?? NISAR_FIRST_DATA)
   if (q.end) url.searchParams.set('end', q.end)
   url.searchParams.set('maxResults', String(q.maxResults ?? 1000))
   url.searchParams.set('output', 'jsonlite')

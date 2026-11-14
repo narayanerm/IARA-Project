@@ -3,7 +3,7 @@ import { Download, ExternalLink, FileText, Loader2, Satellite } from 'lucide-rea
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
 import { useNisarSelection } from '@/lib/useNisarCatalog'
-import { formatBytes, trackLabel } from '@/lib/nisar'
+import { ALL_TRACKS, formatBytes, trackKey, trackLabel } from '@/lib/nisar'
 import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
@@ -52,13 +52,17 @@ export function NisarPanel() {
         <Stat value={stats.tracks} label={t('nisar.tracks')} />
       </div>
       <div className="font-mono text-[12px] text-muted-foreground">
-        {stats.first} → {stats.last} · {t(`region.${region.id}.name`)}
+        {stats.first} → {stats.last} ·{' '}
+        {sel.point
+          ? `${t('nisar.pointMode')} ${sel.point[1].toFixed(2)}, ${sel.point[0].toFixed(2)}`
+          : t(`region.${region.id}.name`)}
       </div>
 
       {sel.track && (
         <div className="rounded-md border border-border/60 bg-background/40 p-2 font-mono text-[12px]">
           <div className="text-foreground">
-            {sel.product} · {trackLabel(sel.track.key)}
+            {sel.product} ·{' '}
+            {sel.track.key === ALL_TRACKS ? t('nisar.allTracks') : trackLabel(sel.track.key)}
           </div>
           <div className="text-muted-foreground">
             {sel.track.scenes.length} {t('nisar.dates')} ·{' '}
@@ -100,6 +104,10 @@ export function NisarPanel() {
                 <button onClick={() => setScene(s.id)} className="text-left">
                   <div className="font-mono text-foreground">
                     {s.product === 'GUNW' ? `${s.date} → ${s.date2}` : s.date}
+                    <span className="ml-1.5 text-[11px] text-muted-foreground">
+                      {trackLabel(trackKey(s))}
+                      {s.beta ? ' · BETA' : ''}
+                    </span>
                   </div>
                   <div className="font-mono text-[11px] text-muted-foreground">
                     {s.polMode ?? '—'} · {s.polarizations.join('+') || '—'} · {formatBytes(s.sizeBytes)} ·{' '}

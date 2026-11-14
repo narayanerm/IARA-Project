@@ -14,6 +14,10 @@ interface AppState {
   nisarTrack: string | null
   nisarSceneId: string | null
   nisarOpacity: number
+  /** Point clicked on the map (Amazon only); null = use the active region. */
+  nisarPoint: [number, number] | null
+  /** Short message for the NISAR control (e.g. click outside the Amazon). */
+  nisarNotice: string | null
   setActiveRegion: (id: RegionId) => void
   setActiveLayer: (l: ProductLayer) => void
   setTimeIndex: (i: number) => void
@@ -25,6 +29,8 @@ interface AppState {
   setNisarScene: (id: string | null) => void
   setNisarOpacity: (o: number) => void
   setNisarProduct: (p: NisarProduct) => void
+  setNisarPoint: (p: [number, number] | null) => void
+  setNisarNotice: (n: string | null) => void
 }
 
 /** NISAR product shown on the map follows the layer toggle: Interferogram → GUNW, anything else → GCOV. */
@@ -43,8 +49,10 @@ export const useApp = create<AppState>((set, get) => ({
   nisarTrack: null,
   nisarSceneId: null,
   nisarOpacity: 0.85,
+  nisarPoint: null,
+  nisarNotice: null,
   setActiveRegion: (id) => {
-    set({ activeRegion: id, nisarTrack: null, nisarSceneId: null })
+    set({ activeRegion: id, nisarTrack: null, nisarSceneId: null, nisarPoint: null, nisarNotice: null })
     useAoiPopup.setState({ open: true })
   },
   setActiveLayer: (l) => {
@@ -60,6 +68,9 @@ export const useApp = create<AppState>((set, get) => ({
   setNisarScene: (id) => set({ nisarSceneId: id }),
   setNisarOpacity: (o) => set({ nisarOpacity: o }),
   setNisarProduct: (p) => get().setActiveLayer(p === 'GUNW' ? 'interferogram' : 'amplitude'),
+  setNisarPoint: (pt) =>
+    set({ nisarPoint: pt, nisarTrack: null, nisarSceneId: null, nisarNotice: null, nisarVisible: true }),
+  setNisarNotice: (n) => set({ nisarNotice: n }),
 }))
 
 interface PopupState {
