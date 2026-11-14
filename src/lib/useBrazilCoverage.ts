@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react'
 import { searchGranules, type AsfGranule } from './asf'
-import { AMAZON_BBOX, footprintInAmazon } from './amazon'
 
-// NISAR passes over the Amazon biome only.
-const BRAZIL_BBOX = AMAZON_BBOX
-// One full NISAR repeat cycle (12 days)
-const DAYS_WINDOW = 12
-const MAX_RESULTS = 2000
+const BRAZIL_BBOX: [number, number, number, number] = [-74, -34, -34, 6]
+const DAYS_WINDOW = 10
+const MAX_RESULTS = 400
 
-const CACHE_KEY = 'sarbrasil.coverage.nisar.amazon.v1'
+const CACHE_KEY = 'sarbrasil.coverage.v2'
 const CACHE_TTL_MS = 30 * 60 * 1000
 
 interface CacheEntry {
@@ -56,13 +53,13 @@ export function useBrazilCoverage(): Result {
     if (state.data.length > 0 && !state.loading) return
     const ctrl = new AbortController()
     let cancelled = false
-    const end = new Date(Math.ceil(Date.now() / 3600_000) * 3600_000)
+    const end = new Date()
     const start = new Date(end.getTime() - DAYS_WINDOW * 86400_000)
 
     searchGranules(
       {
-        platform: 'NISAR',
-        processingLevel: 'GCOV',
+        platform: 'Sentinel-1',
+        processingLevel: 'GRD_HD',
         bbox: BRAZIL_BBOX,
         start: start.toISOString(),
         end: end.toISOString(),
@@ -72,7 +69,6 @@ export function useBrazilCoverage(): Result {
     )
       .then((data) => {
         if (cancelled) return
-        data = data.filter((g) => footprintInAmazon(g.footprint))
         writeCache(data)
         setState({ data, loading: false, error: null })
       })
