@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Sparkles, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useApp } from '@/lib/store'
+import { useApp, useUi } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { routeIntent, narrativeFor, SUGGESTIONS, type Intent } from './intents'
 
@@ -60,6 +60,21 @@ export function Chatbot() {
       setThinking(false)
     }, 600)
   }
+
+  // A question typed in the floating ask bar arrives through the UI store.
+  const askQueue = useUi((s) => s.askQueue)
+  const clearAsk = useUi((s) => s.clearAsk)
+  const sendRef = useRef(send)
+  useEffect(() => {
+    sendRef.current = send
+  })
+  const takenRef = useRef(0)
+  useEffect(() => {
+    if (!askQueue || askQueue.ts === takenRef.current) return
+    takenRef.current = askQueue.ts
+    clearAsk()
+    sendRef.current(askQueue.text)
+  }, [askQueue, clearAsk])
 
   const applyIntentSideEffects = (intent: Intent) => {
     switch (intent.kind) {

@@ -4,6 +4,16 @@ export type Lang = 'pt' | 'en'
 
 export const DICT = {
   pt: {
+    'ask.label': 'Pergunte ao assistente',
+    'ask.placeholder': 'Pergunte qualquer coisa sobre esta área',
+    'ask.send': 'Enviar pergunta',
+    'ask.suggestions': 'Sugestões de perguntas',
+    'panel.expandRight': 'Abrir painel de ferramentas',
+    'panel.collapseRight': 'Fechar painel de ferramentas',
+    'rp.chat': 'Assistente',
+    'rp.meta': 'Metadados',
+    'rp.nisar': 'NISAR',
+    'rp.band': 'NISAR banda L, HH + HV',
     'app.name': 'IARA',
     'app.subtitle': 'NASA Space Apps · Dancing with the SARs 2026',
 
@@ -383,6 +393,16 @@ export const DICT = {
     'loadingScreen.credits.models': 'Modelos 3D: Poly by Google e marioba, CC-BY 3.0 via Poly Pizza',
   },
   en: {
+    'ask.label': 'Ask the assistant',
+    'ask.placeholder': 'Ask anything about this area',
+    'ask.send': 'Send question',
+    'ask.suggestions': 'Suggested questions',
+    'panel.expandRight': 'Open the tools panel',
+    'panel.collapseRight': 'Close the tools panel',
+    'rp.chat': 'Assistant',
+    'rp.meta': 'Metadata',
+    'rp.nisar': 'NISAR',
+    'rp.band': 'NISAR L-band, HH + HV',
     'app.name': 'IARA',
     'app.subtitle': 'NASA Space Apps · Dancing with the SARs 2026',
 
