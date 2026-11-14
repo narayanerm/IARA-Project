@@ -127,7 +127,7 @@ export function ShareDialog() {
           aria-label={t('share.aria.openShare')}
         >
           <Share2 className="h-3.5 w-3.5" />
-          {t('share.trigger')}
+          <span className="hidden lg:inline">{t('share.trigger')}</span>
         </button>
       </Dialog.Trigger>
 

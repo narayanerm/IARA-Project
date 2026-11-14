@@ -1,142 +1,102 @@
-import { useEffect, useState } from 'react'
-import { BookOpen, ChartColumn, Radar, Siren, type LucideIcon } from 'lucide-react'
-import { CASES, type CaseStudy } from '@/data/cases'
-import { useApp, useUi } from '@/lib/store'
+import { useState } from 'react'
+import { ArrowLeft, BookOpen, ChartColumn, Siren, type LucideIcon } from 'lucide-react'
+import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
+import { useApp } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { CaseAlerts, CaseHotspots, CaseRisk } from './CaseAlerts'
+import { CaseAlerts } from './CaseAlerts'
 import { CaseSar } from './CaseSar'
 import { CaseSeries } from './CaseSeries'
 import { CaseStory } from './CaseStory'
-import { useMediaQuery } from './shared'
+import { CASE_ICON, useTr } from './shared'
 
-type Tab = 'story' | 'alerts' | 'sar' | 'series'
+type Tab = 'overview' | 'timeline' | 'alerts'
 
 const TABS: Array<{ id: Tab; icon: LucideIcon; label: TKey }> = [
-  { id: 'story', icon: BookOpen, label: 'case.tab.story' },
+  { id: 'overview', icon: BookOpen, label: 'case.tab.overview' },
+  { id: 'timeline', icon: ChartColumn, label: 'case.tab.timeline' },
   { id: 'alerts', icon: Siren, label: 'case.tab.alerts' },
-  { id: 'sar', icon: Radar, label: 'case.tab.sar' },
-  { id: 'series', icon: ChartColumn, label: 'case.tab.series' },
 ]
 
-// Panels wait for the camera flight before sliding in.
-const ENTER = 'animate-in fade-in duration-500 fill-mode-both motion-reduce:animate-none'
-
-/** The focused analysis of one case: story, alerts, radar and time series around the map. */
+/**
+ * The single surface of a case. It waits for the camera to land, then slides in beside the map
+ * (or up from the bottom on phones). The way out is always back to the three cards.
+ */
 export function CaseView() {
   const aoiActive = useApp((s) => s.aoiActive)
+  const arrived = useApp((s) => s.caseArrived)
   const activeRegion = useApp((s) => s.activeRegion)
-  if (!aoiActive) return null
-  return <CaseLayout key={activeRegion} c={CASES[activeRegion]} />
+  if (!aoiActive || !arrived) return null
+  return <CasePanel key={activeRegion} c={CASES[activeRegion]} />
 }
 
-function CaseLayout({ c }: { c: CaseStudy }) {
-  const rightOpen = useUi((s) => s.rightOpen)
-  const desktop = useMediaQuery('(min-width: 768px)')
-  const xl = useMediaQuery('(min-width: 1280px)')
-  const wide = desktop && xl && !rightOpen
-  const [tab, setTab] = useState<Tab>('story')
-
-  // Tabs that only exist in the narrower layouts fall back to the story when the layout widens.
-  useEffect(() => {
-    if (wide && tab !== 'story') setTab('story')
-    else if (desktop && tab === 'series') setTab('story')
-  }, [wide, desktop, tab])
-
-  const body =
-    tab === 'alerts' ? (
-      <CaseAlerts c={c} />
-    ) : tab === 'sar' ? (
-      <CaseSar c={c} />
-    ) : tab === 'series' ? (
-      <CaseSeries c={c} className="!border-0 !bg-transparent !shadow-none" />
-    ) : (
-      <CaseStory c={c} />
-    )
-
-  if (!desktop) {
-    return (
-      <aside className={cn('glass !bg-card absolute inset-x-0 bottom-0 z-10 flex h-[48svh] flex-col rounded-t-2xl slide-in-from-bottom-6 delay-500', ENTER)}>
-        <Tabs tab={tab} onChange={setTab} tabs={TABS} color={c.color} />
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{body}</div>
-      </aside>
-    )
-  }
-
-  return (
-    <>
-      <aside
-        data-tour="story"
-        className={cn(
-          'glass !bg-card absolute bottom-3 left-3 top-[62px] z-10 flex w-[372px] flex-col rounded-2xl slide-in-from-left-6 delay-700',
-          ENTER
-        )}
-      >
-        {!wide && <Tabs tab={tab} onChange={setTab} tabs={TABS.slice(0, 3)} color={c.color} />}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{body}</div>
-      </aside>
-
-      {wide && (
-        <aside
-          className={cn(
-            'glass !bg-card absolute bottom-10 right-3 top-[62px] z-10 w-[336px] overflow-y-auto overscroll-contain rounded-2xl slide-in-from-right-6 delay-1000',
-            ENTER
-          )}
-        >
-          <CaseRisk c={c} />
-          <div className="mx-4 border-t border-border/70" />
-          <CaseSar c={c} />
-          <div className="mx-4 border-t border-border/70" />
-          <CaseHotspots c={c} />
-        </aside>
-      )}
-
-      <CaseSeries
-        c={c}
-        className={cn(
-          'absolute bottom-3 left-[396px] z-10 slide-in-from-bottom-6 delay-1000',
-          wide ? 'right-[360px]' : 'right-12',
-          ENTER
-        )}
-      />
-    </>
-  )
-}
-
-function Tabs({
-  tab,
-  onChange,
-  tabs,
-  color,
-}: {
-  tab: Tab
-  onChange: (t: Tab) => void
-  tabs: typeof TABS
-  color: string
-}) {
+function CasePanel({ c }: { c: CaseStudy }) {
   const t = useT()
+  const tr = useTr()
+  const clearAoi = useApp((s) => s.clearAoi)
+  const [tab, setTab] = useState<Tab>('overview')
+  const Icon = CASE_ICON[c.id]
+  const index = CASE_ORDER.indexOf(c.id) + 1
+
   return (
-    <div role="tablist" aria-label={t('case.tabs')} className="flex shrink-0 border-b border-border/70 px-2">
-      {tabs.map(({ id, icon: Icon, label }) => {
-        const active = tab === id
-        return (
+    <aside className="case-panel" data-tour="story" aria-label={tr(c.analysis)}>
+      <header className="shrink-0 px-4 pt-3.5">
+        <div className="flex items-center gap-2">
           <button
-            key={id}
-            role="tab"
             type="button"
-            aria-selected={active}
-            onClick={() => onChange(id)}
-            className={cn(
-              'relative flex h-11 flex-1 items-center justify-center gap-1.5 text-[13px] font-medium transition-colors',
-              active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-            )}
+            onClick={clearAoi}
+            className="-ml-1.5 inline-flex h-8 items-center gap-1.5 rounded-lg px-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
-            <Icon className="h-3.5 w-3.5" />
-            {t(label)}
-            {active && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full" style={{ background: color }} />}
+            <ArrowLeft className="h-4 w-4" />
+            {t('case.back')}
           </button>
-        )
-      })}
-    </div>
+          <span className="ml-auto text-[12px] font-semibold tabular-nums text-muted-foreground">
+            0{index} / 0{CASE_ORDER.length}
+          </span>
+        </div>
+        <div className="mt-2 flex items-center gap-2 text-[11.5px] font-semibold uppercase tracking-[0.12em]" style={{ color: c.color }}>
+          <Icon className="h-4 w-4" />
+          {tr(c.analysis)}
+        </div>
+        <h2 className="mt-1 text-[clamp(1.35rem,1.1rem+0.9vw,1.75rem)] font-bold leading-[1.05] tracking-[-0.03em]">
+          {tr(c.place)}
+        </h2>
+      </header>
+
+      <div role="tablist" aria-label={t('case.tabs')} className="mt-2 flex shrink-0 gap-1 border-b border-border px-3">
+        {TABS.map(({ id, icon: TIcon, label }) => {
+          const active = tab === id
+          return (
+            <button
+              key={id}
+              role="tab"
+              type="button"
+              aria-selected={active}
+              onClick={() => setTab(id)}
+              className={cn(
+                'relative flex h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap text-[13px] font-medium transition-colors',
+                active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <TIcon className="h-3.5 w-3.5 shrink-0" />
+              {t(label)}
+              {active && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full" style={{ background: c.color }} />}
+            </button>
+          )
+        })}
+      </div>
+
+      <div key={tab} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto overscroll-contain animate-in fade-in duration-300 motion-reduce:animate-none">
+        {tab === 'overview' && <CaseStory c={c} />}
+        {tab === 'timeline' && (
+          <>
+            <CaseSeries c={c} />
+            <div className="mx-4 border-t border-border" />
+            <CaseSar c={c} />
+          </>
+        )}
+        {tab === 'alerts' && <CaseAlerts c={c} />}
+      </div>
+    </aside>
   )
 }

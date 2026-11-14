@@ -1,4 +1,4 @@
-import { HelpCircle, Mountain, Radar, Satellite, type LucideIcon } from 'lucide-react'
+import { HelpCircle, MessageSquare, Mountain, Radar, Satellite, type LucideIcon } from 'lucide-react'
 import { SarMap } from './Map/SarMap'
 import { RightPanel } from './RightPanel/RightPanel'
 import { ExportMenu } from './Export/ExportMenu'
@@ -17,13 +17,17 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const reliefOn = useUi((s) => s.reliefOn)
   const toggleSatellite = useUi((s) => s.toggleSatellite)
   const toggleRelief = useUi((s) => s.toggleRelief)
+  const rightOpen = useUi((s) => s.rightOpen)
+  const openRight = useUi((s) => s.openRight)
+  const setRightOpen = useUi((s) => s.setRightOpen)
   const nisarVisible = useApp((s) => s.nisarVisible)
   const setNisarVisible = useApp((s) => s.setNisarVisible)
+  const aoiActive = useApp((s) => s.aoiActive)
   const clearAoi = useApp((s) => s.clearAoi)
 
   return (
-    <section id="app" className="h-[100svh] w-full flex flex-col bg-background">
-      <div className="flex h-12 items-center justify-between gap-2 border-b border-border/60 bg-card/40 backdrop-blur-xl px-3 sm:px-4">
+    <section id="app" className="flex h-[100svh] w-full flex-col bg-background">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-card px-3 sm:px-4">
         <button
           type="button"
           onClick={clearAoi}
@@ -32,59 +36,75 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           title={t('case.home')}
         >
           <img src="/marca/iara-simbolo-escuro.svg" alt="" aria-hidden="true" className="h-7 w-7 shrink-0" />
-          <span className="hidden text-sm font-semibold sm:inline">{t('app.name')}</span>
+          <span className="text-sm font-semibold">{t('app.name')}</span>
         </button>
 
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-          <HeaderToggle
-            icon={Satellite}
-            label={t('map.satellite')}
-            hint={t('map.satelliteHint')}
-            on={satelliteOn}
-            onToggle={toggleSatellite}
-          />
-          <HeaderToggle
-            icon={Mountain}
-            label={t('map.relief')}
-            hint={t('map.reliefHint')}
-            on={reliefOn}
-            onToggle={toggleRelief}
-            className="hidden sm:inline-flex"
-          />
-          <HeaderToggle
-            icon={Radar}
-            label={t('map.radar')}
-            hint={t('map.radarHint')}
-            on={nisarVisible}
-            onToggle={() => setNisarVisible(!nisarVisible)}
-          />
-          <button
-            onClick={() => triggerTutorial()}
-            className="hidden lg:inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-background/40 px-2.5 h-8 text-[13px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-            title={t('appLayout.tour')}
-          >
-            <HelpCircle className="h-3.5 w-3.5" />
-            tour
-          </button>
+          {/* Map tools only make sense once a case is open. */}
+          {aoiActive && (
+            <>
+              <HeaderToggle
+                icon={Satellite}
+                label={t('map.satellite')}
+                hint={t('map.satelliteHint')}
+                on={satelliteOn}
+                onToggle={toggleSatellite}
+              />
+              <HeaderToggle
+                icon={Mountain}
+                label={t('map.relief')}
+                hint={t('map.reliefHint')}
+                on={reliefOn}
+                onToggle={toggleRelief}
+                className="hidden sm:inline-flex"
+              />
+              <HeaderToggle
+                icon={Radar}
+                label={t('map.radar')}
+                hint={t('map.radarHint')}
+                on={nisarVisible}
+                onToggle={() => setNisarVisible(!nisarVisible)}
+              />
+              <span className="mx-0.5 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+              <HeaderToggle
+                icon={MessageSquare}
+                label={t('rp.chat')}
+                hint={t('ask.label')}
+                on={rightOpen}
+                onToggle={() => (rightOpen ? setRightOpen(false) : openRight('chat'))}
+              />
+              <span data-tour="share">
+                <ShareDialog />
+              </span>
+              <span className="hidden md:inline-flex">
+                <ExportMenu />
+              </span>
+            </>
+          )}
+          {!aoiActive && (
+            <button
+              onClick={() => triggerTutorial()}
+              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-background/40 px-2.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+              title={t('appLayout.tour')}
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              tour
+            </button>
+          )}
           <LanguageToggle compact />
-          <span data-tour="share">
-            <ShareDialog />
-          </span>
-          <span className="hidden sm:inline-flex">
-            <ExportMenu />
-          </span>
         </div>
       </div>
 
-      <div className="flex-1 flex min-h-0">
-        <div data-tour="map" className="relative flex-1 min-w-0 overflow-hidden">
-          <SarMap />
-          <CaseView />
-          <CasePicker introDone={introDone} />
-        </div>
-        <div className="hidden md:block">
-          <RightPanel />
-        </div>
+      <div data-tour="map" className="relative min-h-0 flex-1 overflow-hidden">
+        <SarMap />
+        <CaseView />
+        <CasePicker introDone={introDone} />
+        {/* Assistant and tools open as a drawer over the map instead of a permanent rail. */}
+        {aoiActive && rightOpen && (
+          <div className="absolute inset-y-0 right-0 z-40 max-w-full shadow-2xl animate-in slide-in-from-right-6 fade-in duration-300 motion-reduce:animate-none">
+            <RightPanel />
+          </div>
+        )}
       </div>
     </section>
   )
