@@ -90,7 +90,7 @@ export function ShareDialog() {
             name: region.name,
             phenomenon: region.phenomenon,
             anchor_city: region.anchorCity,
-            source: 'Curupira · AmazonSAR Explorer',
+            source: 'IARA · AmazonSAR Explorer',
             note: 'AOI bounding box for GIS tools (QGIS, ArcGIS).',
           },
           geometry: {

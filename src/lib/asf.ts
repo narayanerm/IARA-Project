@@ -58,6 +58,9 @@ export interface AsfSearchParams {
   end?: string
   maxResults?: number
   processingLevel?: string
+  relativeOrbit?: number
+  frame?: number
+  flightDirection?: 'ASCENDING' | 'DESCENDING'
 }
 
 const BASE_URL = 'https://api.daac.asf.alaska.edu/services/search/param'
@@ -169,6 +172,15 @@ export async function searchGranules(
       'intersectsWith',
       `POINT(${params.intersectsPoint[0]} ${params.intersectsPoint[1]})`
     )
+  }
+  if (params.relativeOrbit !== undefined) {
+    url.searchParams.set('relativeOrbit', String(params.relativeOrbit))
+  }
+  if (params.frame !== undefined) {
+    url.searchParams.set('frame', String(params.frame))
+  }
+  if (params.flightDirection) {
+    url.searchParams.set('flightDirection', params.flightDirection)
   }
 
   const res = await fetch(url.toString(), { signal, headers: { Accept: 'application/json' } })
