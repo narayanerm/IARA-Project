@@ -78,5 +78,5 @@ export const TRUE_COLOR_LAYER: GibsLayer = {
   sensor: 'MODIS',
   explanation:
     'Visão óptica diária. Contraste "o que o olho vê" vs. "o que o SAR vê sob nuvem/fumaça/noite".',
-  paintColor: 'hsl(198 51% 57%)',
+  paintColor: 'hsl(190 95% 60%)',
 }

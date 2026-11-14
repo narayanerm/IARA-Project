@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
-import { ArrowRight, ChevronLeft, Layers3, Radar, ScrollText, Sun, type LucideIcon } from 'lucide-react'
+import { ArrowRight, ChartLine, ChevronLeft, Layers3, Radar, ScrollText, Sun, type LucideIcon } from 'lucide-react'
 import { Sidebar } from './Sidebar/Sidebar'
 import { SarMap } from './Map/SarMap'
-import { OverlayLegend, FocusedTiBadge } from './Map/OverlayLegend'
+import { OverlayLegend, FocusedTiBadge, MapOptions } from './Map/OverlayLegend'
+import { AskBar } from './Chatbot/AskBar'
 import { SarPreview } from './Map/SarPreview'
 import { Legend } from './Map/Legend'
 import { LayerToggle } from './Map/LayerToggle'
@@ -12,13 +13,13 @@ import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
 import { PhenomenonBriefing } from './Briefing/PhenomenonBriefing'
 import { NisarControl } from './Map/NisarControl'
-import { CaseCard, ICON_BY_PHENOMENON } from './Map/CaseMarkers'
+import { ICON_BY_PHENOMENON } from './Map/CaseMarkers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { REGIONS } from '@/lib/regions'
-import { useApp, useUi } from '@/lib/store'
+import { useApp, useMapView, useUi } from '@/lib/store'
 import { useT } from '@/lib/i18n'
-import { backToOverview, showRadar } from '@/lib/story'
+import { backToOverview, markExplore, showRadar } from '@/lib/story'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 
 const REVEAL = 'animate-in fade-in slide-in-from-bottom-1 duration-200 motion-reduce:animate-none'
@@ -28,6 +29,8 @@ export function AppLayout() {
   const stage = useUi((s) => s.stage)
   const briefingOpen = useUi((s) => s.briefingOpen)
   const setBriefingOpen = useUi((s) => s.setBriefingOpen)
+  const rightOpen = useUi((s) => s.rightOpen)
+  const detailOpen = useMapView((s) => s.detailOpen)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
   const toggleNasaOverlay = useApp((s) => s.toggleNasaOverlay)
@@ -96,34 +99,33 @@ export function AppLayout() {
             )}
           </div>
 
-          {/* top-right column: what the image shows, then view-option legend and SAR preview */}
-          {onRadar && (
-            <div className="pointer-events-none absolute right-4 top-4 bottom-24 hidden w-[280px] flex-col items-end gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none] sm:flex">
-              <RadarCaption />
-              <FocusedTiBadge />
-              {exploring && (
-                <div className={REVEAL}>
-                  <OverlayLegend />
-                </div>
-              )}
-              {exploring && (
-                <div className={cn('pointer-events-auto w-full', REVEAL)}>
-                  <SarPreview />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* bottom dock: everything stacks here so nothing overlaps */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 px-4 pb-4">
-            {stage === 'overview' && (
-              <div className="pointer-events-auto flex w-full flex-col gap-2 md:hidden">
-                {REGIONS.map((r) => (
-                  <CaseCard key={r.id} id={r.id} className="w-full" />
-                ))}
+          {/* top-right column: what the image shows, map legend and options, SAR preview.
+              Map options (with the satellite switch) are there from the first screen. */}
+          <div className="pointer-events-none absolute right-4 top-4 bottom-36 flex w-[min(280px,calc(100%-2rem))] flex-col items-end gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none]">
+            {onRadar && (
+              <div className="hidden w-full sm:block">
+                <RadarCaption />
               </div>
             )}
+            <FocusedTiBadge />
+            {onRadar ? (
+              <div className={cn('hidden w-full sm:block', REVEAL)}>
+                <OverlayLegend />
+              </div>
+            ) : (
+              <div className="w-[200px] max-w-full">
+                <MapOptions />
+              </div>
+            )}
+            {exploring && (
+              <div className={cn('pointer-events-auto hidden w-full sm:block', REVEAL)}>
+                <SarPreview />
+              </div>
+            )}
+          </div>
 
+          {/* bottom dock: everything stacks here so nothing overlaps; pb clears the map attribution */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-2 px-4 pb-9">
             {briefingOpen && <PhenomenonBriefing />}
 
             {onRadar && !briefingOpen && (
@@ -132,22 +134,18 @@ export function AppLayout() {
               </div>
             )}
 
-            {onRadar && !briefingOpen && (
+            {exploring && !briefingOpen && (
               <div className="flex w-full items-end gap-3">
-                {exploring && (
-                  <div className={cn('pointer-events-auto hidden shrink-0 sm:block', REVEAL)}>
-                    <Legend />
-                  </div>
-                )}
-                {exploring && (
-                  <div className={cn('pointer-events-auto min-w-0 max-w-[720px] flex-1', REVEAL)}>
-                    <Timeline />
-                  </div>
-                )}
+                <div className={cn('pointer-events-auto hidden shrink-0 sm:block', REVEAL)}>
+                  <Legend />
+                </div>
+                <div className={cn('pointer-events-auto min-w-0 max-w-[720px] flex-1', REVEAL)}>
+                  <Timeline />
+                </div>
               </div>
             )}
 
-            {stage !== 'overview' && !briefingOpen && (
+            {stage !== 'overview' && !briefingOpen && !detailOpen && (
               <div className={cn('pointer-events-auto flex items-center gap-2', REVEAL)}>
                 <button
                   onClick={() => setBriefingOpen(true)}
@@ -168,6 +166,10 @@ export function AppLayout() {
                 )}
               </div>
             )}
+
+            {!briefingOpen && !rightOpen && !exploring && !detailOpen && <AskBar className="pointer-events-auto" />}
+
+            {!exploring && !briefingOpen && !detailOpen && <TimelineTab locked={stage !== 'radar'} />}
           </div>
         </div>
         <RightPanel />
@@ -268,5 +270,30 @@ function RadarCaption() {
       <div className="text-[12px] font-medium text-water">{t(`radar.title.${activeRegion}`)}</div>
       <p className="mt-0.5 text-[13px] leading-snug text-foreground">{t(`radar.caption.${activeRegion}`)}</p>
     </div>
+  )
+}
+
+/** Collapsed timeline: a slim tab at the bottom edge. Opens the time series once a case is on radar. */
+function TimelineTab({ locked }: { locked: boolean }) {
+  const t = useT()
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={locked ? undefined : () => markExplore()}
+          aria-disabled={locked || undefined}
+          aria-label={locked ? `${t('timeline.tab')}. ${t('timeline.locked')}` : t('timeline.tab')}
+          className={cn(
+            'pointer-events-auto inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[12px] font-medium transition-colors',
+            locked ? 'cursor-not-allowed text-muted-foreground' : 'text-foreground hover:bg-raised'
+          )}
+        >
+          <ChartLine className="h-3.5 w-3.5" aria-hidden />
+          {t('timeline.tab')}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{locked ? t('timeline.locked') : t('timeline.tab')}</TooltipContent>
+    </Tooltip>
   )
 }

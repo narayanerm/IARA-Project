@@ -84,24 +84,40 @@ export function OverlayLegend() {
   )
 }
 
-function MapOptions() {
+export function MapOptions() {
   const t = useT()
   const [open, setOpen] = useState(false)
   const v = useMapView()
   const active = [v.satelliteOn, v.terrainOn, v.municipiosOn].filter(Boolean).length
   return (
-    <section className="glass rounded-lg text-[13px]">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <MapIcon className="h-4 w-4 text-muted-foreground" aria-hidden />
-        {t('map.options')}
-        {active > 0 && <span className="text-[12px] tabular-nums text-muted-foreground">({active})</span>}
-        <ChevronDown className={cn('ml-auto h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
-      </button>
+    <section className="pointer-events-auto glass w-full rounded-lg text-[13px]">
+      <div className="flex items-center gap-1 pr-1.5">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-center gap-2 py-2 pl-3 text-left font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <MapIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="truncate">{t('map.options')}</span>
+          {active > 0 && <span className="text-[12px] tabular-nums text-muted-foreground">({active})</span>}
+          <ChevronDown className={cn('ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+        </button>
+        {/* basemap switch in one click, without opening the options */}
+        <button
+          type="button"
+          onClick={v.toggleSatellite}
+          aria-pressed={v.satelliteOn}
+          aria-label={t('map.satellite')}
+          title={t('map.satelliteHint')}
+          className={cn(
+            'grid h-7 w-7 shrink-0 place-items-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            v.satelliteOn ? 'bg-raised text-foreground' : 'text-muted-foreground hover:bg-raised hover:text-foreground'
+          )}
+        >
+          <Satellite className="h-4 w-4" />
+        </button>
+      </div>
       {open && (
         <div className="grid gap-1 border-t border-border p-2">
           <OptionRow icon={Satellite} label={t('map.satellite')} hint={t('map.satelliteHint')} on={v.satelliteOn} onToggle={v.toggleSatellite} />

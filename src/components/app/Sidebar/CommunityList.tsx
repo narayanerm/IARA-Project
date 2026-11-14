@@ -190,12 +190,12 @@ export function CommunityList({ locked }: { locked: boolean }) {
       {!tiFeats && !failed && <p className="px-1 text-[12px] text-muted-foreground">{t('side.loadingCommunities')}</p>}
       {failed && <p className="px-1 text-[12px] text-destructive">{t('side.communitiesFailed')}</p>}
 
-      <ul className="flex flex-col divide-y divide-border">
-        {shown.map((e) => {
+      <ul data-community-list className="flex flex-col divide-y divide-border">
+        {shown.map((e, i) => {
           const isTi = e.kind === 'ti'
           const focused = isTi && focusedTi === e.name
           return (
-            <li key={`${e.kind}-${e.name}-${e.centroid[0]}`} className={cn('flex min-w-0 items-start gap-2 rounded-md px-1', focused && 'bg-raised')}>
+            <li key={`${e.kind}-${i}-${e.name}`} className={cn('flex min-w-0 items-start gap-2 rounded-md px-1', focused && 'bg-raised')}>
               <button
                 onClick={() => {
                   if (isTi) setFocusedTi(focused ? null : e.name)

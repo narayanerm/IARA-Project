@@ -28,14 +28,14 @@ import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
 import { inAmazon } from '@/lib/amazon'
-import { AMAZON_VIEW, markExplore } from '@/lib/story'
+import { AMAZON_BOUNDS, markExplore } from '@/lib/story'
 import { CaseMarkers } from './CaseMarkers'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
 // Basemap style already credits OpenFreeMap, OpenMapTiles and OpenStreetMap; this adds the community data
 // sources (full list in ATTRIBUTIONS.md). Kept short so the expanded credit stays on one line above the timeline.
-const MAP_ATTRIBUTION = 'Communities: IBGE, FUNAI, MMA via INPE TerraBrasilis'
+const MAP_ATTRIBUTION = 'Comunidades: IBGE, FUNAI, MMA via INPE TerraBrasilis'
 
 // Moderate tilt keeps the 3D feel without loading low-detail tiles across a long horizon.
 const PITCH = 40
@@ -102,6 +102,12 @@ function rasterFade(layer: GibsLayer, opacity: number) {
     number,
     number,
   ]
+}
+
+// Room around the basin for the rails, the header and the floating ask bar.
+function overviewPadding() {
+  const small = typeof window !== 'undefined' && window.innerWidth < 640
+  return small ? { top: 24, bottom: 120, left: 16, right: 16 } : { top: 40, bottom: 130, left: 60, right: 60 }
 }
 
 export function SarMap() {
@@ -204,7 +210,7 @@ export function SarMap() {
     const m = mapRef.current
     if (!m || !mapLoaded) return
     if (overview) {
-      m.flyTo({ ...AMAZON_VIEW, pitch: 0, bearing: 0, duration: 1400, essential: true })
+      m.fitBounds(AMAZON_BOUNDS, { padding: overviewPadding(), pitch: 0, bearing: 0, duration: 1400, essential: true })
       return
     }
     // The region's layer balloon opens above its centre, so park the centre low enough for it to fit.
@@ -277,9 +283,6 @@ export function SarMap() {
   )
 
   const onClick = (e: MapLayerMouseEvent) => {
-    // Overview and briefing: the case markers / briefing are the only things to click.
-    const stage = useUi.getState().stage
-    if (stage === 'overview' || stage === 'case') return
     const f = e.features?.[0]
     if (!f) {
       markExplore()
@@ -340,7 +343,7 @@ export function SarMap() {
         mapLib={maplibregl}
         initialViewState={
           useUi.getState().stage === 'overview'
-            ? { longitude: AMAZON_VIEW.center[0], latitude: AMAZON_VIEW.center[1], zoom: AMAZON_VIEW.zoom, pitch: 0, bearing: 0 }
+            ? { bounds: AMAZON_BOUNDS, fitBoundsOptions: { padding: overviewPadding() }, pitch: 0, bearing: 0 }
             : { longitude: region.center[0], latitude: region.center[1], zoom: region.zoom, pitch: PITCH, bearing: BEARING }
         }
         maxPitch={60}
@@ -351,6 +354,12 @@ export function SarMap() {
         onLoad={(e) => {
           setLabelLayerId(e.target.getStyle().layers.find((l) => l.type === 'symbol')?.id ?? 'amazon-biome-fill')
           setMapLoaded(true)
+          // Phones: start with the credits folded behind the (i) button so they do not cover the ask bar.
+          if (e.target.getContainer().clientWidth < 640) {
+            const attrib = e.target.getContainer().querySelector('.maplibregl-ctrl-attrib')
+            attrib?.classList.remove('maplibregl-compact-show')
+            attrib?.removeAttribute('open')
+          }
         }}
         attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
@@ -387,7 +396,7 @@ export function SarMap() {
             id="amazon-biome-fill"
             type="fill"
             paint={{
-              'fill-color': 'hsl(142 29% 24%)',
+              'fill-color': 'hsl(145 65% 35%)',
               'fill-opacity': 0.08,
             }}
           />
@@ -395,7 +404,7 @@ export function SarMap() {
             id="amazon-biome-line"
             type="line"
             paint={{
-              'line-color': 'hsl(142 32% 46%)',
+              'line-color': 'hsl(145 70% 55%)',
               'line-opacity': 0.45,
               'line-width': 1.3,
               'line-dasharray': [3, 2],
@@ -412,7 +421,7 @@ export function SarMap() {
               id="br-coverage-fill" beforeId="reserves-fill"
               type="fill"
               paint={{
-                'fill-color': 'hsl(198 51% 57%)',
+                'fill-color': 'hsl(190 95% 55%)',
                 // Swath fills read as a wash once zoomed in; keep them for the national overview only.
                 'fill-opacity': [
                   'interpolate',
@@ -429,7 +438,7 @@ export function SarMap() {
               id="br-coverage-outline" beforeId="reserves-fill"
               type="line"
               paint={{
-                'line-color': 'hsl(198 51% 70%)',
+                'line-color': 'hsl(190 100% 75%)',
                 'line-opacity': [
                   'interpolate',
                   ['linear'],
@@ -527,7 +536,7 @@ export function SarMap() {
               id="asf-footprints-fill" beforeId="community-points-anchor"
               type="fill"
               paint={{
-                'fill-color': 'hsl(198 51% 57%)',
+                'fill-color': 'hsl(190 95% 60%)',
                 // Swaths are ~250 km wide: zoomed in, the whole view sits inside several and the fills stack into a wash.
                 'fill-opacity': [
                   'interpolate',
@@ -544,7 +553,7 @@ export function SarMap() {
               id="asf-footprints-line" beforeId="community-points-anchor"
               type="line"
               paint={{
-                'line-color': 'hsl(198 51% 70%)',
+                'line-color': 'hsl(190 95% 70%)',
                 'line-opacity': [
                   'interpolate',
                   ['linear'],
@@ -561,7 +570,7 @@ export function SarMap() {
           </Source>
         )}
 
-        {activeRegion === 'YANO' && !overview && (
+        {activeRegion === 'YANO' && (
           <Source id="yano-change" type="geojson" data={changeFC}>
             <Layer
               id="yano-change-fill" beforeId="community-points-anchor"
@@ -668,7 +677,7 @@ export function SarMap() {
               <Layer
                 id="focused-ti-mask-fill"
                 type="fill"
-                paint={{ 'fill-color': 'hsl(154 26% 5%)', 'fill-opacity': 0.75 }}
+                paint={{ 'fill-color': 'hsl(222 47% 5%)', 'fill-opacity': 0.75 }}
               />
             </Source>
             <Source
@@ -681,7 +690,7 @@ export function SarMap() {
                 id="focused-ti-outline"
                 type="line"
                 paint={{
-                  'line-color': 'hsl(198 51% 70%)',
+                  'line-color': 'hsl(190 95% 70%)',
                   'line-width': 2.5,
                   'line-opacity': 1,
                 }}
@@ -715,11 +724,11 @@ export function SarMap() {
               paint={{
                 'fill-color': [
                   'case',
-                  ['boolean', ['in', 'MINERACAO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(17 75% 42%)',
-                  ['boolean', ['in', 'GARIMPO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(17 75% 42%)',
-                  ['boolean', ['in', 'DESMATAMENTO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(19 85% 61%)',
-                  ['boolean', ['in', 'DEGRADACAO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(139 10% 69%)',
-                  'hsl(198 51% 57%)',
+                  ['boolean', ['in', 'MINERACAO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(0 90% 60%)',
+                  ['boolean', ['in', 'GARIMPO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(0 90% 60%)',
+                  ['boolean', ['in', 'DESMATAMENTO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(28 95% 60%)',
+                  ['boolean', ['in', 'DEGRADACAO', ['upcase', ['coalesce', ['get', 'classname'], '']]], false], 'hsl(48 85% 55%)',
+                  'hsl(190 85% 60%)',
                 ],
                 'fill-opacity': 0.55,
               }}
@@ -731,7 +740,7 @@ export function SarMap() {
             />
           </Source>
         )}
-        {!overview && <CommunityPoints />}
+        <CommunityPoints />
         <AoiLayersPopup />
         {overview && <CaseMarkers />}
       </Map>
