@@ -6,7 +6,7 @@ import { useApp } from '@/lib/store'
 import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { useT } from '@/lib/i18n'
 
-const LINE = 'hsl(348 85% 58%)'
+const LINE = '#F07A45'
 
 // Half the native range thumb, so the invisible slider's steps line up with the chart points.
 const THUMB_HALF = 8

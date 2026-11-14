@@ -7,17 +7,17 @@ import type {
   PointLike,
   PositionAnchor,
 } from 'maplibre-gl'
-import { ExternalLink, Flame, History, MapPin as MapPinIcon, Navigation, Users, X } from 'lucide-react'
+import { CalendarCheck, ExternalLink, Flame, History, MapPin as MapPinIcon, Navigation, Users, X } from 'lucide-react'
 import { COMMUNITY_DATA, type Risk, type RiversideProps, type TiPointProps } from '@/data/layers/communities'
+import { tiProfileUrl, IBGE_BC250_URL, INPE_QUEIMADAS_URL } from '@/lib/links'
 import {
-  FUNAI_TI_URL,
-  tiProfileUrl,
-  funaiSiciUrl,
-  IBGE_BC250_URL,
-  INPE_QUEIMADAS_URL,
-  ibgeCidadeUrl,
-} from '@/lib/links'
-import { useT, type TKey } from '@/lib/i18n'
+  FUNAI_OFFICES_URL,
+  formatOfficialDate,
+  landRecord,
+  municipalityRecord,
+  useOfficialRecords,
+} from '@/lib/officialRecords'
+import { useI18n, useT, type TKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { CommunityPin } from './CommunityPin'
 import { KIND_COLOR, type CommunityKind } from './community-kind'
@@ -248,10 +248,10 @@ export function CommunityPoints() {
 }
 
 const RISK_TONE: Record<Risk, string> = {
-  baixo: 'text-emerald-300 border-emerald-400/40 bg-emerald-400/10',
-  moderado: 'text-yellow-200 border-yellow-300/40 bg-yellow-300/10',
-  alto: 'text-orange-300 border-orange-400/40 bg-orange-400/10',
-  'muito alto': 'text-red-300 border-red-400/50 bg-red-400/10',
+  baixo: 'text-white/80 border-white/30 bg-white/10',
+  moderado: 'text-[#F07A45] border-[#F07A45]/40 bg-[#F07A45]/10',
+  alto: 'text-[#F07A45] border-[#F07A45]/60 bg-[#F07A45]/20',
+  'muito alto': 'text-white border-[#F07A45] bg-[#F07A45]/40',
 }
 
 const RISK_KEY: Record<Risk, TKey> = {
@@ -278,19 +278,16 @@ function PopupShell({
 }) {
   const t = useT()
   return (
-    <div
-      className="w-[min(320px,calc(100vw-48px))] max-h-[min(460px,calc(100dvh-140px))] overflow-y-auto overscroll-contain rounded-xl border bg-card shadow-2xl"
-      style={{ borderColor: `color-mix(in srgb, ${KIND_COLOR[kind].fill} 45%, transparent)` }}
-    >
+    <div className="w-[min(320px,calc(100vw-48px))] max-h-[min(460px,calc(100dvh-140px))] overflow-y-auto overscroll-contain rounded-xl border border-[#F07A45]/50 bg-[#13201A] text-white shadow-2xl">
       <div className="flex items-start gap-2.5 px-3.5 pt-3 pb-2.5">
         <CommunityPin kind={kind} size={30} />
         <div className="flex-1 min-w-0">
-          <div className="text-[15px] font-semibold leading-snug text-foreground">{title}</div>
-          <div className="text-[13px] text-foreground/70 mt-0.5">{subtitle}</div>
+          <div className="text-[15px] font-semibold leading-snug text-white">{title}</div>
+          <div className="text-[13px] text-white/70 mt-0.5">{subtitle}</div>
         </div>
         <button
           onClick={onClose}
-          className="rounded-md p-1 text-foreground/60 hover:text-foreground hover:bg-secondary/70 transition-colors"
+          className="rounded-md p-1 text-white/60 hover:text-white hover:bg-[#0A1103] transition-colors"
           aria-label={t('community.close')}
         >
           <X className="h-4 w-4" />
@@ -309,7 +306,7 @@ function PopupShell({
           </span>
         </div>
       )}
-      <div className="border-t border-border/60 px-3.5 py-3 space-y-2.5">{children}</div>
+      <div className="border-t border-[#F07A45]/30 px-3.5 py-3 space-y-2.5">{children}</div>
     </div>
   )
 }
@@ -317,10 +314,10 @@ function PopupShell({
 function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
   return (
     <div className="flex items-start gap-2 text-[13px]">
-      <Icon className="h-4 w-4 shrink-0 text-foreground/50 mt-px" />
+      <Icon className="h-4 w-4 shrink-0 text-[#F07A45] mt-px" />
       <div className="min-w-0">
-        <span className="text-foreground/60">{label}: </span>
-        <span className="text-foreground">{value}</span>
+        <span className="text-white/70">{label}: </span>
+        <span className="text-white">{value}</span>
       </div>
     </div>
   )
@@ -335,8 +332,8 @@ function LinkButton({ href, label, primary }: { href: string; label: string; pri
       className={cn(
         'flex items-center justify-between rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors active:scale-[0.98]',
         primary
-          ? 'border-sar-amber/50 bg-sar-amber/15 text-sar-amber hover:bg-sar-amber/25'
-          : 'border-border bg-background/40 text-foreground/85 hover:bg-background/70'
+          ? 'border-[#F07A45] bg-[#F07A45]/20 text-[#F07A45] hover:bg-[#F07A45]/30'
+          : 'border-[#F07A45]/30 bg-[#0A1103] text-white/85 hover:bg-[#0A1103]/80 hover:border-[#F07A45]/60'
       )}
     >
       <span>{label}</span>
@@ -347,13 +344,19 @@ function LinkButton({ href, label, primary }: { href: string; label: string; pri
 
 function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void }) {
   const t = useT()
-  const fmt = (n: number) => n.toLocaleString('pt-BR')
+  const locale = useI18n((s) => (s.lang === 'en' ? 'en-US' : 'pt-BR'))
+  const fmt = (n: number) => n.toLocaleString(locale)
+  const official = landRecord(useOfficialRecords(), props.nome)
+  const homologated = formatOfficialDate(official?.funai?.homologated)
+  const residents = official?.census2022?.residents
+  const office = official?.office
+  const isaId = props.isaId ?? official?.isaId ?? null
   const ethnicities = props.etnia ? props.etnia.split(/[;,/]\s*/).filter(Boolean) : []
   return (
     <PopupShell
       kind="indigenous"
       title={props.nome}
-      subtitle={[t('community.indigenous'), props.fase].filter(Boolean).join(' · ')}
+      subtitle={[t('community.indigenous'), official?.funai?.phase ?? props.fase].filter(Boolean).join(' · ')}
       risk={props.risco}
       onClose={onClose}
     >
@@ -377,6 +380,16 @@ function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void 
       {props.area_km2 != null && (
         <Fact icon={MapPinIcon} label={t('community.area')} value={`${fmt(props.area_km2)} km²`} />
       )}
+      {homologated ? (
+        <Fact icon={CalendarCheck} label={t('community.homologated')} value={homologated} />
+      ) : (
+        official?.funai?.phase && (
+          <Fact icon={CalendarCheck} label={t('community.notHomologated')} value={official.funai.phase} />
+        )
+      )}
+      {residents != null && (
+        <Fact icon={Users} label={t('community.residents2022')} value={fmt(residents)} />
+      )}
       {props.revisao_fase && (
         <Fact
           icon={History}
@@ -388,21 +401,20 @@ function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void 
       )}
       <Fact icon={Flame} label={t('community.fires2026')} value={fmt(props.focos_2026)} />
       <div className="grid gap-1.5 pt-1">
-        {props.isaId != null && <LinkButton href={tiProfileUrl(props.isaId)} label={t('community.tiProfile')} primary />}
         <LinkButton
-          href={funaiSiciUrl(props.nome)}
-          label={`FUNAI · ${props.nome.replace(/^TI\s+/i, '')}`}
-          primary={props.isaId == null}
+          href={office?.url ?? FUNAI_OFFICES_URL}
+          label={office?.name ? t('community.funaiOffice', { name: office.name }) : t('community.funaiOffices')}
+          primary
         />
-        <LinkButton href={FUNAI_TI_URL} label={t('community.funai')} />
+        {isaId != null && <LinkButton href={tiProfileUrl(isaId)} label={t('community.tiProfile')} />}
       </div>
-      <div className="text-[12px] text-foreground/55 leading-snug">
-        Limites:{' '}
+      <div className="text-[12px] text-white/55 leading-snug">
+        {t('community.officialSource')} {t('community.boundaries')}{' '}
         <a
           href="https://terrabrasilis.dpi.inpe.br/"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline hover:text-foreground"
+          className="underline hover:text-[#F07A45]"
         >
           FUNAI via TerraBrasilis/INPE
         </a>
@@ -413,48 +425,33 @@ function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void 
 }
 
 function AccessDifficulty({ level, distKm }: { level: string; distKm?: number }) {
+  const t = useT()
   const key = level.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-  const meta: Record<string, { label: string; color: string; hint: string }> = {
-    baixa: {
-      label: 'Baixa',
-      color: 'hsl(140 60% 45%)',
-      hint: 'Acesso rodoviário pavimentado ou curta travessia (< 20 km da cidade).',
-    },
-    media: {
-      label: 'Média',
-      color: 'hsl(38 95% 55%)',
-      hint: 'Estrada precária + travessia fluvial · 20–100 km da cidade.',
-    },
-    alta: {
-      label: 'Alta',
-      color: 'hsl(0 85% 55%)',
-      hint: 'Só por rio/avião · > 100 km da cidade, dias de viagem.',
-    },
-    'muito alta': {
-      label: 'Muito alta',
-      color: 'hsl(0 85% 45%)',
-      hint: 'Isolamento extremo · regularmente sem navegação na seca.',
-    },
+  const meta: Record<string, { label: string; intensity: number; hint: string }> = {
+    baixa: { label: t('communityLayers.accessLow'), intensity: 0.25, hint: t('communityLayers.accessLowHint') },
+    media: { label: t('communityLayers.accessMedium'), intensity: 0.5, hint: t('communityLayers.accessMediumHint') },
+    alta: { label: t('communityLayers.accessHigh'), intensity: 0.75, hint: t('communityLayers.accessHighHint') },
+    'muito alta': { label: t('communityLayers.accessVeryHigh'), intensity: 1, hint: t('communityLayers.accessVeryHighHint') },
   }
-  const m = meta[key] ?? { label: level, color: 'hsl(220 10% 60%)', hint: '' }
+  const m = meta[key] ?? { label: level, intensity: 0.3, hint: '' }
   return (
-    <div className="rounded-md border border-border/60 bg-background/40 p-2">
+    <div className="rounded-md border border-[#F07A45]/30 bg-[#0A1103] p-2">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-          Dificuldade de acesso
+        <div className="text-[10px] font-mono uppercase tracking-wider text-white/60">
+          {t('communityLayers.accessLevel')}
         </div>
         <span
-          className="rounded-full px-2 py-0.5 text-[11px] font-mono font-semibold text-background"
-          style={{ background: m.color }}
+          className="rounded-full border border-[#F07A45] px-2 py-0.5 text-[11px] font-mono font-semibold text-[#F07A45]"
+          style={{ background: `rgba(240, 122, 69, ${m.intensity * 0.35})` }}
         >
           {m.label}
         </span>
       </div>
       {m.hint && (
-        <div className="mt-1 text-[11px] text-foreground/80 leading-snug">
+        <div className="mt-1 text-[11px] text-white/80 leading-snug">
           {m.hint}
           {distKm != null && (
-            <span className="text-muted-foreground"> · medido: {distKm} km</span>
+            <span className="text-white/50"> · {t('communityLayers.measured')}: {distKm} km</span>
           )}
         </div>
       )}
@@ -464,6 +461,8 @@ function AccessDifficulty({ level, distKm }: { level: string; distKm?: number })
 
 function RiversidePopup({ props, onClose }: { props: RiversideProps; onClose: () => void }) {
   const t = useT()
+  const locale = useI18n((s) => (s.lang === 'en' ? 'en-US' : 'pt-BR'))
+  const municipality = municipalityRecord(useOfficialRecords(), props.municipio)
   return (
     <PopupShell
       kind="riverside"
@@ -486,34 +485,41 @@ function RiversidePopup({ props, onClose }: { props: RiversideProps; onClose: ()
       {props.atividade_principal_mun && (
         <Fact icon={Users} label={t('community.economy')} value={props.atividade_principal_mun} />
       )}
+      {municipality?.population != null && (
+        <Fact
+          icon={Users}
+          label={t('community.munPopulation')}
+          value={municipality.population.toLocaleString(locale)}
+        />
+      )}
       <Fact icon={Flame} label={t('community.fires10km')} value={String(props.focos_10km)} />
       <div className="grid gap-1.5 pt-1">
-        {props.municipio && (
+        {municipality && (
           <LinkButton
-            href={ibgeCidadeUrl(props.municipio)}
-            label={`IBGE Cidades · ${props.municipio}`}
+            href={municipality.url}
+            label={t('community.ibgeCity', { name: `${municipality.name} (${municipality.uf})` })}
             primary
           />
         )}
-        <LinkButton href={IBGE_BC250_URL} label="IBGE BC250 · base cartográfica" />
-        <LinkButton href={INPE_QUEIMADAS_URL} label="INPE Queimadas · focos de calor" />
+        <LinkButton href={IBGE_BC250_URL} label={t('communityLayers.bc250Label')} />
+        <LinkButton href={INPE_QUEIMADAS_URL} label={t('communityLayers.queimadasLabel')} />
       </div>
-      <div className="text-[12px] text-foreground/55 leading-snug">
-        Localização:{' '}
+      <div className="text-[12px] text-white/55 leading-snug">
+        {t('communityLayers.locationPrefix')}:{' '}
         <a
           href={IBGE_BC250_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline hover:text-foreground"
+          className="underline hover:text-[#F07A45]"
         >
           IBGE BC250
         </a>
-        . Focos:{' '}
+        . {t('communityLayers.firesPrefix')}:{' '}
         <a
           href={INPE_QUEIMADAS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline hover:text-foreground"
+          className="underline hover:text-[#F07A45]"
         >
           INPE
         </a>

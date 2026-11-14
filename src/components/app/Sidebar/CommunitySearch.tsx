@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { FilterKind } from './types'
 
@@ -13,6 +14,7 @@ export function CommunitySearch({
   filter: FilterKind
   onFilterChange: (f: FilterKind) => void
 }) {
+  const t = useT()
   return (
     <>
       <div className="relative">
@@ -21,14 +23,14 @@ export function CommunitySearch({
           type="search"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Buscar TI, etnia, município, rio…"
+          placeholder={t('sidebar.searchPlaceholder')}
           className="w-full rounded-md border border-border/60 bg-background/40 pl-7 pr-7 py-1.5 text-[13px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40"
         />
         {query && (
           <button
             onClick={() => onQueryChange('')}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label="Limpar busca"
+            aria-label={t('sidebar.clearSearch')}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -47,7 +49,7 @@ export function CommunitySearch({
                 : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
             )}
           >
-            {k === 'all' ? 'todas' : k === 'ti' ? 'TI (FUNAI)' : 'Ribeirinhas'}
+            {k === 'all' ? t('sidebar.filter.all') : k === 'ti' ? t('sidebar.filter.ti') : t('sidebar.filter.riverside')}
           </button>
         ))}
       </div>

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { INDIGENOUS_LANDS } from '@/data/layers/indigenous-lands'
 import { AFFECTED_AREAS } from '@/data/layers/affected-areas'
+import { landRecord, municipalityRecord, useOfficialRecords, yearOf } from '@/lib/officialRecords'
 import type { Entry, RivFeat, TiFeat } from '../types'
 import { ENRICHED_TI_PROPS, tokensOf } from '../utils'
 
 export function useCommunityData() {
+  const official = useOfficialRecords()
   const [tiFeats, setTiFeats] = useState<TiFeat[] | null>(null)
   const [rivFeats, setRivFeats] = useState<RivFeat[] | null>(null)
 
@@ -55,13 +57,16 @@ export function useCommunityData() {
         ((p.bs ?? f.geometry.coordinates[1]) + (p.bn ?? f.geometry.coordinates[1])) / 2,
       ]
       const enriched = ENRICHED_TI_PROPS.get(p.nome.toLowerCase())
+      const land = landRecord(official, p.nome)
       out.push({
         kind: 'ti',
         name: p.nome,
         subtitle: p.etnia || 'Terra Indígena',
-        area_km2: p.area_km2,
-        population: enriched?.population,
-        year: enriched?.year,
+        // Official figures first (FUNAI area and ratification, IBGE 2022 residents).
+        area_km2: land?.funai?.areaKm2 ?? p.area_km2,
+        population: land?.census2022?.residents ?? enriched?.population,
+        year: yearOf(land?.funai?.homologated) ?? (land ? undefined : enriched?.year),
+        phase: land?.funai?.phase ?? p.fase ?? undefined,
         risk: p.risco,
         centroid,
         focusKey: p.nome,
@@ -72,10 +77,17 @@ export function useCommunityData() {
     for (const f of rivFeats ?? []) {
       const p = f.properties
       const [lon, lat] = f.geometry.coordinates
+      const municipality = municipalityRecord(official, p.municipio)
       out.push({
         kind: 'riverside',
         name: p.nome,
         subtitle: [p.rio, p.municipio].filter(Boolean).join(' · ') || 'Comunidade ribeirinha',
+        // Riverside communities are points: IBGE publishes figures for their municipality.
+        area_km2: municipality?.areaKm2 ?? undefined,
+        population: municipality?.population ?? undefined,
+        municipio: municipality?.name ?? p.municipio,
+        distKm: p.dist_cidade_km,
+        nearestCity: p.cidade_prox,
         risk: p.risco,
         centroid: [lon, lat],
         focusKey: p.nome,
@@ -84,7 +96,7 @@ export function useCommunityData() {
       })
     }
     return out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
-  }, [tiFeats, rivFeats])
+  }, [tiFeats, rivFeats, official])
 
   return { entries, panorama }
 }

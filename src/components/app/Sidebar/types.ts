@@ -8,6 +8,11 @@ export interface Entry {
   area_km2?: number
   population?: number
   year?: number
+  // TI: FUNAI phase when the land is not ratified yet. Riverside: municipality and distance to the nearest city.
+  phase?: string
+  municipio?: string
+  distKm?: number
+  nearestCity?: string
   centroid: [number, number]
   risk?: string
   focusKey: string

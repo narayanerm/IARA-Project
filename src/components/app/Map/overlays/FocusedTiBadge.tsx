@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { useI18n, useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { FunaiTiProps } from '@/lib/useFunaiTi'
 import type { TiProps } from '@/data/layers/indigenous-lands'
@@ -7,9 +8,14 @@ import {
   TERRABRASILIS_FUNAI_URL,
   DETER_WFS_URL,
   ISA_TI_PORTAL,
-  funaiSiciUrl,
   tiProfileUrl,
 } from '@/lib/links'
+import {
+  FUNAI_OFFICES_URL,
+  formatOfficialDate,
+  landRecord,
+  useOfficialRecords,
+} from '@/lib/officialRecords'
 
 export interface FocusedTiBadgeProps {
   tiName: string
@@ -32,7 +38,13 @@ export function FocusedTiBadge({
   deterCount,
   deterLoading,
 }: FocusedTiBadgeProps) {
+  const t = useT()
+  const locale = useI18n((s) => (s.lang === 'en' ? 'en-US' : 'pt-BR'))
   const [open, setOpen] = useState(false)
+  const official = landRecord(useOfficialRecords(), tiName)
+  const homologated = formatOfficialDate(official?.funai?.homologated)
+  const office = official?.office
+  const isaId = official?.isaId ?? null
   return (
     <div className="pointer-events-auto absolute left-4 bottom-24 max-w-[320px] rounded-lg border border-sar-cyan/40 bg-card/95 backdrop-blur-md shadow-xl">
       <button
@@ -46,7 +58,7 @@ export function FocusedTiBadge({
             {tiName}
           </div>
           <div className="text-[11px] font-mono text-muted-foreground truncate">
-            {loading ? 'FUNAI…' : sourceLabel.replace('FUNAI oficial · ', '')}
+            {loading ? t('focusedTi.funaiLoading') : sourceLabel.replace('FUNAI oficial · ', '')}
           </div>
         </div>
         <ChevronDown
@@ -61,56 +73,77 @@ export function FocusedTiBadge({
           {funaiProps && (
             <div className="grid gap-0.5 text-[12px] text-foreground/90 leading-snug">
               <div>
-                <span className="text-muted-foreground">Nome FUNAI:</span> {funaiProps.terrai_nom}
+                <span className="text-muted-foreground">{t('focusedTi.funaiName')}:</span> {funaiProps.terrai_nom}
               </div>
               {funaiProps.etnia_nome && (
                 <div>
-                  <span className="text-muted-foreground">Etnia:</span> {funaiProps.etnia_nome}
+                  <span className="text-muted-foreground">{t('focusedTi.ethnicity')}:</span> {funaiProps.etnia_nome}
                 </div>
               )}
               {funaiProps.fase_ti && (
                 <div>
-                  <span className="text-muted-foreground">Fase:</span> {funaiProps.fase_ti}
+                  <span className="text-muted-foreground">{t('focusedTi.phase')}:</span> {funaiProps.fase_ti}
                 </div>
               )}
               <div className="text-[11px] text-muted-foreground/80">
-                CÓD FUNAI {funaiProps.terrai_cod}
+                {t('focusedTi.funaiCode')} {funaiProps.terrai_cod}
               </div>
             </div>
           )}
-          {localProps && (
+          {official && (
+            <div className="mt-1.5 grid gap-0.5 text-[12px] text-foreground/90 leading-snug border-t border-border/50 pt-1.5">
+              {official.funai?.areaKm2 != null && (
+                <div>
+                  <span className="text-muted-foreground">{t('focusedTi.officialArea')}:</span>{' '}
+                  {official.funai.areaKm2.toLocaleString(locale)} km²
+                </div>
+              )}
+              {homologated && (
+                <div>
+                  <span className="text-muted-foreground">{t('focusedTi.ratifiedOn')}:</span> {homologated}
+                </div>
+              )}
+              {official.census2022?.residents != null && (
+                <div>
+                  <span className="text-muted-foreground">{t('focusedTi.residentsCensus')}:</span>{' '}
+                  {official.census2022.residents.toLocaleString(locale)}
+                </div>
+              )}
+            </div>
+          )}
+          {!official && localProps && (
             <div className="mt-1.5 grid gap-0.5 text-[12px] text-foreground/90 leading-snug border-t border-border/50 pt-1.5">
               <div>
-                <span className="text-muted-foreground">Área ISA:</span>{' '}
-                {localProps.area_km2.toLocaleString('pt-BR')} km²
+                <span className="text-muted-foreground">{t('focusedTi.isaArea')}:</span>{' '}
+                {localProps.area_km2.toLocaleString(locale)} km²
               </div>
               {localProps.population && (
                 <div>
-                  <span className="text-muted-foreground">População ISA:</span>{' '}
-                  {localProps.population.toLocaleString('pt-BR')}
+                  <span className="text-muted-foreground">{t('focusedTi.isaPopulation')}:</span>{' '}
+                  {localProps.population.toLocaleString(locale)}
                 </div>
               )}
             </div>
           )}
           <div className="mt-1.5 flex items-center justify-between text-[12px] border-t border-border/50 pt-1.5">
-            <span className="text-muted-foreground">DETER-Amz (1 ano):</span>
+            <span className="text-muted-foreground">{t('focusedTi.deter')}:</span>
             <span className="font-mono font-semibold text-foreground">
-              {deterLoading ? '…' : `${deterCount} alertas`}
+              {deterLoading ? '…' : t('focusedTi.alerts', { n: String(deterCount) })}
             </span>
           </div>
           {error && <div className="mt-1 text-[11px] text-destructive">{error}</div>}
 
           <div className="mt-1.5 flex flex-wrap gap-1 border-t border-border/50 pt-1.5">
-            <SourceLink href={funaiSiciUrl(tiName)}>
-              FUNAI · {tiName.replace(/^TI\s+/, '')}
+            <SourceLink href={office?.url ?? FUNAI_OFFICES_URL}>
+              {office?.name ? t('focusedTi.funaiOfficeCr', { name: office.name }) : t('focusedTi.funaiOfficesShort')}
             </SourceLink>
             {funaiProps && <SourceLink href={TERRABRASILIS_FUNAI_URL}>TerraBrasilis WFS</SourceLink>}
             {deterCount > 0 && <SourceLink href={DETER_WFS_URL}>DETER-Amz</SourceLink>}
-            {localProps && <SourceLink href={tiProfileUrl(0)}>ISA · Terras Indígenas</SourceLink>}
+            {isaId != null && <SourceLink href={tiProfileUrl(isaId)}>{t('focusedTi.isaLands')}</SourceLink>}
           </div>
 
           <div className="mt-1 text-[10px] font-mono text-muted-foreground/70 leading-relaxed">
-            Geometria:{' '}
+            {t('focusedTi.geometry')}:{' '}
             <a
               href={TERRABRASILIS_FUNAI_URL}
               target="_blank"
@@ -119,7 +152,7 @@ export function FocusedTiBadge({
             >
               FUNAI via TerraBrasilis/INPE WFS
             </a>{' '}
-            · Alertas:{' '}
+            · {t('focusedTi.alertsLabel')}:{' '}
             <a
               href={DETER_WFS_URL}
               target="_blank"
@@ -128,7 +161,7 @@ export function FocusedTiBadge({
             >
               DETER/INPE WFS
             </a>{' '}
-            · Metadata:{' '}
+            · {t('focusedTi.metadataLabel')}:{' '}
             <a
               href={ISA_TI_PORTAL}
               target="_blank"
@@ -137,7 +170,7 @@ export function FocusedTiBadge({
             >
               ISA
             </a>{' '}
-            (snapshot local)
+            {t('focusedTi.snapshot')}
           </div>
         </div>
       )}
