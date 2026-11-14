@@ -29,9 +29,13 @@ import { useAsfGranules } from '@/lib/useAsfGranules'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
 import { useFunaiTi } from '@/lib/useFunaiTi'
 import {
-  FUNAI_TI_URL,
+  FUNAI_OFFICES_URL,
+  landRecord,
+  useOfficialRecords,
+  type OfficialRecords,
+} from '@/lib/officialRecords'
+import {
   tiProfileUrl,
-  funaiSiciUrl,
   TERRABRASILIS_FUNAI_URL,
   DETER_WFS_URL,
   ISA_TI_PORTAL,
@@ -45,6 +49,11 @@ export function MapFallback({ region }: { region: Region }) {
     [focusedTi]
   )
   const funai = useFunaiTi(focusedTi)
+  const officialRecords = useOfficialRecords()
+  const focusedOffice = landRecord(officialRecords, focusedTi)?.office
+  useEffect(() => {
+    officialSnapshot = officialRecords
+  }, [officialRecords])
   const focusedTiFeature = funai.feature ?? localTiFeature
   const asf = useAsfGranules(region)
   const browse = asf.data.find((g) => !!g.browseUrl)
@@ -131,7 +140,8 @@ export function MapFallback({ region }: { region: Region }) {
               onEachFeature={(feature, layer) => {
                 const p = feature.properties as TiProps
                 layer.bindTooltip(p.name, { sticky: true, direction: 'top' })
-                layer.bindPopup(buildTiPopupHtml(p))
+                // Built when opened, so it uses the official records once they have loaded.
+                layer.bindPopup(() => buildTiPopupHtml(p))
               }}
             />
           </LayersControl.Overlay>
@@ -276,12 +286,12 @@ export function MapFallback({ region }: { region: Region }) {
           )}
           <div className="mt-1.5 flex flex-wrap gap-1 border-t border-border/50 pt-1.5">
             <a
-              href={funaiSiciUrl(focusedTi)}
+              href={focusedOffice?.url ?? FUNAI_OFFICES_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-full border border-sar-cyan/30 bg-sar-cyan/10 px-2 py-0.5 text-[11px] font-mono text-sar-cyan hover:bg-sar-cyan/20 transition-colors"
             >
-              FUNAI · {focusedTi.replace(/^TI\s+/, '')} ↗
+              {focusedOffice?.name ? `FUNAI · CR ${focusedOffice.name}` : 'FUNAI · Coordenações Regionais'} ↗
             </a>
             {funai.feature && (
               <a
@@ -413,7 +423,11 @@ function TiFocusController() {
   return null
 }
 
+// Latest official records, read by the Leaflet popups (plain HTML, outside React).
+let officialSnapshot: OfficialRecords | null = null
+
 function buildTiPopupHtml(p: TiProps): string {
+  const office = landRecord(officialSnapshot, p.name)?.office
   const ethn = p.ethnicities?.slice(0, 5).join(', ') ?? ''
   return `
     <div style="min-width:220px; font-family:Inter,sans-serif;">
@@ -425,7 +439,7 @@ function buildTiPopupHtml(p: TiProps): string {
       </div>
       ${ethn ? `<div style="font-size:11px; margin-top:6px;"><strong>Etnias:</strong> ${ethn}</div>` : ''}
       <a href="${tiProfileUrl(p.isaId)}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:8px; font-size:12px; color:hsl(28, 95%, 50%);">Ficha da TI →</a>
-      <a href="${FUNAI_TI_URL}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:4px; font-size:12px; color:hsl(28, 95%, 50%);">Dados oficiais FUNAI →</a>
+      <a href="${office?.url ?? FUNAI_OFFICES_URL}" target="_blank" rel="noopener noreferrer" style="display:block; margin-top:4px; font-size:12px; color:hsl(28, 95%, 50%);">${office?.name ? `FUNAI · Coordenação Regional ${office.name}` : 'FUNAI · Coordenações Regionais'} →</a>
     </div>
   `
 }

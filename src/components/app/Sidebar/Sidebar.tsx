@@ -22,6 +22,8 @@ import type { Phenomenon } from '@/lib/types'
 import { useApp, useAoiPopup } from '@/lib/store'
 import { INDIGENOUS_LANDS } from '@/data/layers/indigenous-lands'
 import { AFFECTED_AREAS } from '@/data/layers/affected-areas'
+import { landRecord, municipalityRecord, useOfficialRecords, yearOf } from '@/lib/officialRecords'
+import { useI18n, useT } from '@/lib/i18n'
 
 const ICON_BY_PHENOMENON: Record<Phenomenon, LucideIcon> = {
   mining: Pickaxe,
@@ -39,6 +41,11 @@ interface Entry {
   area_km2?: number
   population?: number
   year?: number
+  // TI: FUNAI phase when the land is not ratified yet. Riverside: municipality and distance to the nearest city.
+  phase?: string
+  municipio?: string
+  distKm?: number
+  nearestCity?: string
   centroid: [number, number]
   risk?: string
   // For accent / fallback lookup (indigenous name uses ISA detail if present).
@@ -108,6 +115,9 @@ export function Sidebar() {
   const rivPoints = rivFeats?.map((f) => f.properties) ?? null
   const scrollRef = useRef<HTMLDivElement>(null)
   const requestFlyTo = useApp((s) => s.requestFlyTo)
+  const official = useOfficialRecords()
+  const t = useT()
+  const locale = useI18n((s) => (s.lang === 'en' ? 'en-US' : 'pt-BR'))
 
   useEffect(() => {
     let cancelled = false
@@ -154,14 +164,17 @@ export function Sidebar() {
         ((p.bs ?? f.geometry.coordinates[1]) + (p.bn ?? f.geometry.coordinates[1])) / 2,
       ]
       const enriched = ENRICHED.get(p.nome.toLowerCase())
+      const land = landRecord(official, p.nome)
       const nameLc = p.nome.toLowerCase()
       out.push({
         kind: 'ti',
         name: p.nome,
         subtitle: p.etnia || 'Terra Indígena',
-        area_km2: p.area_km2,
-        population: enriched?.population,
-        year: enriched?.year,
+        // Official figures first (FUNAI area and ratification, IBGE 2022 residents).
+        area_km2: land?.funai?.areaKm2 ?? p.area_km2,
+        population: land?.census2022?.residents ?? enriched?.population,
+        year: yearOf(land?.funai?.homologated) ?? (land ? undefined : enriched?.year),
+        phase: land?.funai?.phase ?? p.fase ?? undefined,
         risk: p.risco,
         centroid,
         focusKey: p.nome,
@@ -172,10 +185,17 @@ export function Sidebar() {
     for (const f of rivFeats ?? []) {
       const p = f.properties
       const [lon, lat] = f.geometry.coordinates
+      const municipality = municipalityRecord(official, p.municipio)
       out.push({
         kind: 'riverside',
         name: p.nome,
         subtitle: [p.rio, p.municipio].filter(Boolean).join(' · ') || 'Comunidade ribeirinha',
+        // Riverside communities are points: IBGE publishes figures for their municipality.
+        area_km2: municipality?.areaKm2 ?? undefined,
+        population: municipality?.population ?? undefined,
+        municipio: municipality?.name ?? p.municipio,
+        distKm: p.dist_cidade_km,
+        nearestCity: p.cidade_prox,
         risk: p.risco,
         centroid: [lon, lat],
         focusKey: p.nome,
@@ -184,7 +204,7 @@ export function Sidebar() {
       })
     }
     return out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
-  }, [tiFeats, rivFeats])
+  }, [tiFeats, rivFeats, official])
 
   const q = query.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   const filtered = useMemo(() => {
@@ -401,18 +421,47 @@ export function Sidebar() {
                   </div>
 
                   <div className="mt-1.5 grid grid-cols-3 gap-1 text-[11px] font-mono text-muted-foreground">
-                    <MiniStat
-                      label="área"
-                      value={e.area_km2 != null ? `${compact(e.area_km2)} km²` : '—'}
-                    />
-                    <MiniStat
-                      label="hab"
-                      value={e.population != null ? compact(e.population) : '—'}
-                    />
-                    <MiniStat
-                      label="ano"
-                      value={e.year != null ? String(e.year) : '—'}
-                    />
+                    {isTi ? (
+                      <>
+                        <MiniStat
+                          label={t('sidebar.area')}
+                          hint={t('sidebar.areaHint')}
+                          value={e.area_km2 != null ? `${compact(e.area_km2)} km²` : '—'}
+                        />
+                        <MiniStat
+                          label={t('sidebar.residents')}
+                          hint={t('sidebar.residentsHint')}
+                          value={e.population != null ? compact(e.population) : '—'}
+                        />
+                        <MiniStat
+                          label={t('sidebar.homologated')}
+                          hint={
+                            e.year != null
+                              ? t('sidebar.homologatedHint')
+                              : t('sidebar.notHomologatedHint', { phase: e.phase ?? '—' })
+                          }
+                          value={e.year != null ? String(e.year) : '—'}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <MiniStat
+                          label={t('sidebar.munArea')}
+                          hint={t('sidebar.munAreaHint', { name: e.municipio ?? '—' })}
+                          value={e.area_km2 != null ? `${compact(e.area_km2)} km²` : '—'}
+                        />
+                        <MiniStat
+                          label={t('sidebar.munResidents')}
+                          hint={t('sidebar.munResidentsHint', { name: e.municipio ?? '—' })}
+                          value={e.population != null ? compact(e.population) : '—'}
+                        />
+                        <MiniStat
+                          label={t('sidebar.toCity')}
+                          hint={t('sidebar.toCityHint', { name: e.nearestCity ?? '—' })}
+                          value={e.distKm != null ? `${e.distKm.toLocaleString(locale, { maximumFractionDigits: 0 })} km` : '—'}
+                        />
+                      </>
+                    )}
                   </div>
 
                   {isTi && (
@@ -474,9 +523,12 @@ export function Sidebar() {
   )
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function MiniStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="flex flex-col items-start rounded border border-border/50 bg-background/60 px-1.5 py-0.5">
+    <div
+      title={hint}
+      className="flex flex-col items-start rounded border border-border/50 bg-background/60 px-1.5 py-0.5"
+    >
       <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/70">
         {label}
       </span>

@@ -1,12 +1,8 @@
 // Per-TI profile on Terras Indígenas no Brasil (ISA).
 export const tiProfileUrl = (isaId: number) => `https://terrasindigenas.org.br/pt-br/terras-indigenas/${isaId}`
 
-// FUNAI SICI (Sistema de Informações da Coordenação-Geral): per-TI search.
-export const funaiSiciUrl = (name: string) =>
-  `https://sistemas.funai.gov.br/sici/busca.php?nome=${encodeURIComponent(name.replace(/^TI\s+/i, ''))}`
-
-// Official FUNAI page for Indigenous Lands geodata and maps.
-export const FUNAI_TI_URL = 'https://www.gov.br/funai/pt-br/atuacao/terras-indigenas/geoprocessamento-e-mapas'
+// Per-land FUNAI links come from public/data/official-records.json (see src/lib/officialRecords.ts):
+// each land points to the page of the FUNAI regional office that serves it.
 
 // TerraBrasilis (INPE): FUNAI/PRODES/DETER data host.
 export const TERRABRASILIS_URL = 'https://terrabrasilis.dpi.inpe.br/'
@@ -28,9 +24,15 @@ export const IBGE_BC250_URL =
 // INPE Programa Queimadas (fire hotspots).
 export const INPE_QUEIMADAS_URL = 'https://queimadas.dgi.inpe.br/'
 
-// IBGE Cidades: per-municipality profile.
-export const ibgeCidadeUrl = (slug: string) =>
-  `https://cidades.ibge.gov.br/brasil/${encodeURIComponent(slug.toLowerCase())}`
+// IBGE Cidades: per-municipality profile (needs the UF, e.g. /brasil/am/manicore/panorama).
+// Per-community links come ready from public/data/official-records.json.
+export const ibgeCidadeUrl = (uf: string, municipio: string) =>
+  `https://cidades.ibge.gov.br/brasil/${uf.toLowerCase()}/${municipio
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')}/panorama`
 
 // ISA (Instituto Socioambiental) — Indigenous Lands portal.
 export const ISA_TI_PORTAL = 'https://terrasindigenas.org.br/'

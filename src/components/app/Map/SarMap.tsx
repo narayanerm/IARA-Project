@@ -23,9 +23,14 @@ import {
   DETER_WFS_URL,
   IBGE_MALHAS_URL,
   ISA_TI_PORTAL,
-  funaiSiciUrl,
   tiProfileUrl,
 } from '@/lib/links'
+import {
+  FUNAI_OFFICES_URL,
+  formatOfficialDate,
+  landRecord,
+  useOfficialRecords,
+} from '@/lib/officialRecords'
 import { useApp } from '@/lib/store'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { useBrazilCoverage } from '@/lib/useBrazilCoverage'
@@ -769,6 +774,9 @@ function FocusedTiSourceBadge({
   deterLoading: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const official = landRecord(useOfficialRecords(), tiName)
+  const homologated = formatOfficialDate(official?.funai?.homologated)
+  const isaId = official?.isaId ?? null
   return (
     <div className="pointer-events-auto absolute left-4 bottom-24 max-w-[320px] rounded-lg border border-sar-cyan/40 bg-card/95 backdrop-blur-md shadow-xl">
       <button
@@ -809,7 +817,27 @@ function FocusedTiSourceBadge({
               <div className="text-[11px] text-muted-foreground/80">CÓD FUNAI {funaiProps.terrai_cod}</div>
             </div>
           )}
-          {localProps && (
+          {official && (
+            <div className="mt-1.5 grid gap-0.5 text-[12px] text-foreground/90 leading-snug border-t border-border/50 pt-1.5">
+              {official.funai?.areaKm2 != null && (
+                <div>
+                  <span className="text-muted-foreground">Área oficial (FUNAI):</span>{' '}
+                  {official.funai.areaKm2.toLocaleString('pt-BR')} km²
+                </div>
+              )}
+              <div>
+                <span className="text-muted-foreground">Homologação (FUNAI):</span>{' '}
+                {homologated ?? `não homologada (${official.funai?.phase ?? '—'})`}
+              </div>
+              {official.census2022 && (
+                <div>
+                  <span className="text-muted-foreground">Moradores (IBGE 2022):</span>{' '}
+                  {official.census2022.residents.toLocaleString('pt-BR')}
+                </div>
+              )}
+            </div>
+          )}
+          {!official && localProps && (
             <div className="mt-1.5 grid gap-0.5 text-[12px] text-foreground/90 leading-snug border-t border-border/50 pt-1.5">
               <div>
                 <span className="text-muted-foreground">Área ISA:</span>{' '}
@@ -832,10 +860,12 @@ function FocusedTiSourceBadge({
           {error && <div className="mt-1 text-[11px] text-destructive">{error}</div>}
 
           <div className="mt-1.5 flex flex-wrap gap-1 border-t border-border/50 pt-1.5">
-            <SourceLink href={funaiSiciUrl(tiName)}>FUNAI · {tiName.replace(/^TI\s+/, '')}</SourceLink>
+            <SourceLink href={official?.office?.url ?? FUNAI_OFFICES_URL}>
+              {official?.office?.name ? `FUNAI · CR ${official.office.name}` : 'FUNAI · Coordenações Regionais'}
+            </SourceLink>
             {funaiProps && <SourceLink href={TERRABRASILIS_FUNAI_URL}>TerraBrasilis WFS</SourceLink>}
             {deterCount > 0 && <SourceLink href={DETER_WFS_URL}>DETER-Amz</SourceLink>}
-            {localProps && <SourceLink href={tiProfileUrl(0)}>ISA · Terras Indígenas</SourceLink>}
+            {isaId != null && <SourceLink href={tiProfileUrl(isaId)}>ISA · Terras Indígenas</SourceLink>}
           </div>
 
           <div className="mt-1 text-[10px] font-mono text-muted-foreground/70 leading-relaxed">

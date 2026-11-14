@@ -7,17 +7,17 @@ import type {
   PointLike,
   PositionAnchor,
 } from 'maplibre-gl'
-import { ExternalLink, Flame, History, MapPin as MapPinIcon, Navigation, Users, X } from 'lucide-react'
+import { CalendarCheck, ExternalLink, Flame, History, MapPin as MapPinIcon, Navigation, Users, X } from 'lucide-react'
 import { COMMUNITY_DATA, type Risk, type RiversideProps, type TiPointProps } from '@/data/layers/communities'
+import { tiProfileUrl, IBGE_BC250_URL, INPE_QUEIMADAS_URL } from '@/lib/links'
 import {
-  FUNAI_TI_URL,
-  tiProfileUrl,
-  funaiSiciUrl,
-  IBGE_BC250_URL,
-  INPE_QUEIMADAS_URL,
-  ibgeCidadeUrl,
-} from '@/lib/links'
-import { useT, type TKey } from '@/lib/i18n'
+  FUNAI_OFFICES_URL,
+  formatOfficialDate,
+  landRecord,
+  municipalityRecord,
+  useOfficialRecords,
+} from '@/lib/officialRecords'
+import { useI18n, useT, type TKey } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { CommunityPin } from './CommunityPin'
 import { KIND_COLOR, type CommunityKind } from './community-kind'
@@ -347,13 +347,19 @@ function LinkButton({ href, label, primary }: { href: string; label: string; pri
 
 function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void }) {
   const t = useT()
-  const fmt = (n: number) => n.toLocaleString('pt-BR')
+  const locale = useI18n((s) => (s.lang === 'en' ? 'en-US' : 'pt-BR'))
+  const fmt = (n: number) => n.toLocaleString(locale)
+  const official = landRecord(useOfficialRecords(), props.nome)
+  const homologated = formatOfficialDate(official?.funai?.homologated)
+  const residents = official?.census2022?.residents
+  const office = official?.office
+  const isaId = props.isaId ?? official?.isaId ?? null
   const ethnicities = props.etnia ? props.etnia.split(/[;,/]\s*/).filter(Boolean) : []
   return (
     <PopupShell
       kind="indigenous"
       title={props.nome}
-      subtitle={[t('community.indigenous'), props.fase].filter(Boolean).join(' · ')}
+      subtitle={[t('community.indigenous'), official?.funai?.phase ?? props.fase].filter(Boolean).join(' · ')}
       risk={props.risco}
       onClose={onClose}
     >
@@ -377,6 +383,16 @@ function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void 
       {props.area_km2 != null && (
         <Fact icon={MapPinIcon} label={t('community.area')} value={`${fmt(props.area_km2)} km²`} />
       )}
+      {homologated ? (
+        <Fact icon={CalendarCheck} label={t('community.homologated')} value={homologated} />
+      ) : (
+        official?.funai?.phase && (
+          <Fact icon={CalendarCheck} label={t('community.notHomologated')} value={official.funai.phase} />
+        )
+      )}
+      {residents != null && (
+        <Fact icon={Users} label={t('community.residents2022')} value={fmt(residents)} />
+      )}
       {props.revisao_fase && (
         <Fact
           icon={History}
@@ -388,16 +404,15 @@ function TiPopup({ props, onClose }: { props: TiPointProps; onClose: () => void 
       )}
       <Fact icon={Flame} label={t('community.fires2026')} value={fmt(props.focos_2026)} />
       <div className="grid gap-1.5 pt-1">
-        {props.isaId != null && <LinkButton href={tiProfileUrl(props.isaId)} label={t('community.tiProfile')} primary />}
         <LinkButton
-          href={funaiSiciUrl(props.nome)}
-          label={`FUNAI · ${props.nome.replace(/^TI\s+/i, '')}`}
-          primary={props.isaId == null}
+          href={office?.url ?? FUNAI_OFFICES_URL}
+          label={office?.name ? t('community.funaiOffice', { name: office.name }) : t('community.funaiOffices')}
+          primary
         />
-        <LinkButton href={FUNAI_TI_URL} label={t('community.funai')} />
+        {isaId != null && <LinkButton href={tiProfileUrl(isaId)} label={t('community.tiProfile')} />}
       </div>
       <div className="text-[12px] text-foreground/55 leading-snug">
-        Limites:{' '}
+        {t('community.officialSource')} {t('community.boundaries')}{' '}
         <a
           href="https://terrabrasilis.dpi.inpe.br/"
           target="_blank"
@@ -464,6 +479,8 @@ function AccessDifficulty({ level, distKm }: { level: string; distKm?: number })
 
 function RiversidePopup({ props, onClose }: { props: RiversideProps; onClose: () => void }) {
   const t = useT()
+  const locale = useI18n((s) => (s.lang === 'en' ? 'en-US' : 'pt-BR'))
+  const municipality = municipalityRecord(useOfficialRecords(), props.municipio)
   return (
     <PopupShell
       kind="riverside"
@@ -486,12 +503,19 @@ function RiversidePopup({ props, onClose }: { props: RiversideProps; onClose: ()
       {props.atividade_principal_mun && (
         <Fact icon={Users} label={t('community.economy')} value={props.atividade_principal_mun} />
       )}
+      {municipality?.population != null && (
+        <Fact
+          icon={Users}
+          label={t('community.munPopulation')}
+          value={municipality.population.toLocaleString(locale)}
+        />
+      )}
       <Fact icon={Flame} label={t('community.fires10km')} value={String(props.focos_10km)} />
       <div className="grid gap-1.5 pt-1">
-        {props.municipio && (
+        {municipality && (
           <LinkButton
-            href={ibgeCidadeUrl(props.municipio)}
-            label={`IBGE Cidades · ${props.municipio}`}
+            href={municipality.url}
+            label={t('community.ibgeCity', { name: `${municipality.name} (${municipality.uf})` })}
             primary
           />
         )}
