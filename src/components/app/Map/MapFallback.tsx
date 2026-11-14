@@ -5,6 +5,7 @@ import {
   WMSTileLayer,
   GeoJSON,
   CircleMarker,
+  Tooltip,
   Popup,
   ImageOverlay,
   LayersControl,
@@ -30,6 +31,7 @@ import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
 import { FLOOD_ATTRIBUTION, FLOOD_WMS, GWIS_ATTRIBUTION, type ForecastMapProps, type ForecastPoint } from '@/lib/predictive-models'
 import { drawAmazonFireTile } from '@/lib/amazon-fire-tiles'
+import { FloodProbability } from './FloodProbability'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
 import { useFunaiTi } from '@/lib/useFunaiTi'
@@ -79,7 +81,7 @@ function FloodFocus({ point }: { point: ForecastPoint }) {
   return null
 }
 
-export function MapFallback({ region, fireDate, floodLayer, floodFocus, floodSignals, riverPoint, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
+export function MapFallback({ region, fireDate, floodLayer, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
   const selectedForecastPoint = riverPoint ?? floodFocus
   const setActiveRegion = useApp((s) => s.setActiveRegion)
   const focusedTi = useApp((s) => s.focusedTi)
@@ -294,7 +296,13 @@ export function MapFallback({ region, fireDate, floodLayer, floodFocus, floodSig
         {floodLayer && selectedForecastPoint && (
           <CircleMarker center={[selectedForecastPoint[1], selectedForecastPoint[0]]} radius={13}
             interactive={false} pathOptions={{ color: '#67e8f9', weight: 3, fill: false }}
-          />
+          >
+            {riverChance !== null && (
+              <Tooltip permanent direction="top" offset={[0, -14]} className="!border-0 !bg-transparent !p-0 !shadow-none before:!hidden">
+                <FloodProbability chance={riverChance} />
+              </Tooltip>
+            )}
+          </CircleMarker>
         )}
       </MapContainer>
 

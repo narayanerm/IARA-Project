@@ -41,6 +41,7 @@ import { SarPreview } from './SarPreview'
 import { MapFallback } from './MapFallback'
 import { FLOOD_ATTRIBUTION, floodTiles, GWIS_ATTRIBUTION, type ForecastMapProps } from '@/lib/predictive-models'
 import { drawAmazonFireTile } from '@/lib/amazon-fire-tiles'
+import { FloodProbability } from './FloodProbability'
 import { NisarImagery } from './NisarImagery'
 import { inAmazon } from '@/lib/amazon'
 
@@ -126,7 +127,7 @@ function rasterFade(layer: GibsLayer, opacity: number) {
   ]
 }
 
-export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPoint, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
+export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
   const signalLabel = useI18n((s) => s.lang === 'pt' ? 'Ver previsão de vazão neste ponto' : 'View river forecast at this point')
   const selectedForecastPoint = riverPoint ?? floodFocus
   const mapRef = useRef<MapRef | null>(null)
@@ -330,7 +331,7 @@ export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPo
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
-        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} floodFocus={floodFocus} floodSignals={floodSignals} riverPoint={riverPoint} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
+        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} floodFocus={floodFocus} floodSignals={floodSignals} riverPoint={riverPoint} riverChance={riverChance} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
         <OverlayLegend {...counts} />
       </div>
     )
@@ -777,7 +778,9 @@ export function SarMap({ fireDate, floodLayer, floodFocus, floodSignals, riverPo
         ))}
         {floodLayer && selectedForecastPoint && (
           <Marker longitude={selectedForecastPoint[0]} latitude={selectedForecastPoint[1]} className="pointer-events-none">
-            <span aria-hidden="true" className="block size-7 rounded-full border-2 border-cyan-300 shadow-[0_0_0_2px_#172033]" />
+            <span className="relative block size-7 rounded-full border-2 border-cyan-300 shadow-[0_0_0_2px_#172033]">
+              <FloodProbability chance={riverChance} />
+            </span>
           </Marker>
         )}
       </Map>

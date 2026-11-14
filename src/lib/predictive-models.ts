@@ -1,5 +1,6 @@
 export type ForecastPoint = [longitude: number, latitude: number]
 export type FloodSignal = { point: ForecastPoint; color: string }
+export type FloodChance = number | 'loading' | 'unavailable' | null
 
 export type ForecastMapProps = {
   fireDate: string | null
@@ -7,6 +8,7 @@ export type ForecastMapProps = {
   floodFocus: ForecastPoint | null
   floodSignals: FloodSignal[]
   riverPoint: ForecastPoint | null
+  riverChance: FloodChance
   onRiverSelect?: (point: ForecastPoint) => void
   onFireTileError: () => void
   onFloodTileError: () => void
@@ -70,6 +72,56 @@ export const GWIS_ATTRIBUTION = '© European Union · Copernicus EMS / GWIS · N
 export const GWIS_LEGEND = `${GWIS_WMS}?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=${FIRE_LAYER}&format=image/png&STYLE=default`
 export const GEOGLOWS_VIEWER = 'https://geoglows.ecmwf.int/'
 const GEOGLOWS_API = `${GEOGLOWS_VIEWER}api/v2`
+const DAY_MS = 86_400_000
+
+export async function fetchFloodChance(riverId: number, signal: AbortSignal): Promise<number | 'unavailable'> {
+  const [history, forecast] = await Promise.all([
+    fetch(`${GEOGLOWS_API}/RetrospectiveDaily/${riverId}?format=csv`, { signal }),
+    fetch(`${GEOGLOWS_API}/ForecastEnsembles/${riverId}?format=csv`, { signal }),
+  ])
+  if (!history.ok || !forecast.ok) return 'unavailable'
+  const [historyCsv, forecastCsv] = await Promise.all([history.text(), forecast.text()])
+
+  // The median of historical annual maxima estimates the 2-year daily high-flow threshold.
+  const annual = new Map<string, { days: number; max: number }>()
+  const today = Math.floor(Date.now() / DAY_MS) * DAY_MS
+  const currentYear = new Date(today).getUTCFullYear()
+  for (const row of historyCsv.trim().split(/\r?\n/).slice(1)) {
+    const [date, value] = row.split(',')
+    const year = date.slice(0, 4)
+    if (!/^\d{4}-\d{2}-\d{2}/.test(date) || Number(year) >= currentYear || !value?.trim() || !Number.isFinite(Number(value))) continue
+    const record = annual.get(year) ?? { days: 0, max: 0 }
+    record.days++
+    record.max = Math.max(record.max, Number(value))
+    annual.set(year, record)
+  }
+  const maxima = [...annual.values()].filter(({ days }) => days >= 365).map(({ max }) => max).sort((a, b) => a - b)
+  if (maxima.length < 10) return 'unavailable'
+  const middle = Math.floor(maxima.length / 2)
+  const threshold = (maxima[middle] + maxima[Math.floor((maxima.length - 1) / 2)]) / 2
+  if (threshold <= 0) return 'unavailable'
+
+  const [header, ...rows] = forecastCsv.trim().split(/\r?\n/)
+  // The 52nd column is the high-resolution run and does not enter the ensemble probability.
+  const indexes = header.split(',').flatMap((column, index) => /^ensemble_(0[1-9]|[1-4]\d|5[01])$/.test(column) ? [index] : [])
+  if (indexes.length !== 51) return 'unavailable'
+  const days = Array.from({ length: 7 }, () => indexes.map(() => ({ samples: 0, sum: 0 })))
+  for (const row of rows) {
+    const cells = row.split(',')
+    const day = Math.floor((Date.parse(cells[0]) - today) / DAY_MS)
+    if (!days[day]) continue
+    indexes.forEach((index, member) => {
+      const value = cells[index]
+      if (!value?.trim() || !Number.isFinite(Number(value))) return
+      const flow = days[day][member]
+      flow.samples++
+      flow.sum += Number(value)
+    })
+  }
+  if (days.some((day) => day.some(({ samples }) => samples < 8))) return 'unavailable'
+  const exceeded = indexes.filter((_, member) => days.some((day) => day[member].sum / day[member].samples > threshold))
+  return Math.round(exceeded.length / indexes.length * 100)
+}
 
 export function gwisMapUrl(date: string, bbox: string) {
   return `${GWIS_WMS}?service=WMS&version=1.1.1&request=GetMap&layers=${FIRE_LAYER}&styles=default&srs=EPSG:3857&bbox=${bbox}&width=256&height=256&format=image/png&transparent=true&time=${date}`

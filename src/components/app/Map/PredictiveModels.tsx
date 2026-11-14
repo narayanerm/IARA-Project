@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import {
   fetchFlowForecast,
+  fetchFloodChance,
   FLOOD_ATTRIBUTION,
   FLOOD_EXTENT_LAYER,
   FLOOD_LAYER,
@@ -16,12 +17,13 @@ import {
   type FlowForecast,
   type FloodLayer,
   type FloodSignal,
+  type FloodChance,
   type ForecastPoint,
 } from '@/lib/predictive-models'
 
 type FlowResult = { point: ForecastPoint; data: FlowForecast | null } | { point: ForecastPoint; error: true }
 
-export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals }: {
+export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance }: {
   mode: 'river' | 'fire'
   onModeChange: (mode: 'river' | 'fire') => void
   onClose: () => void
@@ -35,6 +37,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   onFloodLayer: (layer: FloodLayer) => void
   onFloodFocus: (point: ForecastPoint) => void
   onFloodSignals: (signals: FloodSignal[]) => void
+  onFloodChance: (result: { point: ForecastPoint; chance: FloodChance }) => void
 }) {
   const lang = useI18n((s) => s.lang)
   const pt = lang === 'pt'
@@ -59,11 +62,23 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   useEffect(() => {
     if (!selected) return
     const controller = new AbortController()
+    onFloodChance({ point: selected, chance: 'loading' })
     fetchFlowForecast(selected, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
-      .then((data) => { if (!controller.signal.aborted) setResult({ point: selected, data }) })
-      .catch(() => { if (!controller.signal.aborted) setResult({ point: selected, error: true }) })
+      .then(async (data) => {
+        if (controller.signal.aborted) return
+        setResult({ point: selected, data })
+        const chance = data
+          ? await fetchFloodChance(data.riverId, AbortSignal.any([controller.signal, AbortSignal.timeout(20000)])).catch(() => 'unavailable' as const)
+          : 'unavailable'
+        if (!controller.signal.aborted) onFloodChance({ point: selected, chance })
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setResult({ point: selected, error: true })
+        onFloodChance({ point: selected, chance: 'unavailable' })
+      })
     return () => controller.abort()
-  }, [selected, attempt])
+  }, [selected, attempt, onFloodChance])
 
   const current = result?.point === selected ? result : null
   const dateFormat = new Intl.DateTimeFormat(pt ? 'pt-BR' : 'en', { month: 'short', day: 'numeric', timeZone: 'UTC' })
@@ -119,6 +134,10 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
           {floodError && <p role="status" className="mt-2">{pt ? 'Parte do mapa de cheias não pôde ser carregada.' : 'Some flood forecast tiles could not be loaded.'}</p>}
           <a href={FLOOD_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{FLOOD_ATTRIBUTION}</a>
           <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio para ver a previsão de vazão do trecho mais próximo.' : 'Click near a river to see the streamflow forecast for the closest modeled reach.'}</p>
+          {selected && <p className="mt-1 text-xs text-muted-foreground">{pt
+            ? 'A porcentagem indica quantos cenários GEOGLOWS superam o limiar de vazão diária de 2 anos ao menos uma vez em 7 dias (UTC).'
+            : 'The percentage is the share of GEOGLOWS scenarios exceeding the 2-year daily flow threshold at least once over 7 days (UTC).'}
+          </p>}
           <div aria-live="polite" className="mt-2">
             {selected && !current && <p>{pt ? 'Carregando previsão…' : 'Loading forecast…'}</p>}
             {current && 'error' in current && (

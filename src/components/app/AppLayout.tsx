@@ -18,13 +18,14 @@ import { useApp } from '@/lib/store'
 import { useI18n, useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 import { PredictiveModels } from './Map/PredictiveModels'
-import { FLOOD_LAYER, gwisDates, type FloodLayer, type FloodSignal, type ForecastPoint } from '@/lib/predictive-models'
+import { FLOOD_LAYER, gwisDates, type FloodChance, type FloodLayer, type FloodSignal, type ForecastPoint } from '@/lib/predictive-models'
 
 export function AppLayout() {
   const t = useT()
   const forecastLabel = useI18n((s) => s.lang === 'pt' ? 'Previsões' : 'Forecasts')
   const [forecastMode, setForecastMode] = useState<'river' | 'fire' | null>(null)
   const [forecastPoint, setForecastPoint] = useState<ForecastPoint | null>(null)
+  const [floodChance, setFloodChance] = useState<{ point: ForecastPoint; chance: FloodChance } | null>(null)
   const [forecastDates, setForecastDates] = useState(gwisDates)
   const [fireDate, setFireDate] = useState<string | null>(null)
   const [fireError, setFireError] = useState(false)
@@ -128,6 +129,7 @@ export function AppLayout() {
             floodFocus={forecastMode === 'river' ? floodFocus : null}
             floodSignals={forecastMode === 'river' ? floodSignals : []}
             riverPoint={forecastMode === 'river' ? forecastPoint : null}
+            riverChance={forecastMode === 'river' && forecastPoint ? (floodChance?.point === forecastPoint ? floodChance.chance : 'loading') : null}
             onRiverSelect={forecastMode === 'river' ? setForecastPoint : undefined}
             onFireTileError={() => setFireError(true)}
             onFloodTileError={() => setFloodError(true)}
@@ -153,6 +155,7 @@ export function AppLayout() {
               floodLayer={floodLayer}
               onFloodFocus={(point) => { setForecastPoint(point); setFloodFocus([...point]) }}
               onFloodSignals={setFloodSignals}
+              onFloodChance={setFloodChance}
               onFloodLayer={(layer) => { setFloodError(false); setFloodSignals([]); setFloodFocus(null); setFloodLayer(layer) }}
             />
           )}
