@@ -30,6 +30,7 @@ export function AppLayout() {
   const [fireError, setFireError] = useState(false)
   const [floodError, setFloodError] = useState(false)
   const [floodLayer, setFloodLayer] = useState<FloodLayer>(FLOOD_LAYER)
+  const [floodFocus, setFloodFocus] = useState<ForecastPoint | null>(null)
   const selectedFireDate = fireDate && forecastDates.includes(fireDate) ? fireDate : forecastDates[0]
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
@@ -121,6 +122,7 @@ export function AppLayout() {
           <SarMap
             fireDate={forecastMode === 'fire' ? selectedFireDate : null}
             floodLayer={forecastMode === 'river' ? floodLayer : null}
+            floodFocus={forecastMode === 'river' ? floodFocus : null}
             onRiverSelect={forecastMode === 'river' ? setForecastPoint : undefined}
             onFireTileError={() => setFireError(true)}
             onFloodTileError={() => setFloodError(true)}
@@ -142,6 +144,7 @@ export function AppLayout() {
               fireError={fireError}
               floodError={floodError}
               floodLayer={floodLayer}
+              onFloodFocus={(point) => setFloodFocus([...point])}
               onFloodLayer={(layer) => { setFloodError(false); setFloodLayer(layer) }}
             />
           )}

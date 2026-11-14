@@ -125,8 +125,11 @@ function rasterFade(layer: GibsLayer, opacity: number) {
   ]
 }
 
-export function SarMap({ fireDate, floodLayer, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
+export function SarMap({ fireDate, floodLayer, floodFocus, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
   const mapRef = useRef<MapRef | null>(null)
+  useEffect(() => {
+    if (floodFocus) mapRef.current?.flyTo({ center: floodFocus, zoom: 7, pitch: 0, bearing: 0 })
+  }, [floodFocus])
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
@@ -324,7 +327,7 @@ export function SarMap({ fireDate, floodLayer, onRiverSelect, onFireTileError, o
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
-        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
+        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} floodFocus={floodFocus} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
         <OverlayLegend {...counts} />
       </div>
     )
@@ -527,11 +530,6 @@ export function SarMap({ fireDate, floodLayer, onRiverSelect, onFireTileError, o
         )}
 
         <NisarImagery />
-        {floodLayer && (
-          <Source id="glofas-flood" type="raster" tiles={[floodTiles(floodLayer)]} tileSize={256} maxzoom={11} attribution={FLOOD_ATTRIBUTION}>
-            <Layer id="glofas-flood-overlay" type="raster" paint={{ 'raster-fade-duration': 0 }} />
-          </Source>
-        )}
         {fireDate && (
           <Source
             id="gwis-fire"
@@ -756,6 +754,11 @@ export function SarMap({ fireDate, floodLayer, onRiverSelect, onFireTileError, o
         )}
         <CommunityPoints />
         <AoiLayersPopup />
+        {floodLayer && (
+          <Source id="glofas-flood" type="raster" tiles={[floodTiles(floodLayer)]} tileSize={256} maxzoom={11} attribution={FLOOD_ATTRIBUTION}>
+            <Layer id="glofas-flood-overlay" type="raster" paint={{ 'raster-fade-duration': 0 }} />
+          </Source>
+        )}
       </Map>
 
       <OverlayLegend

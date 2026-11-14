@@ -73,7 +73,13 @@ function AmazonFireLayer({ date, onError }: { date: string; onError: () => void 
   return null
 }
 
-export function MapFallback({ region, fireDate, floodLayer, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
+function FloodFocus({ point }: { point: ForecastPoint }) {
+  const map = useMap()
+  useEffect(() => { map.flyTo([point[1], point[0]], 7) }, [map, point])
+  return null
+}
+
+export function MapFallback({ region, fireDate, floodLayer, floodFocus, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
   const setActiveRegion = useApp((s) => s.setActiveRegion)
   const focusedTi = useApp((s) => s.focusedTi)
   const localTiFeature = useMemo(
@@ -124,6 +130,7 @@ export function MapFallback({ region, fireDate, floodLayer, onRiverSelect, onFir
         attributionControl
       >
         <TiFocusController />
+        {floodFocus && <FloodFocus point={floodFocus} />}
         {onRiverSelect && <RiverSelection onSelect={onRiverSelect} />}
         {fireDate && <AmazonFireLayer date={fireDate} onError={onFireTileError} />}
         {floodLayer && (

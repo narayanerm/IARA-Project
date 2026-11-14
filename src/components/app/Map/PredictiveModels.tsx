@@ -7,6 +7,7 @@ import {
   FLOOD_EXTENT_LAYER,
   FLOOD_LAYER,
   floodLegend,
+  findRegionalFloodSignal,
   FLOOD_VIEWER,
   GEOGLOWS_VIEWER,
   GWIS_ATTRIBUTION,
@@ -19,7 +20,7 @@ import {
 
 type FlowResult = { point: ForecastPoint; data: FlowForecast | null } | { point: ForecastPoint; error: true }
 
-export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer }: {
+export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus }: {
   mode: 'river' | 'fire'
   onModeChange: (mode: 'river' | 'fire') => void
   onClose: () => void
@@ -31,12 +32,23 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   floodError: boolean
   floodLayer: FloodLayer
   onFloodLayer: (layer: FloodLayer) => void
+  onFloodFocus: (point: ForecastPoint) => void
 }) {
   const lang = useI18n((s) => s.lang)
   const pt = lang === 'pt'
   const [result, setResult] = useState<FlowResult | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [regionalSignal, setRegionalSignal] = useState<{ layer: FloodLayer; point: ForecastPoint | null | 'error' } | null>(null)
   const selected = mode === 'river' ? point : null
+
+  useEffect(() => {
+    if (mode !== 'river') return
+    const controller = new AbortController()
+    findRegionalFloodSignal(floodLayer, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
+      .then((point) => { if (!controller.signal.aborted) setRegionalSignal({ layer: floodLayer, point }) })
+      .catch(() => { if (!controller.signal.aborted) setRegionalSignal({ layer: floodLayer, point: 'error' }) })
+    return () => controller.abort()
+  }, [mode, floodLayer])
 
   useEffect(() => {
     if (!selected) return
@@ -82,6 +94,21 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
             : (pt ? 'Estimativa experimental das áreas inundáveis em grandes bacias com sinal de cheia intensa.' : 'Experimental estimate of inundation in large basins with a severe flood signal.')}
           </p>
           <img src={floodLegend(floodLayer)} alt={pt ? 'Legenda da previsão de cheia' : 'Flood forecast legend'} className="mt-2 max-w-full rounded bg-white" />
+          <div className="mt-2 text-xs" aria-live="polite">
+            {regionalSignal?.layer !== floodLayer ? (
+              pt ? 'Buscando sinais na região amazônica…' : 'Checking the Amazon region for signals…'
+            ) : regionalSignal.point === 'error' ? (
+              pt ? 'Não foi possível verificar a região.' : 'Could not check the region.'
+            ) : regionalSignal.point ? (
+              <button type="button" className="rounded border border-border px-2 py-1 hover:bg-secondary" onClick={() => {
+                if (regionalSignal.point && regionalSignal.point !== 'error') onFloodFocus(regionalSignal.point)
+              }}>
+                {pt ? 'Ir para um sinal previsto' : 'Zoom to a forecast signal'}
+              </button>
+            ) : (
+              pt ? 'A visão regional não mostra sinais para esta camada.' : 'The regional overview shows no signals for this layer.'
+            )}
+          </div>
           {floodError && <p role="status" className="mt-2">{pt ? 'Parte do mapa de cheias não pôde ser carregada.' : 'Some flood forecast tiles could not be loaded.'}</p>}
           <a href={FLOOD_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{FLOOD_ATTRIBUTION}</a>
           <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio para ver a previsão de vazão do trecho mais próximo.' : 'Click near a river to see the streamflow forecast for the closest modeled reach.'}</p>

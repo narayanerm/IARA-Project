@@ -3,6 +3,7 @@ export type ForecastPoint = [longitude: number, latitude: number]
 export type ForecastMapProps = {
   fireDate: string | null
   floodLayer: FloodLayer | null
+  floodFocus: ForecastPoint | null
   onRiverSelect?: (point: ForecastPoint) => void
   onFireTileError: () => void
   onFloodTileError: () => void
@@ -15,7 +16,44 @@ export type FloodLayer = typeof FLOOD_LAYER | typeof FLOOD_EXTENT_LAYER
 export const FLOOD_ATTRIBUTION = '© European Union · Copernicus EMS / GloFAS'
 export const FLOOD_VIEWER = 'https://global-flood.emergency.copernicus.eu/'
 export const floodLegend = (layer: FloodLayer) => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetLegendGraphic&sld_version=1.1.0&layer=${layer}&format=image/png&STYLE=default`
-export const floodTiles = (layer: FloodLayer) => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetMap&layers=${layer}&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256&format=image/png&transparent=true`
+export const floodTiles = (layer: FloodLayer, bbox = '{bbox-epsg-3857}') => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetMap&layers=${layer}&styles=&crs=EPSG:3857&bbox=${bbox}&width=256&height=256&format=image/png&transparent=true&exceptions=XML`
+
+export async function findRegionalFloodSignal(layer: FloodLayer, signal: AbortSignal): Promise<ForecastPoint | null> {
+  // Include neighboring parts of the basin so nearby flood signals are discoverable.
+  const [west, south, east, north] = [-8240000, -1560000, -5030000, 615000]
+  const response = await fetch(floodTiles(layer, [west, south, east, north].join(',')), { signal })
+  if (!response.ok || !response.headers.get('content-type')?.startsWith('image/png')) {
+    throw new Error('GloFAS regional preview unavailable')
+  }
+  const bitmap = await createImageBitmap(await response.blob())
+  try {
+    signal.throwIfAborted()
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Could not read the GloFAS preview')
+    context.drawImage(bitmap, 0, 0)
+    const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height)
+    let best = -1
+    let bestDistance = Infinity
+    for (let i = 0; i < bitmap.width * bitmap.height; i++) {
+      if (data[i * 4 + 3] < 128) continue
+      const distance = Math.hypot(i % bitmap.width - bitmap.width / 2, Math.floor(i / bitmap.width) - bitmap.height / 2)
+      if (distance < bestDistance) {
+        best = i
+        bestDistance = distance
+      }
+    }
+    if (best === -1) return null
+    const x = west + ((best % bitmap.width + 0.5) / bitmap.width) * (east - west)
+    const y = north - ((Math.floor(best / bitmap.width) + 0.5) / bitmap.height) * (north - south)
+    const radius = 6378137
+    return [x / radius * 180 / Math.PI, Math.atan(Math.sinh(y / radius)) * 180 / Math.PI]
+  } finally {
+    bitmap.close()
+  }
+}
 
 export const GWIS_VIEWER = 'https://gwis.jrc.ec.europa.eu/apps/gwis_current_situation/index.html'
 const GWIS_WMS = 'https://maps.effis.emergency.copernicus.eu/gwis'
