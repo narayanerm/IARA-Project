@@ -18,6 +18,7 @@ import {
   useOfficialRecords,
 } from '@/lib/officialRecords'
 import { useI18n, useT, type TKey } from '@/lib/i18n'
+import { useUi } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { CommunityPin } from './CommunityPin'
 import { KIND_COLOR, type CommunityKind } from './community-kind'
@@ -185,6 +186,11 @@ export function CommunityPoints() {
   usePinImages()
   const { current: ref } = useMap()
   const [selected, setSelected] = useState<Selected | null>(null)
+  const setPopupOpen = useUi((st) => st.setPopupOpen)
+  useEffect(() => {
+    setPopupOpen(!!selected)
+    return () => setPopupOpen(false)
+  }, [selected, setPopupOpen])
 
   useEffect(() => {
     const map = ref?.getMap()
