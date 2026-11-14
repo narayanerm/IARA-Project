@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/app/AppLayout'
 import { LoadingScreen } from '@/components/app/LoadingScreen/LoadingScreen'
 import { useApp } from '@/lib/store'
 import { readUrlState } from '@/lib/url-state'
+import { showRadar } from '@/lib/story'
 
 function useHydrateUrlState() {
   useEffect(() => {
@@ -12,6 +13,8 @@ function useHydrateUrlState() {
     if (s.aoi) api.setActiveRegion(s.aoi)
     if (s.layer) api.setActiveLayer(s.layer)
     if (s.t !== undefined) api.setTimeIndex(s.t)
+    // A deep link already names a case: skip the case picker and land in the radar state.
+    if (s.aoi || s.layer || s.t !== undefined) showRadar({ keepLayer: !!s.layer })
   }, [])
 }
 

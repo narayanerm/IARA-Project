@@ -19,7 +19,7 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
         className={cn(
           'rounded px-2 py-1 transition-colors',
           lang === 'pt'
-            ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
+            ? 'bg-raised text-foreground'
             : 'text-muted-foreground hover:text-foreground'
         )}
         aria-pressed={lang === 'pt'}
@@ -31,7 +31,7 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
         className={cn(
           'rounded px-2 py-1 transition-colors',
           lang === 'en'
-            ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
+            ? 'bg-raised text-foreground'
             : 'text-muted-foreground hover:text-foreground'
         )}
         aria-pressed={lang === 'en'}

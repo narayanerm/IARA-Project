@@ -36,11 +36,11 @@ export function MetadataPanel() {
   return (
     <aside
       className={cn(
-        'relative z-10 h-full border-l border-border/60 bg-card transition-[width] duration-300',
+        'relative z-10 h-full border-l border-border bg-card transition-[width] duration-300',
         open ? 'w-[360px]' : 'w-12'
       )}
     >
-      <div className="flex h-12 items-center justify-between border-b border-border/60 px-3">
+      <div className="flex h-12 items-center justify-between border-b border-border px-3">
         <Button
           variant="ghost"
           size="icon"
@@ -71,7 +71,7 @@ export function MetadataPanel() {
               <ValidationBlock />
             </>
           ) : (
-            <div className="rounded-lg border border-border/60 bg-background/40 p-4 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-border bg-transparent p-4 text-sm text-muted-foreground">
               {t('metadata.onlyAnchor')}
             </div>
           )}
@@ -114,7 +114,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
     return (
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <Satellite className="h-4 w-4 text-primary" />
+          <Satellite className="h-4 w-4 text-muted-foreground" />
           <div className="text-sm font-semibold">{t('metadata.granule')}</div>
           <Badge variant="outline" className="ml-auto tabular-nums text-[12px]">
             {level}
@@ -128,7 +128,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
             <MetaRow
               icon={Layers}
               label={t('metadata.pol')}
-              value={liveGranule.polarization.join(', ') || '—'}
+              value={liveGranule.polarization.join(',') || '—'}
             />
             <MetaRow
               icon={Compass}
@@ -157,7 +157,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
           href={liveGranule.vertexUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 flex items-center justify-between rounded-md bg-primary/10 hover:bg-primary/15 border border-primary/30 px-2.5 py-1.5 text-[13px] text-primary tabular-nums transition-colors"
+          className="mt-3 flex items-center justify-between rounded-md border border-border hover:bg-raised px-2.5 py-1.5 text-[13px] text-water tabular-nums transition-colors"
         >
           <span>{t('metadata.viewOnAsf')}</span>
           <ExternalLink className="h-3 w-3" />
@@ -170,7 +170,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
-        <Satellite className="h-4 w-4 text-primary" />
+        <Satellite className="h-4 w-4 text-muted-foreground" />
         <div className="text-sm font-semibold">{t('metadata.granule')}</div>
         <Badge variant="outline" className="ml-auto tabular-nums text-[12px]">
           {g.productLevel}
@@ -181,7 +181,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
         <MetaRow icon={Fingerprint} label={t('metadata.id')} value={g.observationId} mono wrap />
         <div className="grid grid-cols-2 gap-2">
           <MetaRow icon={Radio} label={t('metadata.band')} value={`${g.band}-band`} />
-          <MetaRow icon={Layers} label={t('metadata.pol')} value={g.polarizations.join(', ')} />
+          <MetaRow icon={Layers} label={t('metadata.pol')} value={g.polarizations.join(',')} />
           <MetaRow icon={Compass} label={t('metadata.orbit')} value={g.orbitPass} />
           <MetaRow icon={ScanLine} label={t('metadata.inc')} value={`${g.incidenceAngleDeg}°`} />
           <MetaRow icon={Clock} label={t('metadata.acq')} value={g.acquisitionDate} />
@@ -195,7 +195,7 @@ function GranuleBlock({ liveGranule }: { liveGranule: AsfGranule | undefined }) 
         )}
       </div>
 
-      <div className="mt-3 rounded-md bg-background/40 border border-border/60 px-2.5 py-1.5 text-[12px] text-muted-foreground tabular-nums">
+      <div className="mt-3 rounded-md bg-transparent border border-border px-2.5 py-1.5 text-[12px] text-muted-foreground tabular-nums">
         {g.attribution}
       </div>
       <div className="mt-2 text-[12px] text-muted-foreground leading-snug">
@@ -219,7 +219,7 @@ function RecentPassesBlock({ granules }: { granules: AsfGranule[] }) {
             href={g.vertexUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 rounded-md border border-border/60 bg-background/40 px-2 py-1.5 text-[13px] hover:border-primary/40 hover:bg-background/60 transition-colors"
+            className="flex items-center gap-2 rounded-md border border-border bg-transparent px-2 py-1.5 text-[13px] hover:bg-raised hover:bg-raised transition-colors"
           >
             <span className="tabular-nums text-muted-foreground">{g.startTime.slice(0, 10)}</span>
             <span className="text-foreground truncate flex-1">{g.dataset}</span>
@@ -236,7 +236,7 @@ function RecentPassesBlock({ granules }: { granules: AsfGranule[] }) {
 function HintBlock() {
   const t = useT()
   return (
-    <div className="rounded-lg border border-dashed border-border/60 bg-background/30 p-4 text-sm text-muted-foreground">
+    <div className="rounded-lg border border-dashed border-border bg-transparent p-4 text-sm text-muted-foreground">
       {t('metadata.hint')}
     </div>
   )
@@ -268,7 +268,7 @@ function SelectedPolygonBlock() {
         />
       </div>
 
-      <div className="mt-3 rounded-md bg-background/40 border border-border/60 p-2 text-[12px] text-muted-foreground tabular-nums leading-snug">
+      <div className="mt-3 rounded-md bg-transparent border border-border p-2 text-[12px] text-muted-foreground tabular-nums leading-snug">
         {t('metadata.coherenceNote')}
       </div>
     </section>
@@ -325,7 +325,7 @@ function MetaRow({
   wrap?: boolean
 }) {
   return (
-    <div className="rounded-md bg-background/40 border border-border/60 px-2.5 py-1.5">
+    <div className="rounded-md bg-transparent border border-border px-2.5 py-1.5">
       <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
         {Icon && <Icon className="h-3 w-3" />}
         {label}
@@ -345,7 +345,7 @@ function MetaRow({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-background/40 border border-border/60 px-2.5 py-2">
+    <div className="rounded-md bg-transparent border border-border px-2.5 py-2">
       <div className="text-[12px] font-medium text-muted-foreground">
         {label}
       </div>

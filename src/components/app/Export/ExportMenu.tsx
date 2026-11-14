@@ -15,9 +15,9 @@ export function ExportMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" size="sm">
+        <Button variant="outline" size="sm" className="h-8" aria-label={t('export.label')}>
           <Download className="h-3.5 w-3.5" />
-          {t('export.label')}
+          <span className="hidden sm:inline">{t('export.label')}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
@@ -32,7 +32,7 @@ export function ExportMenu() {
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => alert('mock GeoJSON')}>
-          <FileCode2 className="h-4 w-4 text-primary" />
+          <FileCode2 className="h-4 w-4 text-muted-foreground" />
           <div className="flex-1">
             <div className="text-sm">{t('export.geojson')}</div>
             <div className="text-[12px] text-muted-foreground">{t('export.geojsonSub')}</div>

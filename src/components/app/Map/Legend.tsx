@@ -13,11 +13,11 @@ export function Legend() {
           {t('legend.unit')}
         </div>
       </div>
-      <div className="relative h-2 rounded-full overflow-hidden ring-1 ring-border/60">
+      <div className="relative h-2 rounded-full overflow-hidden ring-1 ring-border">
         <div
           className="absolute inset-0"
           style={{
-            background: `linear-gradient(to right, ${DISPLACEMENT_STOPS.map((s) => s.color).join(', ')})`,
+            background: `linear-gradient(to right, ${DISPLACEMENT_STOPS.map((s) => s.color).join(',')})`,
           }}
         />
       </div>
@@ -26,7 +26,7 @@ export function Legend() {
         <span>0</span>
         <span>{t('legend.highLabel')}</span>
       </div>
-      <div className="mt-2 pt-2 border-t border-border/60 text-[12px] text-muted-foreground leading-snug">
+      <div className="mt-2 pt-2 border-t border-border text-[12px] text-muted-foreground leading-snug">
         {t('legend.convention')}
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useT } from '@/lib/i18n'
 import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import type { AffectedAreaProps } from '@/data/layers/affected-areas'
 
@@ -25,6 +26,7 @@ export function BeforeAfter({
   afterBbox,
   affected,
 }: Props) {
+  const t = useT()
   const [pos, setPos] = useState(50)
   const [dragging, setDragging] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -40,7 +42,7 @@ export function BeforeAfter({
   return (
     <div
       ref={ref}
-      className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-black border border-border/60 select-none"
+      className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-black border border-border select-none"
       onMouseMove={(e) => dragging && onMove(e.clientX)}
       onMouseUp={() => setDragging(false)}
       onMouseLeave={() => setDragging(false)}
@@ -54,11 +56,11 @@ export function BeforeAfter({
         <Frame url={beforeUrl} bbox={beforeBbox} affected={affected} className="absolute inset-0" />
       </div>
 
-      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] tabular-nums z-10">
-        Antes: {beforeLabel}
+      <span title={beforeLabel} className="absolute top-2 left-2 max-w-[calc(50%-0.75rem)] truncate px-2 py-0.5 rounded-sm bg-black/75 text-white text-[12px] tabular-nums z-10">
+        {t('ba.before')}: {beforeLabel}
       </span>
-      <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] tabular-nums z-10">
-        Depois: {afterLabel}
+      <span title={afterLabel} className="absolute top-2 right-2 max-w-[calc(50%-0.75rem)] truncate px-2 py-0.5 rounded-sm bg-black/75 text-white text-[12px] tabular-nums z-10">
+        {t('ba.after')}: {afterLabel}
       </span>
 
       <div
@@ -68,7 +70,7 @@ export function BeforeAfter({
       <button
         onMouseDown={() => setDragging(true)}
         onTouchStart={() => setDragging(true)}
-        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 grid place-items-center h-10 w-10 rounded-full bg-white shadow-lg cursor-ew-resize transition-transform z-10"
+        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 grid place-items-center h-10 w-10 rounded-full bg-white cursor-ew-resize transition-transform z-10"
         style={{ left: `${pos}%` }}
         aria-label="Arrastar comparador"
       >
@@ -77,8 +79,8 @@ export function BeforeAfter({
         </svg>
       </button>
 
-      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] tabular-nums text-white/80 bg-black/60 rounded-md px-2 py-0.5 z-10">
-        arraste ↔
+      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[12px] tabular-nums text-white/80 bg-black/60 rounded-md px-2 py-0.5 z-10">
+        {t('ba.drag')}
       </div>
     </div>
   )
@@ -124,7 +126,7 @@ function Frame({
         const [x, y] = project(pt)
         return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
       })
-      .join(' ') + ' Z'
+      .join('') + ' Z'
 
   return (
     <div className={className}>

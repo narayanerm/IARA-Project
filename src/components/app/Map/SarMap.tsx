@@ -13,7 +13,7 @@ import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { INDIGENOUS_LANDS, AMAZON_BIOME, polygonCentroid } from '@/data/layers/indigenous-lands'
 import { AFFECTED_AREAS } from '@/data/layers/affected-areas'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
-import { useApp } from '@/lib/store'
+import { useApp, useUi } from '@/lib/store'
 import { GIBS_BY_REGION, TRUE_COLOR_LAYER, gibsTileUrl } from '@/lib/gibs'
 import { useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
@@ -22,6 +22,8 @@ import { TiTargets } from './TiTargets'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
 import { inAmazon } from '@/lib/amazon'
+import { AMAZON_VIEW, markExplore } from '@/lib/story'
+import { CaseMarkers } from './CaseMarkers'
 
 const BASEMAP_URL = 'https://tiles.openfreemap.org/styles/dark'
 
@@ -39,6 +41,8 @@ export function SarMap() {
   const gibs = GIBS_BY_REGION[activeRegion]
 
   const focusedTi = useApp((s) => s.focusedTi)
+  const flyNonce = useUi((s) => s.flyNonce)
+  const overview = useUi((s) => s.stage === 'overview')
   const focusedTiFeature = useMemo(
     () => INDIGENOUS_LANDS.features.find((f) => f.properties.name === focusedTi) ?? null,
     [focusedTi]
@@ -47,6 +51,10 @@ export function SarMap() {
   useEffect(() => {
     const m = mapRef.current
     if (!m) return
+    if (overview) {
+      m.flyTo({ ...AMAZON_VIEW, pitch: 0, bearing: 0, duration: 1400, essential: true })
+      return
+    }
     m.flyTo({
       center: region.center,
       zoom: region.zoom,
@@ -55,7 +63,7 @@ export function SarMap() {
       duration: 1600,
       essential: true,
     })
-  }, [region])
+  }, [region, flyNonce, overview])
 
   useEffect(() => {
     if (!focusedTi) return
@@ -85,8 +93,12 @@ export function SarMap() {
   )
 
   const onClick = (e: MapLayerMouseEvent) => {
+    // Overview and briefing: the case markers / briefing are the only things to click.
+    const stage = useUi.getState().stage
+    if (stage === 'overview' || stage === 'case') return
     const f = e.features?.[0]
     if (!f) {
+      markExplore()
       selectPolygon(null)
       // Click on the map → every NISAR image of that spot (Amazon biome only).
       const { lng, lat } = e.lngLat
@@ -104,7 +116,6 @@ export function SarMap() {
     return (
       <div className="relative h-full w-full">
         <MapFallback region={region} />
-        <OverlayLegend />
       </div>
     )
   }
@@ -116,13 +127,11 @@ export function SarMap() {
           mapRef.current = r
         }}
         mapLib={maplibregl}
-        initialViewState={{
-          longitude: region.center[0],
-          latitude: region.center[1],
-          zoom: region.zoom,
-          pitch: 55,
-          bearing: -18,
-        }}
+        initialViewState={
+          useUi.getState().stage === 'overview'
+            ? { longitude: AMAZON_VIEW.center[0], latitude: AMAZON_VIEW.center[1], zoom: AMAZON_VIEW.zoom, pitch: 0, bearing: 0 }
+            : { longitude: region.center[0], latitude: region.center[1], zoom: region.zoom, pitch: 55, bearing: -18 }
+        }
         maxPitch={75}
         mapStyle={BASEMAP_URL}
         terrain={{ source: 'terrain-dem', exaggeration: 1.6 }}
@@ -166,16 +175,16 @@ export function SarMap() {
             id="ti-fill"
             type="fill"
             paint={{
-              'fill-color': 'hsl(19 85% 61%)',
-              'fill-opacity': 0.14,
+              'fill-color': 'hsl(135 19% 92%)',
+              'fill-opacity': 0.05,
             }}
           />
           <Layer
             id="ti-line"
             type="line"
             paint={{
-              'line-color': 'hsl(19 90% 68%)',
-              'line-opacity': 0.75,
+              'line-color': 'hsl(135 19% 92%)',
+              'line-opacity': 0.5,
               'line-width': 1.2,
             }}
           />
@@ -190,7 +199,7 @@ export function SarMap() {
               'text-max-width': 8,
             }}
             paint={{
-              'text-color': 'hsl(19 90% 82%)',
+              'text-color': 'hsl(135 19% 88%)',
               'text-halo-color': 'hsla(222, 47%, 5%, 0.9)',
               'text-halo-width': 1.4,
             }}
@@ -252,7 +261,7 @@ export function SarMap() {
 
         <NisarImagery />
 
-        {activeRegion === 'YANO' && (
+        {activeRegion === 'YANO' && !overview && (
           <Source id="yano-change" type="geojson" data={changeFC}>
             <Layer
               id="yano-change-fill"
@@ -376,23 +385,22 @@ export function SarMap() {
             </Source>
           </>
         )}
-        <TiTargets />
+        {!overview && <TiTargets />}
         <AoiLayersPopup />
+        {overview && <CaseMarkers />}
       </Map>
-
-      <OverlayLegend />
     </div>
   )
 }
 
-function OverlayLegend() {
+export function OverlayLegend() {
   const t = useT()
   const activeRegion = useApp((s) => s.activeRegion)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const gibs = GIBS_BY_REGION[activeRegion]
 
   return (
-    <div className="pointer-events-none absolute top-4 right-4 flex flex-col items-end gap-2">
+    <div className="pointer-events-none flex flex-col items-end gap-2">
       {nasaOverlay && gibs && (
         <div className="glass rounded-md px-2.5 py-1.5 text-[12px] tabular-nums text-muted-foreground max-w-[260px] text-right">
           <span

@@ -45,7 +45,7 @@ export const useApp = create<AppState>((set, get) => ({
   activeLayer: 'change',
   timeIndex: 23,
   selectedPolygon: null,
-  nasaOverlay: true,
+  nasaOverlay: false,
   trueColorOverlay: false,
   focusedTi: null,
   nisarVisible: true,
@@ -63,7 +63,8 @@ export const useApp = create<AppState>((set, get) => ({
       nisarPoint: null,
       nisarNotice: null,
     })
-    useAoiPopup.setState({ open: true })
+    // The AOI popup no longer opens on its own: the sidebar and the guide open it when asked.
+    useUi.getState().flyToRegion()
   },
   setActiveLayer: (l) => {
     const changed = nisarProductFor(l) !== nisarProductFor(get().activeLayer)
@@ -91,7 +92,56 @@ interface PopupState {
 }
 
 export const useAoiPopup = create<PopupState>((set) => ({
-  open: true,
+  open: false,
   openPopup: () => set({ open: true }),
   closePopup: () => set({ open: false }),
+}))
+
+/* ------------------------------------------------------------------ */
+/* Dashboard chrome: side panels, briefing card and the story stage.   */
+/* Everything starts closed so the first view is the map + one prompt. */
+/* ------------------------------------------------------------------ */
+
+export type LeftSection = 'cases' | 'tis'
+export type RightTab = 'nisar' | 'chat' | 'meta'
+/**
+ * Story stage, revealed one click at a time:
+ * overview = Amazon with the three cases · case = what happened (briefing) ·
+ * radar = the telling SAR layer + caption · explore = secondary tools in use.
+ */
+export type Stage = 'overview' | 'case' | 'radar' | 'explore'
+
+interface UiState {
+  leftOpen: boolean
+  leftSection: LeftSection
+  rightOpen: boolean
+  rightTab: RightTab
+  briefingOpen: boolean
+  stage: Stage
+  /** bumps whenever the map should fly back to the active region */
+  flyNonce: number
+  setLeftOpen: (v: boolean) => void
+  openLeft: (section?: LeftSection) => void
+  setRightOpen: (v: boolean) => void
+  openRight: (tab?: RightTab) => void
+  setBriefingOpen: (v: boolean) => void
+  setStage: (s: Stage) => void
+  flyToRegion: () => void
+}
+
+export const useUi = create<UiState>((set, get) => ({
+  leftOpen: false,
+  leftSection: 'cases',
+  rightOpen: false,
+  rightTab: 'chat',
+  briefingOpen: false,
+  stage: 'overview',
+  flyNonce: 0,
+  setLeftOpen: (v) => set({ leftOpen: v }),
+  openLeft: (section) => set({ leftOpen: true, leftSection: section ?? get().leftSection }),
+  setRightOpen: (v) => set({ rightOpen: v }),
+  openRight: (tab) => set({ rightOpen: true, rightTab: tab ?? get().rightTab }),
+  setBriefingOpen: (v) => set({ briefingOpen: v }),
+  setStage: (stage) => set({ stage }),
+  flyToRegion: () => set({ flyNonce: get().flyNonce + 1 }),
 }))

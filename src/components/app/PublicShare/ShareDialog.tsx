@@ -17,6 +17,7 @@ import { REGIONS } from '@/lib/regions'
 import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { buildPermalink } from '@/lib/url-state'
 import { cn } from '@/lib/utils'
+import { useT } from '@/lib/i18n'
 
 function download(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime })
@@ -29,6 +30,7 @@ function download(filename: string, content: string, mime: string) {
 }
 
 export function ShareDialog() {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const activeRegion = useApp((s) => s.activeRegion)
   const activeLayer = useApp((s) => s.activeLayer)
@@ -120,19 +122,19 @@ export function ShareDialog() {
       <Dialog.Trigger asChild>
         <button
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-md border border-sar-amber/40 bg-sar-amber/10 px-2.5 h-8 text-[13px] text-sar-amber hover:bg-sar-amber/20 transition-colors'
+            'inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 h-8 text-[13px] font-medium text-foreground hover:bg-raised transition-colors'
           )}
-          aria-label="Share and export"
+          aria-label={t('share.label')}
         >
           <Share2 className="h-3.5 w-3.5" />
-          Share
+          <span className="hidden sm:inline">{t('share.label')}</span>
         </button>
       </Dialog.Trigger>
 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[9998] bg-black/70 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[9999] w-[min(560px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border/60 bg-card/95 shadow-md">
-          <div className="flex items-start justify-between border-b border-border/60 p-4">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[9999] w-[min(560px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card">
+          <div className="flex items-start justify-between border-b border-border p-4">
             <div>
               <Dialog.Title className="text-base font-semibold">
                 Share and export
@@ -165,7 +167,7 @@ export function ShareDialog() {
                 <input
                   readOnly
                   value={permalink}
-                  className="flex-1 rounded-md border border-border/60 bg-background/60 px-2.5 h-9 text-[12px] tabular-nums text-foreground truncate"
+                  className="flex-1 rounded-md border border-border bg-raised px-2.5 h-9 text-[12px] tabular-nums text-foreground truncate"
                   onFocus={(e) => e.currentTarget.select()}
                 />
                 <Button onClick={copy} size="sm" className="h-9 shrink-0">
@@ -217,7 +219,7 @@ export function ShareDialog() {
               </Button>
             </ExportCard>
 
-            <div className="text-[11px] text-muted-foreground/70 leading-relaxed">
+            <div className="text-[12px] text-muted-foreground/70 leading-relaxed">
               All exported data carries its source, unit and uncertainty where applicable.
               We never label raw pixels as confirmed mining, flood or drought.
             </div>
@@ -240,9 +242,9 @@ function ExportCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-lg border border-border/60 bg-background/40 p-3 space-y-2.5">
+    <section className="rounded-lg border border-border bg-transparent p-3 space-y-2.5">
       <header className="flex items-center gap-2">
-        <div className="grid h-7 w-7 place-items-center rounded-md bg-primary/10 ring-1 ring-primary/30 text-primary">
+        <div className="grid h-7 w-7 place-items-center rounded-md bg-raised text-muted-foreground">
           {icon}
         </div>
         <div className="text-sm font-semibold">{title}</div>

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { useT } from '@/lib/i18n'
 import type { HistoricalEvent } from '@/data/historical-events'
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function EventTimeline({ events, activeId, onSelect }: Props) {
+  const t = useT()
   const years = events.map((e) => e.year)
   const minY = Math.min(...years)
   const maxY = Math.max(...years)
@@ -16,13 +18,13 @@ export function EventTimeline({ events, activeId, onSelect }: Props) {
   const pct = (year: number) => ((year - minY) / span) * 100
 
   return (
-    <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+    <div className="rounded-lg border border-border bg-transparent p-3">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-[11px] tabular-nums text-muted-foreground">
-          Histórico, clique num ano
+        <div className="text-[12px] tabular-nums text-muted-foreground">
+          {t('events.title')}
         </div>
-        <div className="text-[11px] tabular-nums text-muted-foreground">
-          {events.length} eventos, {minY}–{maxY}
+        <div className="text-[12px] tabular-nums text-muted-foreground">
+          {events.length} {t('events.count')}, {minY}–{maxY}
         </div>
       </div>
 
@@ -65,7 +67,7 @@ export function EventTimeline({ events, activeId, onSelect }: Props) {
           <div
             key={`label-${e.id}`}
             className={cn(
-              'absolute top-full mt-1 text-[10px] tabular-nums -translate-x-1/2 whitespace-nowrap transition-colors',
+              'absolute top-full mt-1 text-[12px] tabular-nums -translate-x-1/2 whitespace-nowrap transition-colors',
               e.id === activeId ? 'text-foreground font-semibold' : 'text-muted-foreground'
             )}
             style={{ left: `${pct(e.year)}%` }}

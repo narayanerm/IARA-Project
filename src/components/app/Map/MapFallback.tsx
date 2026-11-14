@@ -216,7 +216,7 @@ export function MapFallback({ region }: { region: Region }) {
         ))}
       </MapContainer>
 
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-md rounded-lg border border-sar-amber/40 bg-card/95 px-4 py-2.5 text-[12px] text-foreground leading-snug z-[500] pointer-events-auto">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 max-w-md rounded-lg border border-sar-amber/40 bg-card px-4 py-2.5 text-[12px] text-foreground leading-snug z-[500] pointer-events-auto">
         <div className="flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 text-sar-amber shrink-0 mt-0.5" />
           <div>
@@ -229,7 +229,7 @@ export function MapFallback({ region }: { region: Region }) {
         </div>
       </div>
 
-      <div className="absolute left-4 top-4 rounded-lg border border-border/60 bg-card p-3 text-[12px] text-muted-foreground max-w-[220px] leading-snug z-[500] pointer-events-auto">
+      <div className="absolute left-4 top-4 rounded-lg border border-border bg-card p-3 text-[12px] text-muted-foreground max-w-[220px] leading-snug z-[500] pointer-events-auto">
         <div className="text-foreground font-semibold mb-1 flex items-center gap-1.5">
           <MapPin className="h-3.5 w-3.5" />
           IARA 2D map
@@ -290,7 +290,7 @@ function TiFocusController() {
 }
 
 function buildTiPopupHtml(p: TiProps): string {
-  const ethn = p.ethnicities?.slice(0, 5).join(', ') ?? ''
+  const ethn = p.ethnicities?.slice(0, 5).join(',') ?? ''
   const funai = `https://sistemas.funai.gov.br/sici/busca.php?nome=${encodeURIComponent(
     p.name.replace(/^TI\s+/, '')
   )}`

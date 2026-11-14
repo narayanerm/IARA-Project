@@ -34,7 +34,7 @@ export function NisarPanel() {
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 text-[13px]">
       <div className="flex items-center gap-2">
-        <Satellite className="h-4 w-4 text-primary" />
+        <Satellite className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-[20px] leading-none">{t('nisar.title')}</h2>
         {sel.loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
@@ -51,7 +51,7 @@ export function NisarPanel() {
         <Stat value={stats.gunw} label="GUNW" />
         <Stat value={stats.tracks} label={t('nisar.tracks')} />
       </div>
-      <div className="font-mono text-[12px] text-muted-foreground">
+      <div className="tabular-nums text-[12px] text-muted-foreground">
         {stats.first} → {stats.last} ·{' '}
         {sel.point
           ? `${t('nisar.pointMode')} ${sel.point[1].toFixed(2)}, ${sel.point[0].toFixed(2)}`
@@ -59,7 +59,7 @@ export function NisarPanel() {
       </div>
 
       {sel.track && (
-        <div className="rounded-md border border-border/60 bg-background/40 p-2 font-mono text-[12px]">
+        <div className="rounded-md border border-border bg-transparent p-2 tabular-nums text-[12px]">
           <div className="text-foreground">
             {sel.product} ·{' '}
             {sel.track.key === ALL_TRACKS ? t('nisar.allTracks') : trackLabel(sel.track.key)}
@@ -71,7 +71,7 @@ export function NisarPanel() {
         </div>
       )}
 
-      <div className="text-[12px] font-mono uppercase tracking-wider text-muted-foreground">
+      <div className="text-[12px] font-medium text-muted-foreground">
         {t('nisar.list')}
       </div>
       <div className="flex flex-col gap-1.5">
@@ -82,7 +82,7 @@ export function NisarPanel() {
               key={s.id}
               className={cn(
                 'flex gap-2 rounded-md border p-1.5 transition-colors',
-                active ? 'border-primary/60 bg-primary/10' : 'border-border/60 bg-background/40'
+                active ? 'border-transparent bg-raised' : 'border-transparent'
               )}
             >
               <button
@@ -102,24 +102,24 @@ export function NisarPanel() {
               </button>
               <div className="min-w-0 flex-1">
                 <button onClick={() => setScene(s.id)} className="text-left">
-                  <div className="font-mono text-foreground">
+                  <div className="tabular-nums text-foreground">
                     {s.product === 'GUNW' ? `${s.date} → ${s.date2}` : s.date}
-                    <span className="ml-1.5 text-[11px] text-muted-foreground">
+                    <span className="ml-1.5 text-[12px] text-muted-foreground">
                       {trackLabel(trackKey(s))}
                       {s.beta ? ' · BETA' : ''}
                     </span>
                   </div>
-                  <div className="font-mono text-[11px] text-muted-foreground">
+                  <div className="tabular-nums text-[12px] text-muted-foreground">
                     {s.polMode ?? '—'} · {s.polarizations.join('+') || '—'} · {formatBytes(s.sizeBytes)} ·{' '}
                     {s.crid ?? ''}
                   </div>
                 </button>
-                <div className="mt-1 flex flex-wrap gap-2 text-[11px]">
+                <div className="mt-1 flex flex-wrap gap-2 text-[12px]">
                   <a
                     href={s.vertexUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                    className="inline-flex items-center gap-1 text-water hover:underline"
                   >
                     <ExternalLink className="h-3 w-3" />
                     {t('nisar.vertex')}
@@ -129,7 +129,7 @@ export function NisarPanel() {
                       href={s.qaReportUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-primary hover:underline"
+                      className="inline-flex items-center gap-1 text-water hover:underline"
                     >
                       <FileText className="h-3 w-3" />
                       {t('nisar.qa')}
@@ -156,16 +156,16 @@ export function NisarPanel() {
         )}
       </div>
 
-      <div className="mt-auto text-[11px] leading-snug text-muted-foreground">{t('nisar.note')}</div>
+      <div className="mt-auto text-[12px] leading-snug text-muted-foreground">{t('nisar.note')}</div>
     </div>
   )
 }
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="rounded-md border border-border/60 bg-background/40 p-2 text-center">
+    <div className="rounded-md border border-border bg-transparent p-2 text-center">
       <div className="text-lg font-semibold text-foreground">{value}</div>
-      <div className="text-[11px] font-mono uppercase text-muted-foreground">{label}</div>
+      <div className="text-[12px] font-medium text-muted-foreground">{label}</div>
     </div>
   )
 }
