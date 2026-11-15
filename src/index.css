@@ -239,3 +239,11 @@
     @apply bg-card/90 border border-border/60 shadow-lg shadow-black/20;
   }
 }
+
+/* SAR button: bottom-right of the map, above the ask bar row and the home/attribution buttons. */
+.sar-button {
+  position: absolute;
+  z-index: 30;
+  right: 16px;
+  bottom: 84px;
+}
