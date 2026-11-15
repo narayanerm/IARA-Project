@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppLayout } from '@/components/app/AppLayout'
-import { VoxelIntro } from '@/components/app/LoadingScreen/VoxelIntro'
+import { LowPolyIntro } from '@/components/app/LoadingScreen/LowPolyIntro'
 import { Tutorial, hasSeenTutorial, TUTORIAL_OPEN_EVENT } from '@/components/app/Tutorial/Tutorial'
 import { useApp } from '@/lib/store'
 import { readUrlState } from '@/lib/url-state'
@@ -40,7 +40,7 @@ export default function App() {
     <TooltipProvider delayDuration={120}>
       <main className="h-full bg-background text-foreground">
         {/* the dashboard is mounted underneath from the start; the intro splits open to reveal it */}
-        {!ready && <VoxelIntro onDone={() => setReady(true)} />}
+        {!ready && <LowPolyIntro onDone={() => setReady(true)} />}
         <AppLayout introDone={ready} />
         {tutorialOn && (
           <Tutorial
