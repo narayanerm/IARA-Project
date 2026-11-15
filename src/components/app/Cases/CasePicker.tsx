@@ -8,16 +8,13 @@ import { cn } from '@/lib/utils'
 import { useTr } from './shared'
 import { SatCover } from './SatCover'
 import { caseMedia } from './caseMedia'
-import { useAsfPair } from '@/lib/useAsfPair'
-import { bandFor } from '@/lib/asf'
-import { polygonBbox } from '@/lib/polygon-bbox'
 import { CASE_REVEAL_MS } from '../Map/hooks/useMapCamera'
 import './cases.css'
 
 
 /**
  * Entry point and the only way between cases: three tall frames side by side, each showing the
- * radar (SAR) image of its region. Pointing at one widens it, plays its video and slides up the details. Picking it
+ * satellite picture of its region. Pointing at one widens it, plays its video and slides up the details. Picking it
  * swallows the strip; the map underneath is already waiting at the same place, so the picture
  * simply dissolves into it.
  */
@@ -80,14 +77,6 @@ export function CasePicker({ introDone }: { introDone: boolean }) {
   )
 }
 
-interface SarCover {
-  src: string
-  label: string
-  /** Where the case region sits inside the radar scene, as object-position percentages. */
-  x: number
-  y: number
-}
-
 // Photos rotate at this pace on hover when the case has no video.
 const PHOTO_MS = 2600
 
@@ -109,8 +98,6 @@ function CaseFrame({
   const [media] = useState(() => caseMedia(c.id))
   const [live, setLive] = useState(false)
   const [armed, setArmed] = useState(false)
-  const [sar, setSar] = useState<SarCover | null>(null)
-  const [sarFailed, setSarFailed] = useState(false)
   const [step, setStep] = useState(0)
   const video = useRef<HTMLVideoElement>(null)
   const playing = (live || chosen) && !idle
@@ -132,9 +119,6 @@ function CaseFrame({
     else v.pause()
   }, [videoOn])
 
-  const liveSar = !media.sarCover && !sarFailed ? sar : null
-  const sarLabel = media.sarCover ? 'Radar · SAR' : liveSar?.label
-  const onMedia = videoOn || !!photo
   return (
     <button
       type="button"
@@ -160,27 +144,8 @@ function CaseFrame({
       aria-label={`${tr(c.analysis)}: ${tr(c.place)}`}
     >
       <span className="case-card-media" aria-hidden="true">
-        {/* At rest: the radar image of the region. The satellite mosaic sits underneath until the
-            radar scene answers, and stays if it never does. */}
-        {!media.sarCover && (
-          <SatCover center={c.cover.center} zoom={c.cover.zoom + 1} className="case-card-photo is-on" />
-        )}
-        {media.sarCover && (
-          <img src={media.sarCover} alt="" draggable={false} decoding="async" className="case-card-photo is-on" />
-        )}
-        {liveSar && (
-          <img
-            src={liveSar.src}
-            alt=""
-            draggable={false}
-            decoding="async"
-            referrerPolicy="no-referrer"
-            className="case-card-photo case-card-sar"
-            style={{ objectPosition: `${liveSar.x}% ${liveSar.y}%`, transformOrigin: `${liveSar.x}% ${liveSar.y}%` }}
-            onLoad={(e) => e.currentTarget.classList.add('is-on')}
-            onError={() => setSarFailed(true)}
-          />
-        )}
+        {/* At rest: the satellite picture of the region. */}
+        <SatCover center={c.cover.center} zoom={c.cover.zoom + 1} className="case-card-photo is-on" />
         {media.images.map((src) => (
           <img
             key={src}
@@ -204,7 +169,6 @@ function CaseFrame({
           />
         )}
       </span>
-      {!media.sarCover && !sar && <SarProbe c={c} onReady={setSar} />}
       <span className="case-card-shade" aria-hidden="true" />
 
       <span className="case-card-top" aria-hidden="true">
@@ -215,11 +179,6 @@ function CaseFrame({
           <ArrowUpRight className="h-4 w-4" strokeWidth={1.6} />
         </span>
       </span>
-      {sarLabel && (
-        <span className={cn('case-card-tag', onMedia && 'is-off')} aria-hidden="true">
-          {sarLabel}
-        </span>
-      )}
 
       <span className="case-card-body" aria-hidden="true">
         <span className="case-card-reveal">
@@ -239,32 +198,4 @@ function CaseFrame({
       </span>
     </button>
   )
-}
-
-/**
- * Looks up the radar scene the case panel shows for its latest year (ASF browse image over the
- * case's own bounding box) and hands it to the frame, with the spot where the region sits inside
- * the scene so the frame can centre on it. Renders nothing; if no scene answers, the frame keeps
- * the satellite picture.
- */
-function SarProbe({ c, onReady }: { c: CaseStudy; onReady: (s: SarCover) => void }) {
-  const t = useT()
-  const point = [...c.series.points].reverse().find((p) => p.sar)
-  const pair = useAsfPair(c.sarBbox, point?.sar?.before ?? '', point?.sar?.after ?? '', 45)
-  const g = point ? pair.after : null
-  const platform = pair.platform
-  useEffect(() => {
-    if (!g?.browseUrl || !platform) return
-    const [w, s, e, n] = polygonBbox(g.footprint)
-    const cx = (c.sarBbox[0] + c.sarBbox[2]) / 2
-    const cy = (c.sarBbox[1] + c.sarBbox[3]) / 2
-    const pct = (v: number) => Math.round(Math.min(100, Math.max(0, v * 100)))
-    onReady({
-      src: g.browseUrl,
-      label: `Radar · ${platform} (${t('case.band', { band: bandFor(platform) })}) · ${g.startTime.slice(0, 10)}`,
-      x: pct((cx - w) / (e - w || 1)),
-      y: pct(1 - (cy - s) / (n - s || 1)),
-    })
-  }, [g, platform, c, onReady, t])
-  return null
 }
