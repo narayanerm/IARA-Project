@@ -17,7 +17,7 @@ export function ExportMenu() {
         <Button
           variant="default"
           size="sm"
-          className="h-8 rounded-full px-3.5 font-sans text-[13px] font-bold tracking-[-0.005em] shadow-none active:scale-[0.97]"
+          className="h-8 rounded-md px-3.5 font-sans text-[13px] font-bold tracking-[-0.005em] shadow-none active:scale-[0.97]"
         >
           {t('export.label')}
         </Button>
