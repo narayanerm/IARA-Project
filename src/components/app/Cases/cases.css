@@ -711,3 +711,20 @@
     opacity: 0.5;
   }
 }
+
+/* ---- floating header variant: the top bar is gone, so leave room for the controls on the map ---- */
+.case-row {
+  inset: 100px var(--gap) 72px;
+}
+.case-hud {
+  top: 56px;
+}
+@media (min-width: 768px) {
+  .case-panel {
+    left: 12px;
+    top: 68px;
+    bottom: 12px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 14px;
+  }
+}

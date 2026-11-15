@@ -247,3 +247,9 @@
   right: 16px;
   bottom: 84px;
 }
+
+/* Floating header: keep text legible over bright map areas without drawing a bar. */
+.hdr-float button,
+.hdr-float a {
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.65);
+}
