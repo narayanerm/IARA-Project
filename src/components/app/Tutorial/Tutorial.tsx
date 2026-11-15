@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRight, X } from 'lucide-react'
 import { useT } from '@/lib/i18n'
 
@@ -100,32 +100,57 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
     }
   }, [rect, viewport])
 
+  // Real balloon size, so placement and clamping use what is actually rendered.
+  const tipRef = useRef<HTMLDivElement>(null)
+  const [tipSize, setTipSize] = useState({ w: 320, h: 160 })
+  useLayoutEffect(() => {
+    const el = tipRef.current
+    if (!el) return
+    const update = () => {
+      const r = el.getBoundingClientRect()
+      setTipSize((s) => (s.w === r.width && s.h === r.height ? s : { w: r.width, h: r.height }))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [i])
+
   const tooltip = useMemo(() => {
-    const tooltipW = 320
-    const tooltipH = 160
-    if (!rect) {
-      return {
-        left: viewport.w / 2 - tooltipW / 2,
-        top: viewport.h / 2 - tooltipH / 2,
-      }
-    }
-    const placement = step.placement ?? 'bottom'
+    const margin = 12
     const gap = 16
-    let left = rect.x + rect.width / 2 - tooltipW / 2
-    let top = rect.y + rect.height + gap
-    if (placement === 'top') top = rect.y - tooltipH - gap
-    if (placement === 'right') {
-      left = rect.x + rect.width + gap
-      top = rect.y + rect.height / 2 - tooltipH / 2
+    const tooltipW = Math.min(tipSize.w, viewport.w - margin * 2)
+    const tooltipH = Math.min(tipSize.h, viewport.h - margin * 2)
+    const clamp = (left: number, top: number) => ({
+      left: Math.max(margin, Math.min(viewport.w - tooltipW - margin, left)),
+      top: Math.max(margin, Math.min(viewport.h - tooltipH - margin, top)),
+    })
+    if (!rect) {
+      return clamp(viewport.w / 2 - tooltipW / 2, viewport.h / 2 - tooltipH / 2)
     }
-    if (placement === 'left') {
-      left = rect.x - tooltipW - gap
-      top = rect.y + rect.height / 2 - tooltipH / 2
-    }
-    left = Math.max(12, Math.min(viewport.w - tooltipW - 12, left))
-    top = Math.max(12, Math.min(viewport.h - tooltipH - 12, top))
-    return { left, top }
-  }, [rect, step.placement, viewport])
+    const centerX = rect.x + rect.width / 2 - tooltipW / 2
+    const centerY = rect.y + rect.height / 2 - tooltipH / 2
+    const below = rect.y + rect.height + gap
+    const above = rect.y - tooltipH - gap
+    const fitsBelow = below + tooltipH <= viewport.h - margin
+    const fitsAbove = above >= margin
+    const fitsRight = rect.x + rect.width + gap + tooltipW <= viewport.w - margin
+    const fitsLeft = rect.x - tooltipW - gap >= margin
+
+    const placement = step.placement ?? 'bottom'
+    if (placement === 'bottom' && fitsBelow) return clamp(centerX, below)
+    if (placement === 'top' && fitsAbove) return clamp(centerX, above)
+    if (placement === 'right' && fitsRight) return clamp(rect.x + rect.width + gap, centerY)
+    if (placement === 'left' && fitsLeft) return clamp(rect.x - tooltipW - gap, centerY)
+    // Preferred side has no room: try the opposite side, then the others.
+    if (fitsBelow && placement !== 'top') return clamp(centerX, below)
+    if (fitsAbove) return clamp(centerX, above)
+    if (fitsBelow) return clamp(centerX, below)
+    if (fitsRight) return clamp(rect.x + rect.width + gap, centerY)
+    if (fitsLeft) return clamp(rect.x - tooltipW - gap, centerY)
+    // Target fills the screen (cards, map): center on the screen so steps don't jump.
+    return clamp(viewport.w / 2 - tooltipW / 2, viewport.h / 2 - tooltipH / 2)
+  }, [rect, step.placement, viewport, tipSize])
 
   return (
     <div className="fixed inset-0 z-[9998]">
@@ -168,7 +193,8 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
       </svg>
 
       <div
-        className="absolute w-[320px] rounded-xl border border-primary/40 bg-card/95 backdrop-blur-xl p-4 shadow-2xl"
+        ref={tipRef}
+        className="absolute w-[320px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] overflow-y-auto rounded-xl border border-primary/40 bg-card/95 backdrop-blur-xl p-4 shadow-2xl"
         style={{ left: tooltip.left, top: tooltip.top }}
       >
         <button
