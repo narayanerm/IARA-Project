@@ -181,6 +181,10 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
     if (!flyTarget) return
     const m = mapRef.current
     if (!m) return
+    // The assistant may send the camera outside the locked case framing; lift the lock first.
+    const lockBounds = m.getMap().getMaxBounds()
+    if (lockBounds && !lockBounds.contains(flyTarget.center)) unlock(m.getMap())
+    if (flyTarget.zoom !== undefined && flyTarget.zoom < m.getMap().getMinZoom()) m.getMap().setMinZoom(0)
     m.flyTo({
       center: flyTarget.center,
       zoom: flyTarget.zoom ?? 8,

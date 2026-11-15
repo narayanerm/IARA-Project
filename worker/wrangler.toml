@@ -1,0 +1,16 @@
+name = "iara-agent"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Sites allowed to call the proxy (comma separated). Add the preview URL if you use one.
+ALLOWED_ORIGINS = "https://iara.earth,https://www.iara.earth,https://narayanerm.github.io,http://localhost:5173,http://localhost:4173"
+# Change a model without touching code. Leave as is to use the defaults in src/index.js.
+GEMINI_MODEL = "gemini-2.5-flash"
+GROQ_MODEL = "llama-3.3-70b-versatile"
+OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+
+# Keys are secrets, never in this file:
+#   npx wrangler secret put GEMINI_API_KEY
+#   npx wrangler secret put GROQ_API_KEY        (optional fallback)
+#   npx wrangler secret put OPENROUTER_API_KEY  (optional fallback)

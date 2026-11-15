@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import type { ProductLayer, RegionId, SubsidencePolygon } from './types'
 import type { NisarProduct } from './nisar'
 
+export type CaseTab = 'overview' | 'timeline' | 'alerts'
+
 interface AppState {
   activeRegion: RegionId
   activeLayer: ProductLayer
@@ -25,6 +27,9 @@ interface AppState {
   caseYear: number | null
   /** Risk hotspot highlighted on the map and in the alerts list. */
   hotspotId: string | null
+  /** Tab open in the case panel; lives here so the assistant can switch it. */
+  caseTab: CaseTab
+  setCaseTab: (t: CaseTab) => void
   /** True once the camera has finished flying into the active case. */
   caseArrived: boolean
   /** Bumped by the home button to put the camera back on the case framing. */
@@ -74,8 +79,10 @@ export const useApp = create<AppState>((set, get) => ({
   nisarNotice: null,
   caseYear: null,
   hotspotId: null,
+  caseTab: 'overview',
   caseArrived: false,
   homeTs: 0,
+  setCaseTab: (t) => set({ caseTab: t }),
   requestHome: () => set({ homeTs: Date.now(), hotspotId: null }),
   setCaseArrived: (v) => set({ caseArrived: v }),
   setCaseYear: (y) => set({ caseYear: y }),
@@ -83,6 +90,7 @@ export const useApp = create<AppState>((set, get) => ({
   setActiveRegion: (id) => {
     set({
       caseYear: null,
+      caseTab: 'overview',
       hotspotId: null,
       caseArrived: false,
       activeRegion: id,
