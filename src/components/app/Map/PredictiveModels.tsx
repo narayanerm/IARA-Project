@@ -4,9 +4,8 @@ import { ForecastLegend } from './ForecastLegend'
 import {
   fetchFlowForecast,
   AMAZON_RIVER_SITES,
-  findForecastReach,
   fetchFloodChance,
-  loadFloodForecastSnapshot,
+  resolveRiverForecast,
   FLOOD_ATTRIBUTION,
   FLOOD_EXTENT_LAYER,
   FLOOD_LAYER,
@@ -109,14 +108,7 @@ export function PredictiveModels({ mode, layers, bounds, point, showRiverFlow, s
       onFloodChance(next)
     }
     if (showFloodChance && !selectedGlofas) updateChance('loading')
-    const selection = loadFloodForecastSnapshot(AbortSignal.any([controller.signal, AbortSignal.timeout(3000)]))
-      .then(async (snapshot) => {
-        controller.signal.throwIfAborted()
-        const saved = snapshot?.forecasts.find(({ point }) => point[0] === selected[0] && point[1] === selected[1])
-        if (saved) return { id: saved.flow.riverId, saved }
-        const id = await findForecastReach(selected, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
-        return { id, saved: snapshot?.forecasts.find(({ flow }) => flow.riverId === id) }
-      })
+    const selection = resolveRiverForecast(selected, controller.signal)
     selection.then(({ id, saved }) => saved?.flow ?? (id === null ? null : fetchFlowForecast(id, AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]))))
       .then((data) => { if (!controller.signal.aborted) setResult({ point: selected, data }) })
       .catch(() => {

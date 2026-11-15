@@ -271,6 +271,16 @@ export async function findForecastReach([longitude, latitude]: ForecastPoint, si
   return riverId
 }
 
+export async function resolveRiverForecast(point: ForecastPoint, signal: AbortSignal) {
+  const snapshot = await loadFloodForecastSnapshot(AbortSignal.any([signal, AbortSignal.timeout(3000)]))
+  signal.throwIfAborted()
+  const saved = snapshot?.forecasts.find((entry) => entry.point[0] === point[0] && entry.point[1] === point[1])
+  if (saved) return { id: saved.flow.riverId, saved }
+
+  const id = await findForecastReach(point, AbortSignal.any([signal, AbortSignal.timeout(15000)]))
+  return { id, saved: snapshot?.forecasts.find(({ flow }) => flow.riverId === id) }
+}
+
 export async function fetchFlowForecast(riverId: number, signal: AbortSignal): Promise<FlowForecast> {
   const response = await fetch(`${GEOGLOWS_API}/ForecastStats/${riverId}?format=csv`, { signal })
   if (!response.ok) throw new Error(`GEOGLOWS forecast: ${response.status}`)
