@@ -313,3 +313,8 @@
   .ask-leaf { animation: none; opacity: 0.85; transform: rotate(calc(var(--a) + 180deg)) scale(calc(var(--s) * 0.62)); }
   .ask-leaf.is-fly { display: none; }
 }
+
+/* Tour: the area a step talks about flashes briefly once, instead of a lasting outline. */
+.tour-flash { opacity: 0; animation: tour-flash 750ms ease-out 150ms 1 both; }
+@keyframes tour-flash { 0% { opacity: 0; } 30% { opacity: 0.28; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tour-flash { animation: none; } }

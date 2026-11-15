@@ -152,17 +152,17 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
           mask="url(#tour-mask)"
           onClick={skip}
         />
+        {/* The described area flashes once when the step starts (no lasting outline). */}
         {hole && (
           <rect
+            key={i}
             x={hole.x}
             y={hole.y}
             width={hole.width}
             height={hole.height}
             rx="10"
-            fill="none"
-            stroke="hsl(190 95% 70%)"
-            strokeWidth="2"
-            className="animate-pulse"
+            fill="rgb(255 255 255)"
+            className="tour-flash pointer-events-none"
           />
         )}
       </svg>
