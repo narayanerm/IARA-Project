@@ -33,10 +33,10 @@ export function AskBar({ className }: { className?: string }) {
               type="button"
               // mousedown keeps the field from blurring before the click lands
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => submit(s)}
+              onClick={() => submit(t(s))}
               className="rounded-md border border-border bg-card/70 px-2.5 py-1 text-[12px] text-foreground backdrop-blur-sm transition-colors hover:bg-secondary"
             >
-              {s}
+              {t(s)}
             </button>
           ))}
         </div>

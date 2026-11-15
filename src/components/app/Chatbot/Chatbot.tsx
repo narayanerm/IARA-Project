@@ -2,25 +2,18 @@ import { useEffect, useRef, useState } from 'react'
 import { Send, Sparkles, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useApp, useUi } from '@/lib/store'
+import { useI18n, useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { routeIntent, narrativeFor, SUGGESTIONS, type Intent } from './intents'
 
-interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  text: string
-  intent?: Intent
-}
-
-const WELCOME: Message = {
-  id: 'welcome',
-  role: 'assistant',
-  text:
-    'Oi. Sou o assistente do **IARA**. Me diz um fenômeno ou lugar e eu dou zoom no mapa + puxo a série temporal.\n\nTente uma das sugestões abaixo.',
-}
+type Message =
+  | { id: string; role: 'user'; text: string }
+  | { id: string; role: 'assistant'; intent: Intent }
 
 export function Chatbot() {
-  const [messages, setMessages] = useState<Message[]>([WELCOME])
+  const t = useT()
+  const lang = useI18n((s) => s.lang)
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [thinking, setThinking] = useState(false)
   const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -37,7 +30,7 @@ export function Chatbot() {
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messages, thinking])
+  }, [messages, thinking, lang])
 
   const send = (raw: string) => {
     const text = raw.trim()
@@ -53,7 +46,6 @@ export function Chatbot() {
       const reply: Message = {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        text: narrativeFor(intent),
         intent,
       }
       setMessages((m) => [...m, reply])
@@ -138,31 +130,33 @@ export function Chatbot() {
           <Sparkles className="h-3.5 w-3.5 text-primary" />
         </div>
         <div className="flex-1 leading-tight">
-          <div className="text-xs font-semibold">Assistente IARA</div>
-          <div className="text-[13px] font-mono text-muted-foreground uppercase tracking-wider">
-            roteador determinístico · stub Claude
-          </div>
+          <div className="text-xs font-semibold">{t('rp.chat')}</div>
         </div>
       </div>
 
       {/* messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+        <MessageBubble role="assistant" text={t('assistant.welcome')} />
         {messages.map((m) => (
-          <MessageBubble key={m.id} msg={m} />
+          <MessageBubble
+            key={m.id}
+            role={m.role}
+            text={m.role === 'user' ? m.text : narrativeFor(m.intent, lang)}
+          />
         ))}
         {thinking && <ThinkingBubble />}
       </div>
 
       {/* suggestions */}
-      {messages.length <= 1 && (
+      {messages.length === 0 && (
         <div className="px-3 pb-2 flex flex-wrap gap-1.5">
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
-              onClick={() => send(s)}
+              onClick={() => send(t(s))}
               className="rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[12px] font-mono text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
             >
-              {s}
+              {t(s)}
             </button>
           ))}
         </div>
@@ -179,10 +173,10 @@ export function Chatbot() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Pergunte sobre garimpo, enchente, seca…"
+          placeholder={t('assistant.placeholder')}
           className="flex-1 bg-background/40 border border-border rounded-md px-2.5 h-9 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40"
         />
-        <Button type="submit" size="icon" className="h-9 w-9" aria-label="Enviar">
+        <Button type="submit" size="icon" className="h-9 w-9" aria-label={t('ask.send')}>
           <Send className="h-3.5 w-3.5" />
         </Button>
       </form>
@@ -190,8 +184,8 @@ export function Chatbot() {
   )
 }
 
-function MessageBubble({ msg }: { msg: Message }) {
-  const isUser = msg.role === 'user'
+function MessageBubble({ role, text }: { role: Message['role']; text: string }) {
+  const isUser = role === 'user'
   return (
     <div className={cn('flex gap-2', isUser && 'flex-row-reverse')}>
       <div
@@ -212,7 +206,7 @@ function MessageBubble({ msg }: { msg: Message }) {
             : 'bg-background/40 text-foreground/90 border border-border/60'
         )}
       >
-        {renderMarkdownLite(msg.text)}
+        {renderMarkdownLite(text)}
       </div>
     </div>
   )
