@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Layers } from 'lucide-react'
 import { useApp, useUi } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n'
 
 /**
  * SAR layer switcher shown in every case, laid out like a map app's layer picker: one thumbnail
@@ -19,6 +20,35 @@ const BANDS: Array<{ id: Band; label: string; hint: string; color: string }> = [
   { id: 'sband', label: 'S-band', hint: 'NISAR S-band · λ 10 cm · topo do dossel', color: '#B59EF5' },
   { id: 's1c', label: 'Sentinel-1', hint: 'Sentinel-1 C-band · λ 5,6 cm · superfície', color: '#9ED9FF' },
 ]
+
+// Balloon over each card: full name, then a plain-language description in the site language.
+const DESC: Record<Band | 'radd' | 'deter', { title: string; pt: string; en: string }> = {
+  nisar: {
+    title: 'NISAR L-band · λ 24 cm',
+    pt: 'Onda longa que atravessa a copa e chega ao chão e aos troncos. Mostra onde a floresta foi aberta, mesmo com nuvens.',
+    en: 'A long wave that passes through the canopy to the ground and trunks. Shows where the forest was cleared, even under clouds.',
+  },
+  sband: {
+    title: 'NISAR S-band · λ 10 cm',
+    pt: 'Onda média que reflete no topo do dossel e nos galhos. Mostra mudanças na copa das árvores.',
+    en: 'A mid-length wave that bounces off the top of the canopy and branches. Shows changes in the tree crowns.',
+  },
+  s1c: {
+    title: 'Sentinel-1 C-band · λ 5,6 cm',
+    pt: 'Onda curta que vê a superfície: água aberta, solo exposto e cicatrizes de garimpo.',
+    en: 'A short wave that sees the surface: open water, bare soil and mining scars.',
+  },
+  radd: {
+    title: 'Alertas RADD',
+    pt: 'Perda de floresta detectada pelo radar do Sentinel-1, de 2020 até hoje. Cada ponto é um alerta.',
+    en: 'Forest loss detected by Sentinel-1 radar, from 2020 to today. Each dot is an alert.',
+  },
+  deter: {
+    title: 'DETER mineração (INPE)',
+    pt: '683 áreas de garimpo mapeadas pelo INPE entre 2019 e 2026.',
+    en: '683 mining areas mapped by INPE between 2019 and 2026.',
+  },
+}
 
 const thumb = (region: string, band: Band) => `/layer-thumbs/${region}-${band}.webp`
 
@@ -55,26 +85,31 @@ function DeterThumb() {
 
 function Card({
   label,
-  hint,
+  tipTitle,
+  desc,
+  alignRight = false,
   active,
   color,
   onClick,
   children,
 }: {
   label: string
-  hint: string
+  tipTitle: string
+  desc: string
+  alignRight?: boolean
   active: boolean
   color: string
   onClick: () => void
   children: React.ReactNode
 }) {
+  const tipId = useId()
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      title={hint}
-      className="group flex w-[64px] shrink-0 flex-col items-center gap-1 rounded-lg p-1 text-center transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      aria-describedby={tipId}
+      className="group relative flex w-[64px] shrink-0 flex-col items-center gap-1 rounded-lg p-1 text-center transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span
         className="block h-[52px] w-[52px] overflow-hidden rounded-lg transition-[box-shadow,transform] duration-200 group-hover:scale-[1.04]"
@@ -85,12 +120,32 @@ function Card({
       <span className={cn('text-[11px] font-semibold leading-tight', active ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground')}>
         {label}
       </span>
+      {/* Balloon with a plain-language description, rising above the card on hover or keyboard focus. */}
+      <span
+        id={tipId}
+        role="tooltip"
+        className={cn(
+          'pointer-events-none absolute bottom-full z-10 mb-2.5 w-[230px] translate-y-1 rounded-lg bg-[#0d1512] px-3 py-2 text-left text-[12px] leading-relaxed opacity-0 shadow-2xl ring-1 ring-white/10 transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100',
+          alignRight ? 'right-0' : 'left-1/2 -translate-x-1/2'
+        )}
+      >
+        <span className="block font-bold text-foreground">{tipTitle}</span>
+        <span className="mt-0.5 block font-normal text-foreground/85">{desc}</span>
+        <span
+          aria-hidden="true"
+          className={cn(
+            'absolute top-full -mt-[5px] h-2.5 w-2.5 rotate-45 bg-[#0d1512] shadow-[1px_1px_0_0_rgb(255_255_255/0.1)]',
+            alignRight ? 'right-[27px]' : 'left-1/2 -translate-x-1/2'
+          )}
+        />
+      </span>
     </button>
   )
 }
 
 export function YanomamiCaseControls() {
   const activeRegion = useApp((s) => s.activeRegion)
+  const lang = useI18n((s) => s.lang)
   const aoiActive = useApp((s) => s.aoiActive)
   const band = useUi((s) => s.yanomamiBand)
   const raddOn = useUi((s) => s.yanomamiRaddOn)
@@ -129,7 +184,8 @@ export function YanomamiCaseControls() {
           <Card
             key={b.id}
             label={b.label}
-            hint={b.hint}
+            tipTitle={DESC[b.id].title}
+            desc={DESC[b.id][lang]}
             color={b.color}
             active={band === b.id}
             onClick={() => setBand(band === b.id ? null : b.id)}
@@ -140,10 +196,10 @@ export function YanomamiCaseControls() {
         {showGarimpoOverlays && (
           <>
             <span className="mx-1 mt-2 h-[44px] w-px shrink-0 bg-white/12" aria-hidden="true" />
-            <Card label="RADD" hint="Alertas RADD · derivado do Sentinel-1 · 2020 até hoje" color="#FF4D6D" active={raddOn} onClick={toggleRadd}>
+            <Card label="RADD" tipTitle={DESC.radd.title} desc={DESC.radd[lang]} color="#FF4D6D" active={raddOn} onClick={toggleRadd}>
               <RaddThumb />
             </Card>
-            <Card label="DETER" hint="DETER mineração · 683 polígonos INPE · 2019-2026" color="#ffffff" active={deterOn} onClick={toggleDeter}>
+            <Card label="DETER" tipTitle={DESC.deter.title} desc={DESC.deter[lang]} alignRight color="#ffffff" active={deterOn} onClick={toggleDeter}>
               <DeterThumb />
             </Card>
           </>
