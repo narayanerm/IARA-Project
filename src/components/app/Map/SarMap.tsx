@@ -33,6 +33,7 @@ import { FocusedTiMask } from './layers/FocusedTiMask'
 import { DeterLayer } from './layers/DeterLayer'
 
 import { CaseMarkers } from './layers/CaseMarkers'
+import { YanomamiPlaceMarkers } from '../Places/YanomamiPlaceMarkers'
 import { CaseOutlineLayer } from './layers/CaseOutlineLayer'
 import { YANO_DETER_BBOX } from '../Cases/CaseAlerts'
 
@@ -215,6 +216,7 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
           </Marker>
         )}
         <CaseMarkers />
+        <YanomamiPlaceMarkers />
       </Map>
       <HomeButton />
       <YanomamiCaseControls />

@@ -193,3 +193,26 @@ export const useUi = create<UiState>((set, get) => ({
   toggleYanomamiRadd: () => set({ yanomamiRaddOn: !get().yanomamiRaddOn }),
   toggleYanomamiDeter: () => set({ yanomamiDeterOn: !get().yanomamiDeterOn }),
 }))
+
+/* ------------------------------------------------------------------ */
+/* Yanomami notable places: the open place and its transition phase.    */
+/* ------------------------------------------------------------------ */
+
+/** flying: camera zooms in while the expression lines draw; open: detail view shown; closing: flying back. */
+export type PlacePhase = 'idle' | 'flying' | 'open' | 'closing'
+
+interface PlacesState {
+  yanomamiPlaceId: string | null
+  placePhase: PlacePhase
+  openPlace: (id: string) => void
+  setPlacePhase: (p: PlacePhase) => void
+  closePlace: () => void
+}
+
+export const usePlaces = create<PlacesState>((set) => ({
+  yanomamiPlaceId: null,
+  placePhase: 'idle',
+  openPlace: (id) => set({ yanomamiPlaceId: id, placePhase: 'flying' }),
+  setPlacePhase: (p) => set({ placePhase: p }),
+  closePlace: () => set({ placePhase: 'closing' }),
+}))

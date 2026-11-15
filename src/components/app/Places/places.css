@@ -1,0 +1,128 @@
+/* Yanomami notable places: map pins, click animation ("expression lines") and the region detail view. */
+
+.place-pin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.place-pin-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #f1eee5;
+  box-shadow: 0 0 0 3px rgb(240 122 69 / 0.9), 0 0 0 7px rgb(240 122 69 / 0.25), 0 2px 8px rgb(0 0 0 / 0.6);
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+}
+.place-pin:hover .place-pin-dot,
+.place-pin:focus-visible .place-pin-dot {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 3px #f07a45, 0 0 0 10px rgb(240 122 69 / 0.35), 0 2px 10px rgb(0 0 0 / 0.6);
+}
+.place-pin:focus-visible { outline: 2px solid #f1eee5; outline-offset: 4px; }
+.place-pin-label {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgb(13 21 18 / 0.88);
+  color: #f1eee5;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.45);
+  pointer-events: none;
+  transition: background 160ms ease-out;
+}
+.place-pin:hover .place-pin-label { background: #f07a45; color: #0d1512; }
+.place-pin-approx { margin-left: 3px; opacity: 0.6; }
+
+/* Expression lines drawn while the camera flies in. */
+.place-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 45; overflow: visible; }
+.place-fx-ring { fill: none; stroke: #f07a45; stroke-width: 2; opacity: 0; transform-origin: center; animation: place-ring 1300ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+@keyframes place-ring { 0% { opacity: 0.95; transform: scale(0.4); } 100% { opacity: 0; transform: scale(7); } }
+.place-fx-contour { fill: none; stroke: rgb(241 238 229 / 0.7); stroke-width: 1; stroke-dasharray: 4 6; opacity: 0;
+  animation: place-contour 1300ms ease-out both; }
+@keyframes place-contour { 0% { opacity: 0; transform: rotate(0deg) scale(0.6); } 30% { opacity: 0.8; } 100% { opacity: 0; transform: rotate(40deg) scale(1.4); } }
+.place-fx-ray { stroke: #f1eee5; stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: 120; stroke-dashoffset: 120; opacity: 0.85;
+  animation: place-ray 1000ms cubic-bezier(0.3, 0.6, 0.3, 1) both; }
+@keyframes place-ray { 0% { stroke-dashoffset: 120; opacity: 0.9; } 70% { stroke-dashoffset: 0; opacity: 0.8; } 100% { stroke-dashoffset: -120; opacity: 0; } }
+
+/* Detail view: opens as a circle growing from the place. */
+.place-detail {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #f1eee5;
+  background: rgb(9 14 12 / 0.94);
+  backdrop-filter: blur(14px) saturate(140%);
+  clip-path: circle(150% at var(--ox) var(--oy));
+  animation: place-open 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.place-detail.is-closing { animation: place-close 450ms ease-in both; }
+@keyframes place-open { from { clip-path: circle(0% at var(--ox) var(--oy)); opacity: 0.4; } to { clip-path: circle(150% at var(--ox) var(--oy)); opacity: 1; } }
+@keyframes place-close { from { clip-path: circle(150% at var(--ox) var(--oy)); opacity: 1; } to { clip-path: circle(0% at var(--ox) var(--oy)); opacity: 0; } }
+.place-detail-scroll { position: absolute; inset: 0; overflow-y: auto; padding: 80px clamp(16px, 4vw, 56px) 48px; }
+.place-detail-scroll > * + * { margin-top: 28px; }
+.place-head { max-width: 980px; }
+.place-back { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 700;
+  background: rgb(255 255 255 / 0.08); transition: background 150ms; }
+.place-back:hover { background: rgb(255 255 255 / 0.16); }
+.place-title { margin-top: 14px; font-size: clamp(34px, 5vw, 64px); font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+.place-sub { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; color: rgb(241 238 229 / 0.75); }
+.place-badge { margin-left: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: rgb(240 122 69 / 0.18); color: #f7a37c; }
+.place-summary { margin-top: 14px; max-width: 760px; font-size: 17px; line-height: 1.55; font-weight: 500; }
+.place-note { margin-top: 8px; max-width: 760px; font-size: 12.5px; line-height: 1.5; color: rgb(241 238 229 / 0.6); }
+.place-sources { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; }
+.place-sources a { color: rgb(158 217 255 / 0.85); text-decoration: underline; text-underline-offset: 2px; }
+.place-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .place-grid { grid-template-columns: 1fr; } }
+.place-card { border-radius: 14px; padding: 14px; background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08); }
+.place-card p { margin-top: 6px; font-size: 14px; line-height: 1.5; }
+.place-card-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: rgb(241 238 229 / 0.6); margin-bottom: 10px; }
+.place-map { height: 340px; border-radius: 10px; overflow: hidden; }
+.place-map-dot { display: block; width: 14px; height: 14px; border-radius: 999px; background: #f1eee5; box-shadow: 0 0 0 3px #f07a45, 0 0 0 9px rgb(240 122 69 / 0.3); }
+.place-map-tools { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.place-chip { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; background: rgb(255 255 255 / 0.07); color: rgb(241 238 229 / 0.8); }
+.place-chip.is-on { background: #f07a45; color: #0d1512; }
+.place-tools-sep { width: 1px; height: 18px; background: rgb(255 255 255 / 0.15); margin: 0 4px; }
+.place-slider { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; font-size: 12px; font-weight: 600; color: rgb(241 238 229 / 0.7); }
+.place-slider input { accent-color: #f07a45; width: 120px; }
+.place-figure img { width: 100%; height: 260px; object-fit: cover; border-radius: 10px; }
+.place-figure figcaption { margin-top: 8px; font-size: 13px; line-height: 1.45; }
+.place-credit { display: block; margin-top: 3px; font-size: 11px; color: rgb(241 238 229 / 0.55); }
+.place-credit a { text-decoration: underline; text-underline-offset: 2px; }
+.place-thumbs { margin-top: 10px; display: flex; gap: 6px; }
+.place-thumb { width: 56px; height: 42px; border-radius: 6px; overflow: hidden; opacity: 0.6; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.15); }
+.place-thumb.is-on { opacity: 1; box-shadow: 0 0 0 2px #f07a45; }
+.place-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.place-empty { font-size: 13px; color: rgb(241 238 229 / 0.6); }
+.place-h3 { font-size: 22px; font-weight: 800; margin-bottom: 12px; }
+.place-stats { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.place-stat { border-radius: 12px; padding: 12px 14px; background: rgb(255 255 255 / 0.04); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08); }
+.place-stat.is-territory { background: rgb(255 255 255 / 0.025); }
+.place-stat-label { font-size: 11.5px; font-weight: 700; color: rgb(241 238 229 / 0.6); }
+.place-stat-value { margin-top: 4px; font-size: 26px; font-weight: 800; color: #f07a45; }
+.place-stat-text { margin: 4px 0 6px; font-size: 13px; line-height: 1.4; }
+.place-econ { margin-top: 12px; }
+.place-timeline { position: relative; display: grid; gap: 12px; padding-left: 18px; border-left: 2px solid rgb(240 122 69 / 0.5); }
+.place-timeline li { display: grid; grid-template-columns: 80px 1fr; gap: 12px; font-size: 14px; line-height: 1.5; }
+.place-year { font-weight: 800; color: #f07a45; }
+.place-explore { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+.place-explore-link { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700;
+  background: rgb(255 255 255 / 0.07); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12); transition: background 150ms; }
+.place-explore-link:hover { background: rgb(240 122 69 / 0.2); }
+.place-credits ul { display: grid; gap: 4px; font-size: 12px; color: rgb(241 238 229 / 0.65); }
+.place-credits a { text-decoration: underline; text-underline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .place-fx { display: none; }
+  .place-detail, .place-detail.is-closing { animation-duration: 1ms; }
+}

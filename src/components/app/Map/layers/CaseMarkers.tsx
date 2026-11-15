@@ -1,6 +1,7 @@
 import { Marker } from 'react-map-gl/maplibre'
 import { CASES, RISK_COLOR } from '@/data/cases'
-import { useApp } from '@/lib/store'
+import { useApp, usePlaces } from '@/lib/store'
+import { YANOMAMI_PLACES } from '@/data/yanomamiPlaces'
 
 /** Pulsing watch zones of the active case. */
 export function CaseMarkers() {
@@ -9,12 +10,18 @@ export function CaseMarkers() {
   const hotspotId = useApp((s) => s.hotspotId)
   const setHotspot = useApp((s) => s.setHotspot)
   const arrived = useApp((s) => s.caseArrived)
+  const placePhase = usePlaces((s) => s.placePhase)
 
-  if (!aoiActive || !arrived) return null
+  if (!aoiActive || !arrived || placePhase !== 'idle') return null
+  // In the Yanomami case, a watch zone that is also a notable place is drawn by YanomamiPlaceMarkers instead.
+  const hotspots =
+    activeRegion === 'YANO'
+      ? CASES[activeRegion].hotspots.filter((h) => !YANOMAMI_PLACES.some((p) => p.id === h.id))
+      : CASES[activeRegion].hotspots
 
   return (
     <>
-      {CASES[activeRegion].hotspots.map((h, i) => (
+      {hotspots.map((h, i) => (
         <Marker key={h.id} longitude={h.center[0]} latitude={h.center[1]} anchor="center">
           <button
             type="button"
