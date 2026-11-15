@@ -1,6 +1,12 @@
 import { useRef, useState } from 'react'
 import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import type { AffectedAreaProps } from '@/data/layers/affected-areas'
+import { useI18n } from '@/lib/i18n'
+
+const COPY = {
+  pt: { before: 'ANTES', after: 'DEPOIS', drag: 'arraste ↔', dragLabel: 'Arrastar comparador' },
+  en: { before: 'BEFORE', after: 'AFTER', drag: 'drag ↔', dragLabel: 'Drag to compare' },
+} as const
 
 type Bbox = [number, number, number, number]
 
@@ -25,6 +31,8 @@ export function BeforeAfter({
   afterBbox,
   affected,
 }: Props) {
+  const lang = useI18n((s) => s.lang)
+  const copy = COPY[lang] ?? COPY.pt
   const [pos, setPos] = useState(50)
   const [dragging, setDragging] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -46,19 +54,19 @@ export function BeforeAfter({
       onMouseLeave={() => setDragging(false)}
       onTouchMove={(e) => onMove(e.touches[0].clientX)}
     >
-      <Frame url={afterUrl} bbox={afterBbox} affected={affected} className="absolute inset-0" />
+      <Frame url={afterUrl} bbox={afterBbox} affected={affected} lang={lang} className="absolute inset-0" />
       <div
         className="absolute inset-0 overflow-hidden"
         style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
       >
-        <Frame url={beforeUrl} bbox={beforeBbox} affected={affected} className="absolute inset-0" />
+        <Frame url={beforeUrl} bbox={beforeBbox} affected={affected} lang={lang} className="absolute inset-0" />
       </div>
 
       <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] font-mono backdrop-blur-sm z-10">
-        ANTES · {beforeLabel}
+        {copy.before} · {beforeLabel}
       </span>
       <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] font-mono backdrop-blur-sm z-10">
-        DEPOIS · {afterLabel}
+        {copy.after} · {afterLabel}
       </span>
 
       <div
@@ -70,7 +78,7 @@ export function BeforeAfter({
         onTouchStart={() => setDragging(true)}
         className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 grid place-items-center h-10 w-10 rounded-full bg-white shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-10"
         style={{ left: `${pos}%` }}
-        aria-label="Arrastar comparador"
+        aria-label={copy.dragLabel}
       >
         <svg viewBox="0 0 24 24" className="w-5 h-5 text-black" fill="none">
           <path d="M8 6L4 12L8 18M16 6L20 12L16 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -78,7 +86,7 @@ export function BeforeAfter({
       </button>
 
       <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-mono text-white/80 bg-black/60 backdrop-blur-sm rounded-full px-2 py-0.5 z-10">
-        arraste ↔
+        {copy.drag}
       </div>
     </div>
   )
@@ -88,11 +96,13 @@ function Frame({
   url,
   bbox,
   affected,
+  lang,
   className,
 }: {
   url: string
   bbox: Bbox
   affected?: FeatureCollection<Polygon, AffectedAreaProps>
+  lang: string
   className?: string
 }) {
   const [minLon, minLat, maxLon, maxLat] = bbox
@@ -175,7 +185,7 @@ function Frame({
                       fontFamily="Inter, sans-serif"
                       fontWeight="700"
                     >
-                      {f.properties.area_km2.toLocaleString('pt-BR')} km²
+                      {f.properties.area_km2.toLocaleString(lang === 'en' ? 'en-US' : 'pt-BR')} km²
                     </text>
                   )
                 })()}
