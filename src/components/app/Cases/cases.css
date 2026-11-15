@@ -34,7 +34,8 @@
 
 .case-row {
   position: absolute;
-  inset: 44px var(--gap) 28px;
+  /* bottom room for the floating ask bar */
+  inset: 44px var(--gap) 72px;
   display: flex;
   gap: var(--gap);
   transition:
