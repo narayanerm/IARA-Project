@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 import type { MapRef } from 'react-map-gl/maplibre'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { INDIGENOUS_LANDS, polygonCentroid } from '@/data/layers/indigenous-lands'
@@ -13,6 +13,15 @@ export const OVERVIEW_ZOOM = 5
 // How far the user may zoom out of a case, in zoom levels below the case framing.
 const ZOOM_OUT = 1.3
 const FLY_MS = 3400
+// Entering from the picker: the camera waits behind the chosen picture while it opens to full
+// screen, then pulls back and tilts as the picture dissolves. The picker reads the same delay.
+export const CASE_REVEAL_MS = 850
+const REVEAL_MS = 2600
+// How much closer than the case framing the camera starts, so the first frame of the map matches
+// the close satellite picture that was just on screen.
+const REVEAL_ZOOM_IN = 1.4
+const easeOutQuint = (t: number) => 1 - (1 - t) ** 5
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 
 /** Width of the case panel, shared with the panel's CSS so the map frames the free area. */
 export function casePanelWidth(w: number): number {
@@ -75,11 +84,15 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
   const aoiActive = useApp((s) => s.aoiActive)
   const focusedTi = useApp((s) => s.focusedTi)
   const flyTarget = useApp((s) => s.flyTarget)
+  const homeTs = useApp((s) => s.homeTs)
+  const wasActive = useRef(aoiActive)
 
   useEffect(() => {
     const m = mapRef.current?.getMap()
     if (!m || !mapLoaded) return
     unlock(m)
+    const fromPicker = aoiActive && !wasActive.current
+    wasActive.current = aoiActive
     if (!aoiActive) {
       m.flyTo({
         center: OVERVIEW_CENTER,
@@ -100,15 +113,26 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
       lock(m, cam.zoom)
       st.setCaseArrived(true)
     }
-    m.flyTo({
-      ...cam,
-      pitch: PITCH,
-      bearing: BEARING,
-      duration: FLY_MS,
-      curve: 1.6,
-      essential: true,
-    })
-    m.once('moveend', onEnd)
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    let wait: number | undefined
+    if (fromPicker && !reduce) {
+      // Match cut: jump close and flat behind the picture, then pull back once it starts to fade.
+      m.jumpTo({ center: cam.center, zoom: cam.zoom + REVEAL_ZOOM_IN, pitch: 0, bearing: 0, padding: cam.padding })
+      wait = window.setTimeout(() => {
+        m.easeTo({ ...cam, pitch: PITCH, bearing: BEARING, duration: REVEAL_MS, easing: easeOutQuint, essential: true })
+        m.once('moveend', onEnd)
+      }, CASE_REVEAL_MS)
+    } else {
+      m.flyTo({
+        ...cam,
+        pitch: PITCH,
+        bearing: BEARING,
+        duration: reduce ? 0 : FLY_MS,
+        curve: 1.6,
+        essential: true,
+      })
+      m.once('moveend', onEnd)
+    }
 
     // Re-fit the lock when the window changes size (rotating a phone, resizing a laptop window).
     const onResize = () => {
@@ -120,10 +144,28 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
     }
     window.addEventListener('resize', onResize)
     return () => {
+      window.clearTimeout(wait)
       m.off('moveend', onEnd)
       window.removeEventListener('resize', onResize)
     }
   }, [region, mapLoaded, aoiActive, mapRef])
+
+  // Home button: back to the case framing after wandering around.
+  useEffect(() => {
+    if (!homeTs) return
+    const m = mapRef.current?.getMap()
+    const st = useApp.getState()
+    if (!m || !st.aoiActive || !st.caseArrived) return
+    unlock(m)
+    const cam = caseCamera(m, region)
+    m.easeTo({ ...cam, pitch: PITCH, bearing: BEARING, duration: 1400, easing: easeInOutCubic, essential: true })
+    const onEnd = () => lock(m, cam.zoom)
+    m.once('moveend', onEnd)
+    return () => {
+      m.off('moveend', onEnd)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeTs])
 
   useEffect(() => {
     if (!focusedTi) return

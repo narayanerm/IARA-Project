@@ -102,7 +102,7 @@ export function CaseSeries({ c }: { c: CaseStudy }) {
     : String(point.year)
 
   return (
-    <section className="space-y-3 p-4" data-tour="series" aria-label={tr(s.title)}>
+    <section className="space-y-3 px-5 py-5" data-tour="series" aria-label={tr(s.title)}>
       <div className="flex items-start gap-2.5">
         <div className="min-w-0 flex-1">
           <SectionTitle>{t('case.tab.timeline')}</SectionTitle>
@@ -155,12 +155,12 @@ export function CaseSeries({ c }: { c: CaseStudy }) {
       )}
 
       <div
-        className="rounded-xl border p-3"
-        style={{ borderColor: `color-mix(in srgb, ${c.color} 40%, transparent)` }}
+        className="border-l-2 py-1 pl-3.5"
+        style={{ borderColor: c.color }}
         aria-live="polite"
       >
         <div className="flex items-baseline gap-2">
-          <span className="text-[1.6rem] font-bold leading-none tabular-nums" style={{ color: c.color }}>
+          <span className="num-display text-[1.8rem] leading-none tabular-nums" style={{ color: c.color }}>
             {fmt(point.value)} <span className="text-[13px] font-medium">{s.unit}</span>
           </span>
           <span className="ml-auto text-[11.5px] text-muted-foreground">{dateLabel}</span>

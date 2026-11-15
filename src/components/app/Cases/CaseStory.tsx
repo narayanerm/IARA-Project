@@ -21,17 +21,11 @@ export function CaseStory({ c }: { c: CaseStudy }) {
   )
 
   return (
-    <div className="space-y-6 p-4">
-      <p className="text-[15px] font-semibold leading-snug text-balance">{tr(c.headline)}</p>
+    <div className="space-y-6 px-5 py-5">
+      <p className="text-[16px] font-normal leading-snug text-balance [font-variation-settings:'wdth'_104]">{tr(c.headline)}</p>
 
-      <div
-        className="rounded-2xl border p-4"
-        style={{
-          borderColor: `color-mix(in srgb, ${c.color} 45%, transparent)`,
-          background: `color-mix(in srgb, ${c.color} 10%, transparent)`,
-        }}
-      >
-        <div className="text-[2.6rem] font-bold leading-none tracking-[-0.035em] tabular-nums" style={{ color: c.color }}>
+      <div className="border-l-2 py-1 pl-4" style={{ borderColor: c.color }}>
+        <div className="num-display text-[2.9rem] leading-none tabular-nums" style={{ color: c.color }}>
           {c.hero.value}
         </div>
         <p className="mt-2 text-[13.5px] leading-snug text-foreground/90">{tr(c.hero.label)}</p>
@@ -67,16 +61,16 @@ export function CaseStory({ c }: { c: CaseStudy }) {
 
       <section className="space-y-2">
         <SectionTitle>{t('case.pains')}</SectionTitle>
-        <ul className="grid grid-cols-1 gap-2 min-[440px]:grid-cols-2 md:grid-cols-1">
+        <ul className="grid grid-cols-1 gap-3 min-[440px]:grid-cols-2 md:grid-cols-1">
           {c.pains.map((p) => {
             const PIcon = PAIN_ICON[p.icon]
             return (
-              <li key={p.title.pt} className="flex gap-3 rounded-xl border border-border/70 bg-background/40 p-2.5">
+              <li key={p.title.pt} className="flex gap-3 border-t border-border/80 pt-3">
                 <span
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
-                  style={{ color: c.color, background: `color-mix(in srgb, ${c.color} 14%, transparent)` }}
+                  className="mt-px shrink-0"
+                  style={{ color: c.color }}
                 >
-                  <PIcon className="h-[18px] w-[18px]" />
+                  <PIcon className="h-[18px] w-[18px]" strokeWidth={1.6} />
                 </span>
                 <div className="min-w-0">
                   <div className="text-[13.5px] font-semibold leading-tight">{tr(p.title)}</div>
@@ -96,7 +90,7 @@ export function CaseStory({ c }: { c: CaseStudy }) {
               key={q.pt}
               type="button"
               onClick={() => ask(tr(q))}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/40 px-2.5 py-1.5 text-left text-[12.5px] transition-colors hover:bg-secondary"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/40 px-2.5 py-1.5 text-left text-[12.5px] transition-colors hover:bg-secondary"
             >
               <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               {tr(q)}

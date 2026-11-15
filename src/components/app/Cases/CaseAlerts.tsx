@@ -34,11 +34,11 @@ export function CaseRisk({ c }: { c: CaseStudy }) {
   const rank = LEVELS.indexOf(c.risk.level)
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 px-5 py-5">
       <section>
         <SectionTitle>{t('case.risk')}</SectionTitle>
         <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-[1.5rem] font-semibold leading-none" style={{ color: RISK_COLOR[c.risk.level] }}>
+          <span className="num-display text-[1.7rem] leading-none" style={{ color: RISK_COLOR[c.risk.level] }}>
             {t(LEVEL_KEY[c.risk.level])}
           </span>
         </div>
@@ -59,7 +59,7 @@ export function CaseRisk({ c }: { c: CaseStudy }) {
       </section>
 
       {c.id === 'YANO' && (
-        <div className="flex items-center gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12.5px]">
+        <div className="flex items-center gap-2.5 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12.5px]">
           {deter.loading ? (
             <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
           ) : (
@@ -88,10 +88,10 @@ export function CaseHotspots({ c }: { c: CaseStudy }) {
   const requestFlyTo = useApp((s) => s.requestFlyTo)
 
   return (
-    <div className="space-y-5 p-4">
+    <div className="space-y-5 px-5 py-5">
       <section className="space-y-2">
         <SectionTitle>{t('case.hotspots')}</SectionTitle>
-        <ul className="grid gap-1.5">
+        <ul className="-mx-2.5 grid divide-y divide-border/70">
           {c.hotspots.map((h) => {
             const active = hotspotId === h.id
             return (
@@ -104,12 +104,12 @@ export function CaseHotspots({ c }: { c: CaseStudy }) {
                   }}
                   aria-pressed={active}
                   className={cn(
-                    'flex w-full items-start gap-2.5 rounded-lg border p-2.5 text-left transition-colors',
-                    active ? 'border-foreground/40 bg-secondary' : 'border-border/70 bg-background/40 hover:bg-secondary/70'
+                    'flex w-full items-start gap-2.5 rounded-md border px-2.5 py-3 text-left transition-colors',
+                    active ? 'border-border bg-secondary' : 'border-transparent hover:bg-secondary/60'
                   )}
                 >
                   <span
-                    className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/80"
+                    className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
                     style={{ background: RISK_COLOR[h.level] }}
                   />
                   <span className="min-w-0 flex-1">
@@ -138,7 +138,7 @@ export function CaseHotspots({ c }: { c: CaseStudy }) {
         <p className="text-[11.5px] leading-snug text-muted-foreground">{tr(c.hotspotsNote)}</p>
       </section>
 
-      <section className="rounded-xl border border-dashed border-border p-3">
+      <section className="rounded-md border border-dashed border-border p-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4" style={{ color: c.color }} />
           <span className="text-[13.5px] font-semibold">{t('case.forecast')}</span>
