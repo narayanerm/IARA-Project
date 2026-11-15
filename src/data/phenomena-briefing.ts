@@ -143,7 +143,7 @@ export const BRIEFINGS: Record<RegionId, PhenomenonBriefing> = {
     sources: [
       { label: 'MapBiomas Alerta (Rede Garimpo)', url: 'https://alerta.mapbiomas.org/' },
       { label: 'ISA · Rede Pró-Yanomami e Ye\'kwana', url: 'https://acervo.socioambiental.org/' },
-      { label: 'Hutukara Associação Yanomami', url: 'https://hutukara.org/' },
+      { label: 'Hutukara · Yanomami sob ataque (2022)', url: 'https://acervo.socioambiental.org/sites/default/files/documents/yal00067.pdf' },
       { label: 'INPE DETER', url: 'http://terrabrasilis.dpi.inpe.br/app/map/deter' },
     ],
   },
@@ -154,8 +154,8 @@ export const BRIEFINGS: Record<RegionId, PhenomenonBriefing> = {
     tagline:
       'Quando o Rio Negro passa de 27,50 m no Porto de Manaus, a água entra no São Jorge; acima de 29 m, alaga o centro histórico e as palafitas do Educandos.',
     narrative: [
-      'Manaus mede o Rio Negro todos os dias desde **1902**. Das cinco maiores cheias dessa série, **quatro aconteceram depois de 2009**: 2009 (29,77 m), 2012 (29,97 m), 2021 (**30,02 m**, recorde) e 2022 (29,75 m).',
-      'A chance de uma cheia extrema (≥ 29,69 m) passou de **0,94% ao ano** (1903–2008) para **25% ao ano** (2009–2024). Em 2025 o rio voltou a passar de 29 m, nove meses depois da **seca recorde de 12,11 m** (out/2024).',
+      'Manaus mede o Rio Negro todos os dias desde **1902**. Das cinco maiores cheias dessa série, **quatro ocorreram a partir de 2009**: 2009 (29,77 m), 2012 (29,97 m), 2021 (**30,02 m**, recorde) e 2022 (29,75 m).',
+      'O rio passou da marca de 29,69 m (cheia de 1953) **uma única vez de 1903 a 2008** e **quatro vezes de 2009 a 2024**. Em 2025 o rio voltou a passar de 29 m, nove meses depois da **seca recorde de 12,11 m** (out/2024).',
       'Os bairros mais expostos ficam na beira dos igarapés: no **Educandos** e no **São Jorge**, famílias em casas de madeira e palafitas convivem com a água dentro de casa por semanas, e a prefeitura ergue passarelas (marombas) para manter o acesso.',
     ],
     beforeDate: '2020-11-15',
@@ -171,13 +171,13 @@ export const BRIEFINGS: Record<RegionId, PhenomenonBriefing> = {
       { value: '30,02 m', label: 'cota recorde do Rio Negro (16/06/2021)', source: 'Porto de Manaus · SGB' },
       { value: '27,50 m', label: 'cota de inundação: a água chega ao São Jorge', source: 'SGB' },
       { value: '29,00 m', label: 'inundação severa: Rua dos Barés, centro histórico', source: 'SGB' },
-      { value: '0,94% → 25%', label: 'chance anual de cheia extrema, antes e depois de 2009', source: 'Oliveira 2025 · UFAM/SGB' },
+      { value: '1 → 4', label: 'cheias acima de 29,69 m: 1903–2008 e 2009–2024', source: 'Oliveira 2025 · UFAM/SGB' },
     ],
     sarReading:
       'No rio e nos lagos, água lisa reflete o radar para longe do satélite: pixel escuro, mesmo sob nuvem. Na cidade é o contrário: a água entre paredes de casas cria um "duplo salto" (água → parede → satélite) e a rua alagada aparece mais clara que o normal. Por isso comparamos a mesma área na vazante e no pico da cheia.',
     sources: [
       { label: 'SGB · Alerta Hidrológico do Amazonas', url: 'https://www.sgb.gov.br/sace/amazonas/ultimo_boletim.php' },
-      { label: 'SGB · mancha de inundação 2021 (Manaus)', url: 'https://rigeo.cprm.gov.br/bitstream/doc/23747/1/nota-explicativa_manchainundacao.pdf' },
+      { label: 'SGB · mancha de inundação 2021 (Manaus)', url: 'https://rigeo.sgb.gov.br/handle/doc/23747' },
       { label: 'Oliveira 2025 · cheias e secas 1902–2024', url: 'https://static.even3.com/anais/1211771.pdf' },
       { label: 'ANA · HidroWeb', url: 'https://www.snirh.gov.br/hidroweb/' },
     ],
