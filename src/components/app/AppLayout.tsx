@@ -1,6 +1,7 @@
-import { HelpCircle, MessageSquare, Mountain, Radar, Satellite, type LucideIcon } from 'lucide-react'
+import { HelpCircle, MessageSquare, Mountain, Satellite, type LucideIcon } from 'lucide-react'
 import { SarMap } from './Map/SarMap'
 import { RightPanel } from './RightPanel/RightPanel'
+import { SarButton } from './Map/overlays/SarButton'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
 import { triggerTutorial } from './Tutorial/Tutorial'
@@ -21,8 +22,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const rightOpen = useUi((s) => s.rightOpen)
   const openRight = useUi((s) => s.openRight)
   const setRightOpen = useUi((s) => s.setRightOpen)
-  const nisarVisible = useApp((s) => s.nisarVisible)
-  const setNisarVisible = useApp((s) => s.setNisarVisible)
   const aoiActive = useApp((s) => s.aoiActive)
   const clearAoi = useApp((s) => s.clearAoi)
   const [forecastMap, setForecastMap] = useState<ForecastMapProps | null>(null)
@@ -60,13 +59,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
                 onToggle={toggleRelief}
                 className="hidden sm:inline-flex"
               />
-              <HeaderToggle
-                icon={Radar}
-                label={t('map.radar')}
-                hint={t('map.radarHint')}
-                on={nisarVisible}
-                onToggle={() => setNisarVisible(!nisarVisible)}
-              />
               <span className="mx-0.5 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
               <HeaderToggle
                 icon={MessageSquare}
@@ -101,6 +93,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
         <SarMap forecast={aoiActive ? forecastMap : null} />
         <CaseView onForecastMapChange={setForecastMap} />
         <CasePicker introDone={introDone} />
+        {aoiActive && <SarButton />}
         {/* Assistant and tools open as a drawer over the map instead of a permanent rail. */}
         {aoiActive && rightOpen && (
           <div className="absolute inset-y-0 right-0 z-40 max-w-full shadow-2xl animate-in slide-in-from-right-6 fade-in duration-300 motion-reduce:animate-none">

@@ -239,3 +239,16 @@
     @apply bg-card/90 border border-border/60 shadow-lg shadow-black/20;
   }
 }
+
+/* SAR button: bottom-left of the map area, beside the case panel (clear of a centred ask bar). */
+.sar-button {
+  position: absolute;
+  z-index: 30;
+  bottom: 16px;
+  left: 16px;
+}
+@media (min-width: 768px) {
+  .sar-button {
+    left: calc(clamp(340px, 30vw, 420px) + 16px);
+  }
+}
