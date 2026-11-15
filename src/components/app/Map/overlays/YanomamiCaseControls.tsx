@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Layers } from 'lucide-react'
 import { useApp, useUi } from '@/lib/store'
 import { cn } from '@/lib/utils'
@@ -98,9 +98,9 @@ export function YanomamiCaseControls() {
   const setBand = useUi((s) => s.setYanomamiBand)
   const toggleRadd = useUi((s) => s.toggleYanomamiRadd)
   const toggleDeter = useUi((s) => s.toggleYanomamiDeter)
-  const [open, setOpen] = useState(false)
-  const closeTimer = useRef<number | undefined>(undefined)
-  useEffect(() => () => window.clearTimeout(closeTimer.current), [])
+  // Open by default (and again on every case change); the tile toggles it.
+  const [open, setOpen] = useState(true)
+  useEffect(() => setOpen(true), [activeRegion])
 
   if (!aoiActive) return null
 
@@ -109,21 +109,10 @@ export function YanomamiCaseControls() {
   const overlays = (showGarimpoOverlays ? [raddOn && 'RADD', deterOn && 'DETER'] : []).filter(Boolean)
   const tileLabel = current ? current.label : 'Camadas SAR'
 
-  const show = () => {
-    window.clearTimeout(closeTimer.current)
-    setOpen(true)
-  }
-  const hide = () => {
-    window.clearTimeout(closeTimer.current)
-    closeTimer.current = window.setTimeout(() => setOpen(false), 260)
-  }
-
   return (
     <div
       className="pointer-events-auto absolute z-40 flex items-end gap-2"
       style={{ right: 8, bottom: 44 }}
-      onPointerEnter={(e) => e.pointerType === 'mouse' && show()}
-      onPointerLeave={(e) => e.pointerType === 'mouse' && hide()}
       onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
     >
       {/* The row of cards opens to the left of the tile. */}
@@ -161,11 +150,10 @@ export function YanomamiCaseControls() {
         )}
       </div>
 
-      {/* The tile: shows the active band; tapping it opens or closes the row (touch screens). */}
+      {/* The tile: shows the active band; clicking it opens or closes the row. */}
       <button
         type="button"
-        onClick={() => (open ? setOpen(false) : show())}
-        onFocus={show}
+        onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-label={`Camadas SAR: ${current ? current.hint : 'nenhuma banda'}`}
         className="relative h-[76px] w-[76px] shrink-0 overflow-hidden rounded-xl bg-[#0d1512] shadow-2xl transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

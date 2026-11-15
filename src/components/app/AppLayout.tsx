@@ -101,7 +101,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
             case panel leaves free, clear of the SAR band panel. It unrolls from a tuft of leaves, steps
             aside while the assistant panel is open, and hides on phones (the case sheet covers the bottom). */}
         {introDone && !rightOpen && aoiActive && caseArrived && (
-          <div className="pointer-events-none absolute inset-x-3 bottom-10 z-30 hidden justify-center md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-[256px] md:bottom-14">
+          <div className="pointer-events-none absolute inset-x-3 bottom-10 z-30 hidden justify-center md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-[460px] md:bottom-14">
             <AskBar reveal className="pointer-events-auto" />
           </div>
         )}
