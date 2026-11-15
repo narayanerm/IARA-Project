@@ -63,8 +63,10 @@ export function YanomamiPlaceMarkers() {
       map.flyTo({
         center: [p.lon, p.lat],
         zoom: p.approx ? 10.5 : 12,
-        pitch: 55,
+        pitch: 50,
         bearing: map.getBearing(),
+        // Keep the place clear of the left panel that will show its page.
+        padding: window.innerWidth >= 768 ? { left: Math.min(440, window.innerWidth * 0.3 + 24), top: 60, right: 40, bottom: 80 } : { top: 40, bottom: window.innerHeight * 0.55, left: 0, right: 0 },
         duration: reduced ? 0 : FLY_MS,
         essential: true,
       })
@@ -78,7 +80,7 @@ export function YanomamiPlaceMarkers() {
     if (phase !== 'closing' || !map) return
     const cam = saved.current
     const reduced = reducedMotion()
-    if (cam) map.flyTo({ ...cam, duration: reduced ? 0 : 1100, essential: true })
+    if (cam) map.flyTo({ ...cam, padding: { left: 0, top: 0, right: 0, bottom: 0 }, duration: reduced ? 0 : 1100, essential: true })
     const id = window.setTimeout(() => {
       usePlaces.setState({ yanomamiPlaceId: null, placePhase: 'idle' })
       setFxPoint(null)
@@ -127,6 +129,11 @@ export function YanomamiPlaceMarkers() {
             </button>
           </Marker>
         ))}
+      {place && phase !== 'idle' && (
+        <Marker longitude={place.lon} latitude={place.lat} anchor="center">
+          <span className="place-focus" aria-hidden="true" />
+        </Marker>
+      )}
       {container &&
         fxPoint &&
         phase === 'flying' &&

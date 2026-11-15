@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
-import { useApp, type CaseTab } from '@/lib/store'
+import { useApp, usePlaces, type CaseTab } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
 import { CaseAlerts } from './CaseAlerts'
 import { CaseSar, useCasePoint } from './CaseSar'
@@ -44,6 +44,8 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
   const panelRef = useRef<HTMLElement>(null)
   const index = CASE_ORDER.indexOf(c.id) + 1
   const tabIndex = TABS.findIndex((x) => x.id === tab)
+  // A Yanomami place page takes this panel's spot while it is open.
+  const placeOpen = usePlaces((s) => s.placePhase === 'open' || s.placePhase === 'closing')
 
   // Scroll progress goes straight to a CSS variable so reading never re-renders the panel.
   const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -59,7 +61,7 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
   return (
     <aside
       ref={panelRef}
-      className="case-panel"
+      className={`case-panel liquid-glass${placeOpen ? ' is-behind' : ''}`}
       data-tour="story"
       aria-label={tr(c.analysis)}
       style={{ '--case': c.color, '--tab': tabIndex } as React.CSSProperties}

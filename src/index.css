@@ -416,3 +416,34 @@
 .layers-enter { animation: layers-enter 750ms ease-out both; }
 @keyframes layers-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .layers-enter { animation-duration: 300ms; } }
+
+/* Liquid glass: translucent panel with strong blur, a bright inner edge and a soft sheen.
+   A darker tint keeps text readable over both dark forest and bright SAR imagery. */
+.liquid-glass {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(155deg, rgb(255 255 255 / 0.10) 0%, rgb(255 255 255 / 0.03) 38%, rgb(255 255 255 / 0) 60%), rgb(10 16 14 / 0.58);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  box-shadow: inset 1px 1px 0 0 rgb(255 255 255 / 0.22), inset 0 0 24px 0 rgb(255 255 255 / 0.04), 0 18px 50px -12px rgb(0 0 0 / 0.65);
+  overflow: hidden;
+}
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(120% 60% at 0% 0%, rgb(255 255 255 / 0.12), transparent 55%);
+}
+.glass-card {
+  border-radius: 11px;
+  background: rgb(255 255 255 / 0.07);
+  border: 1px solid rgb(255 255 255 / 0.11);
+  box-shadow: inset 1px 1px 0 0 rgb(255 255 255 / 0.12);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-glass { background: rgb(14 21 18 / 0.96); }
+}

@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import Map, { Layer, Marker, Source } from 'react-map-gl/maplibre'
-import * as maplibregl from 'maplibre-gl'
 import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson'
 import { ArrowLeft, ExternalLink, Globe2, MapPin } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
+import { useUi } from '@/lib/store'
 import { cn } from '@/lib/utils'
-import { SATELLITE_ATTRIBUTION, SATELLITE_TILES } from '../Map/constants'
 import {
   STREET_VIEW_NOTE,
   YANOMAMI_TERRITORY,
@@ -14,42 +12,29 @@ import {
   type YanomamiPlace,
 } from '@/data/yanomamiPlaces'
 
-type View = 'satellite' | 'nisar' | 'sband' | 's1c'
-
-// Same pre-built mosaics as the case layers (YanomamiCaseLayers), reused for the zoomed map.
-const MOSAIC: Record<Exclude<View, 'satellite'>, { url: string; bbox: [number, number, number, number] }> = {
-  nisar: { url: '/analysis/data/yanomami-nisar-mosaic.png', bbox: [-66.6269, -0.4732, -61.1829, 4.4272] },
-  sband: { url: '/analysis/data/yanomami-nisar-sband-mosaic.png', bbox: [-66.6269, -0.4732, -61.1829, 4.4272] },
-  s1c: { url: '/analysis/data/sentinel1-yanomami-mosaic.png', bbox: [-66.5, -0.5, -61.0, 4.5] },
-}
-const RADD_TILE =
-  'https://tiles.globalforestwatch.org/wur_radd_alerts/v20261108/dynamic/{z}/{x}/{y}.png?start_date=2020-01-01&end_date=2026-11-15'
 const DETER_URL = '/analysis/data/deter-mineracao-regional-2019-2026.geojson'
 const DETER_SOURCE: SourceLink = { label: 'INPE · DETER (mineração, 2019–2026)', url: 'https://terrabrasilis.dpi.inpe.br/' }
 const RADIUS_KM = 25
 
 const T = {
-  back: { pt: 'Voltar ao mapa', en: 'Back to the map' },
+  back: { pt: 'Voltar ao overview', en: 'Back to overview' },
   approx: { pt: 'posição aproximada', en: 'approximate position' },
-  gallery: { pt: 'Imagens da região', en: 'Images of the region' },
-  noImage: { pt: 'Sem foto com licença livre desta região. Veja a vista 3D em "Conhecer mais".', en: 'No freely licensed photo of this area. See the 3D view under "Explore more".' },
-  map: { pt: 'Mapa da região', en: 'Map of the region' },
+  layers: { pt: 'Ver no mapa', en: 'Show on the map' },
   satellite: { pt: 'Satélite', en: 'Satellite' },
-  opacity: { pt: 'Opacidade do radar', en: 'Radar opacity' },
+  gallery: { pt: 'Imagens deste local', en: 'Images of this place' },
+  territoryGallery: { pt: 'Imagens do território (não deste local)', en: 'Images of the territory (not of this place)' },
   data: { pt: 'Dados locais', en: 'Local data' },
   mining: { pt: `Garimpo num raio de ${RADIUS_KM} km`, en: `Mining within ${RADIUS_KM} km` },
   alerts: { pt: 'polígonos DETER', en: 'DETER polygons' },
-  area: { pt: 'área mapeada', en: 'mapped area' },
+  area: { pt: 'de área mapeada', en: 'of mapped area' },
   noMining: { pt: 'Nenhum polígono DETER de mineração neste raio.', en: 'No DETER mining polygon in this radius.' },
-  territory: { pt: 'Terra Indígena Yanomami', en: 'Yanomami Indigenous Territory' },
-  economy: { pt: 'Atividade econômica', en: 'Economic activity' },
+  territory: { pt: 'Toda a Terra Indígena Yanomami', en: 'The whole Yanomami Indigenous Territory' },
+  economy: { pt: 'Atividade econômica (território)', en: 'Economic activity (territory)' },
   legal: { pt: 'Tradicional e legal', en: 'Traditional and legal' },
   illegal: { pt: 'Ilegal', en: 'Illegal' },
-  health: { pt: 'Saúde', en: 'Health' },
   history: { pt: 'História', en: 'History' },
   explore: { pt: 'Conhecer mais', en: 'Explore more' },
-  credits: { pt: 'Créditos das imagens', en: 'Image credits' },
-  sources: { pt: 'Fontes da posição', en: 'Position sources' },
+  sources: { pt: 'Fontes', en: 'Sources' },
   loading: { pt: 'Calculando…', en: 'Computing…' },
 }
 
@@ -69,12 +54,11 @@ function distanceKm(a: [number, number], b: [number, number]) {
   const R = 6371
   const dLat = ((b[1] - a[1]) * Math.PI) / 180
   const dLon = ((b[0] - a[0]) * Math.PI) / 180
-  const la1 = (a[1] * Math.PI) / 180
-  const la2 = (b[1] * Math.PI) / 180
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) ** 2
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos((a[1] * Math.PI) / 180) * Math.cos((b[1] * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
+// Mining polygons are small (well under 1 km); their first vertex stands in for their position.
 function firstPoint(g: Polygon | MultiPolygon): [number, number] {
   const ring = g.type === 'Polygon' ? g.coordinates[0] : g.coordinates[0][0]
   return [ring[0][0], ring[0][1]]
@@ -83,6 +67,7 @@ function firstPoint(g: Polygon | MultiPolygon): [number, number] {
 let deterCache: Promise<FeatureCollection> | null = null
 const loadDeter = () => (deterCache ??= fetch(DETER_URL).then((r) => r.json() as Promise<FeatureCollection>))
 
+/** The place page, shown in the left panel where the case overview sits; the main map shows the place on the right. */
 export function PlaceDetail({
   place,
   origin,
@@ -96,10 +81,12 @@ export function PlaceDetail({
 }) {
   const lang = useI18n((s) => s.lang)
   const t = (k: keyof typeof T) => T[k][lang]
-  const [view, setView] = useState<View>('satellite')
-  const [opacity, setOpacity] = useState(0.8)
-  const [raddOn, setRaddOn] = useState(false)
-  const [deterOn, setDeterOn] = useState(true)
+  const band = useUi((s) => s.yanomamiBand)
+  const setBand = useUi((s) => s.setYanomamiBand)
+  const raddOn = useUi((s) => s.yanomamiRaddOn)
+  const deterOn = useUi((s) => s.yanomamiDeterOn)
+  const toggleRadd = useUi((s) => s.toggleYanomamiRadd)
+  const toggleDeter = useUi((s) => s.toggleYanomamiDeter)
   const [imgIndex, setImgIndex] = useState(0)
   const [deter, setDeter] = useState<FeatureCollection | null>(null)
 
@@ -110,6 +97,7 @@ export function PlaceDetail({
       cancelled = true
     }
   }, [])
+  useEffect(() => setImgIndex(0), [place.id])
 
   const mining = useMemo(() => {
     if (!deter) return null
@@ -129,150 +117,88 @@ export function PlaceDetail({
   const events: PlaceEvent[] = useMemo(() => {
     // The place's own entry replaces the territory-wide one for the same year.
     const own = new Set(place.events.map((e) => e.year))
-    const all = [...YANOMAMI_TERRITORY.events.filter((e) => !own.has(e.year)), ...place.events]
-    const seen = new Set<string>()
-    return all
-      .filter((e) => {
-        const k = e.year + e.text.pt
-        if (seen.has(k)) return false
-        seen.add(k)
-        return true
-      })
-      .sort((a, b) => parseInt(a.year) - parseInt(b.year))
+    return [...YANOMAMI_TERRITORY.events.filter((e) => !own.has(e.year)), ...place.events].sort(
+      (a, b) => parseInt(a.year) - parseInt(b.year)
+    )
   }, [place])
 
-  const img = place.images[imgIndex]
+  const ownImages = place.images.length > 0
+  const images = ownImages ? place.images : YANOMAMI_TERRITORY.images
+  const img = images[imgIndex] ?? images[0]
   const style = {
-    '--ox': origin ? `${origin.x}px` : '50%',
-    '--oy': origin ? `${origin.y}px` : '50%',
+    '--ox': origin ? `${origin.x - 12}px` : '50%',
+    '--oy': origin ? `${origin.y - 68}px` : '50%',
   } as React.CSSProperties
 
   return (
-    <div className={cn('place-detail', closing && 'is-closing')} style={style} role="dialog" aria-label={place.name[lang]}>
-      <div className="place-detail-scroll">
-        <header className="place-head">
-          <button type="button" className="place-back" onClick={onClose}>
-            <ArrowLeft className="h-4 w-4" /> {t('back')}
-          </button>
-          <h2 className="place-title">{place.name[lang]}</h2>
-          <p className="place-sub">
-            <MapPin className="h-3.5 w-3.5" aria-hidden="true" /> {place.river[lang]} · {place.lat.toFixed(3)}°, {place.lon.toFixed(3)}°
-            {place.approx && <span className="place-badge">{t('approx')}</span>}
-          </p>
-          <p className="place-summary">{place.summary[lang]}</p>
-          {place.approx && place.approxNote && <p className="place-note">{place.approxNote[lang]}</p>}
-          <p className="place-note">
-            {t('sources')}: <Sources list={place.coordSources} />
-          </p>
-        </header>
+    <aside className={cn('place-panel liquid-glass', closing && 'is-closing')} style={style} aria-label={place.name[lang]}>
+      <div className="place-panel-scroll">
+        <button type="button" className="place-back" onClick={onClose}>
+          <ArrowLeft className="h-4 w-4" /> {t('back')}
+        </button>
+        <h2 className="place-title">{place.name[lang]}</h2>
+        <p className="place-sub">
+          <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>
+            {place.river[lang]} · {place.lat.toFixed(3)}°, {place.lon.toFixed(3)}°
+          </span>
+          {place.approx && <span className="place-badge">{t('approx')}</span>}
+        </p>
+        <p className="place-summary">{place.summary[lang]}</p>
+        {place.approx && place.approxNote && <p className="place-note">{place.approxNote[lang]}</p>}
+        <p className="place-note">
+          {t('sources')}: <Sources list={[...place.coordSources, ...(place.summarySources ?? [])]} />
+        </p>
 
-        <section className="place-grid">
-          <div className="place-card place-map-card">
-            <div className="place-card-title">{t('map')}</div>
-            <div className="place-map">
-              <Map
-                mapLib={maplibregl}
-                initialViewState={{ longitude: place.lon, latitude: place.lat, zoom: place.approx ? 10 : 11.5 }}
-                mapStyle={{
-                  version: 8,
-                  sources: { sat: { type: 'raster', tiles: [SATELLITE_TILES], tileSize: 256, attribution: SATELLITE_ATTRIBUTION } },
-                  layers: [{ id: 'sat', type: 'raster', source: 'sat' }],
-                }}
-                attributionControl={{ compact: true }}
-              >
-                {view !== 'satellite' && (
-                  <Source
-                    key={view}
-                    id="place-sar"
-                    type="image"
-                    url={MOSAIC[view].url}
-                    coordinates={[
-                      [MOSAIC[view].bbox[0], MOSAIC[view].bbox[3]],
-                      [MOSAIC[view].bbox[2], MOSAIC[view].bbox[3]],
-                      [MOSAIC[view].bbox[2], MOSAIC[view].bbox[1]],
-                      [MOSAIC[view].bbox[0], MOSAIC[view].bbox[1]],
-                    ]}
-                  >
-                    <Layer id="place-sar-layer" type="raster" paint={{ 'raster-opacity': opacity, 'raster-fade-duration': 0 }} />
-                  </Source>
-                )}
-                {raddOn && (
-                  <Source id="place-radd" type="raster" tiles={[RADD_TILE]} tileSize={256} maxzoom={14}>
-                    <Layer id="place-radd-layer" type="raster" paint={{ 'raster-opacity': 0.9 }} />
-                  </Source>
-                )}
-                {deterOn && deter && (
-                  <Source id="place-deter" type="geojson" data={deter}>
-                    <Layer id="place-deter-fill" type="fill" paint={{ 'fill-color': '#ffffff', 'fill-opacity': 0.12 }} />
-                    <Layer id="place-deter-line" type="line" paint={{ 'line-color': '#ffffff', 'line-width': 1.2 }} />
-                  </Source>
-                )}
-                <Marker longitude={place.lon} latitude={place.lat} anchor="center">
-                  <span className="place-map-dot" aria-hidden="true" />
-                </Marker>
-              </Map>
-            </div>
-            <div className="place-map-tools">
-              {(['satellite', 'nisar', 'sband', 's1c'] as View[]).map((v) => (
-                <button key={v} type="button" aria-pressed={view === v} className={cn('place-chip', view === v && 'is-on')} onClick={() => setView(v)}>
-                  {v === 'satellite' ? t('satellite') : v === 'nisar' ? 'NISAR L' : v === 'sband' ? 'NISAR S' : 'Sentinel-1'}
+        <div className="place-layer-row" role="group" aria-label={t('layers')}>
+          <span className="place-layer-label">{t('layers')}</span>
+          {([null, 'nisar', 'sband', 's1c'] as const).map((b) => (
+            <button key={b ?? 'sat'} type="button" aria-pressed={band === b} className={cn('place-chip', band === b && 'is-on')} onClick={() => setBand(b)}>
+              {b === null ? t('satellite') : b === 'nisar' ? 'NISAR L' : b === 'sband' ? 'NISAR S' : 'Sentinel-1'}
+            </button>
+          ))}
+          <button type="button" aria-pressed={raddOn} className={cn('place-chip', raddOn && 'is-on')} onClick={toggleRadd}>
+            RADD
+          </button>
+          <button type="button" aria-pressed={deterOn} className={cn('place-chip', deterOn && 'is-on')} onClick={toggleDeter}>
+            DETER
+          </button>
+        </div>
+
+        <section className="place-section">
+          <h3 className="place-h3">{ownImages ? t('gallery') : t('territoryGallery')}</h3>
+          {img && (
+            <figure className="place-figure">
+              <img src={img.src} alt={img.alt[lang]} loading="lazy" />
+              <figcaption>
+                {img.alt[lang]}
+                <span className="place-credit">
+                  {img.author} ·{' '}
+                  <a href={img.page} target="_blank" rel="noopener noreferrer">
+                    {img.license} · Wikimedia Commons
+                  </a>
+                </span>
+              </figcaption>
+            </figure>
+          )}
+          {images.length > 1 && (
+            <div className="place-thumbs">
+              {images.map((im, i) => (
+                <button key={im.src} type="button" className={cn('place-thumb', i === imgIndex && 'is-on')} onClick={() => setImgIndex(i)} aria-label={im.alt[lang]}>
+                  <img src={im.src} alt="" loading="lazy" />
                 </button>
               ))}
-              <span className="place-tools-sep" />
-              <button type="button" aria-pressed={raddOn} className={cn('place-chip', raddOn && 'is-on')} onClick={() => setRaddOn(!raddOn)}>
-                RADD
-              </button>
-              <button type="button" aria-pressed={deterOn} className={cn('place-chip', deterOn && 'is-on')} onClick={() => setDeterOn(!deterOn)}>
-                DETER
-              </button>
-              {view !== 'satellite' && (
-                <label className="place-slider">
-                  {t('opacity')}
-                  <input type="range" min={0.1} max={1} step={0.05} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} />
-                </label>
-              )}
             </div>
-          </div>
-
-          <div className="place-card">
-            <div className="place-card-title">{t('gallery')}</div>
-            {img ? (
-              <>
-                <figure className="place-figure">
-                  <img src={img.src} alt={img.alt[lang]} loading="lazy" />
-                  <figcaption>
-                    {img.alt[lang]}
-                    <span className="place-credit">
-                      {img.author} ·{' '}
-                      <a href={img.page} target="_blank" rel="noopener noreferrer">
-                        {img.license} · Wikimedia Commons
-                      </a>
-                    </span>
-                  </figcaption>
-                </figure>
-                {place.images.length > 1 && (
-                  <div className="place-thumbs">
-                    {place.images.map((im, i) => (
-                      <button key={im.src} type="button" className={cn('place-thumb', i === imgIndex && 'is-on')} onClick={() => setImgIndex(i)} aria-label={im.alt[lang]}>
-                        <img src={im.src} alt="" loading="lazy" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="place-empty">{t('noImage')}</p>
-            )}
-          </div>
+          )}
         </section>
 
-        <section>
+        <section className="place-section">
           <h3 className="place-h3">{t('data')}</h3>
           <div className="place-stats">
-            <div className="place-stat">
+            <div className="place-stat glass-card">
               <div className="place-stat-label">{t('mining')}</div>
               {mining == null ? (
-                <div className="place-stat-value">{t('loading')}</div>
+                <div className="place-stat-text">{t('loading')}</div>
               ) : mining.count === 0 ? (
                 <div className="place-stat-text">{t('noMining')}</div>
               ) : (
@@ -286,37 +212,36 @@ export function PlaceDetail({
               <Sources list={[DETER_SOURCE]} />
             </div>
             {place.stats.map((s) => (
-              <div key={s.label.pt} className="place-stat">
+              <div key={s.label.pt} className="place-stat glass-card">
                 <div className="place-stat-label">{s.label[lang]}</div>
                 <div className="place-stat-value">{s.value}</div>
                 <Sources list={s.sources} />
               </div>
             ))}
+          </div>
+          <div className="place-subhead">{t('territory')}</div>
+          <div className="place-stats">
             {YANOMAMI_TERRITORY.stats.map((s) => (
-              <div key={s.label.pt} className="place-stat is-territory">
-                <div className="place-stat-label">
-                  {t('territory')} · {s.label[lang]}
-                </div>
+              <div key={s.label.pt} className="place-stat glass-card is-territory">
+                <div className="place-stat-label">{s.label[lang]}</div>
                 <div className="place-stat-value">{s.value}</div>
                 <Sources list={s.sources} />
               </div>
             ))}
           </div>
-          <div className="place-econ">
-            <div className="place-card">
-              <div className="place-card-title">{t('economy')}</div>
-              <p>
-                <strong>{t('legal')}:</strong> {YANOMAMI_TERRITORY.economy.legal[lang]}
-              </p>
-              <p>
-                <strong className="text-[#ff8a6b]">{t('illegal')}:</strong> {YANOMAMI_TERRITORY.economy.illegal[lang]}
-              </p>
-              <Sources list={YANOMAMI_TERRITORY.economy.sources} />
-            </div>
+          <div className="glass-card place-econ">
+            <div className="place-stat-label">{t('economy')}</div>
+            <p>
+              <strong>{t('legal')}:</strong> {YANOMAMI_TERRITORY.economy.legal[lang]}
+            </p>
+            <p>
+              <strong className="text-[#ff9b7d]">{t('illegal')}:</strong> {YANOMAMI_TERRITORY.economy.illegal[lang]}
+            </p>
+            <Sources list={YANOMAMI_TERRITORY.economy.sources} />
           </div>
         </section>
 
-        <section>
+        <section className="place-section">
           <h3 className="place-h3">{t('history')}</h3>
           <ol className="place-timeline">
             {events.map((e) => (
@@ -330,32 +255,19 @@ export function PlaceDetail({
           </ol>
         </section>
 
-        <section>
+        <section className="place-section">
           <h3 className="place-h3">{t('explore')}</h3>
           <p className="place-note">{STREET_VIEW_NOTE[lang]}</p>
           <div className="place-explore">
             {place.explore.map((x) => (
               <a key={x.url} href={x.url} target="_blank" rel="noopener noreferrer" className="place-explore-link">
-                {x.kind === 'earth' ? <Globe2 className="h-4 w-4" /> : <ExternalLink className="h-4 w-4" />}
+                {x.kind === 'earth' ? <Globe2 className="h-4 w-4 shrink-0" /> : <ExternalLink className="h-4 w-4 shrink-0" />}
                 {x.label[lang]}
               </a>
             ))}
           </div>
         </section>
-
-        {place.images.length > 0 && (
-          <section className="place-credits">
-            <h3 className="place-h3">{t('credits')}</h3>
-            <ul>
-              {place.images.map((im) => (
-                <li key={im.page}>
-                  {im.author} — <a href={im.page} target="_blank" rel="noopener noreferrer">{im.license}</a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </div>
-    </div>
+    </aside>
   )
 }
