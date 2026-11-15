@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, MessageSquare, Fingerprint, Satellite, type LucideIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Fingerprint, Satellite, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RailButton } from '@/components/ui/rail-button'
 import { cn } from '@/lib/utils'
@@ -7,10 +7,14 @@ import { useT, type TKey } from '@/lib/i18n'
 import { Chatbot } from '../Chatbot/Chatbot'
 import { MetadataPanel } from '../MetadataPanel/MetadataPanel'
 import { NisarPanel } from '../NisarPanel/NisarPanel'
+import { Capybara } from '../Chatbot/Capybara'
+
+// The assistant tab wears the capybara instead of a stock icon.
+const CapyIcon = (({ className }: { className?: string }) => <Capybara className={cn(className, 'scale-[1.5]')} />) as unknown as LucideIcon
 
 const TABS: Array<{ id: RightTab; icon: LucideIcon; label: TKey }> = [
   { id: 'nisar', icon: Satellite, label: 'rp.nisar' },
-  { id: 'chat', icon: MessageSquare, label: 'rp.chat' },
+  { id: 'chat', icon: CapyIcon, label: 'rp.chat' },
   { id: 'meta', icon: Fingerprint, label: 'rp.meta' },
 ]
 
@@ -28,11 +32,11 @@ export function RightPanel() {
       data-tour="chat"
       aria-label={t('panel.expandRight')}
       className={cn(
-        'relative z-10 h-full shrink-0 border-l border-border bg-card transition-[width] duration-200 motion-reduce:transition-none',
+        'relative z-10 h-full shrink-0 transition-[width] duration-200 motion-reduce:transition-none',
         open ? 'w-[340px] 2xl:w-[380px]' : 'w-12'
       )}
     >
-      <div className={cn('flex h-12 items-stretch border-b border-border', open ? 'pr-2' : 'justify-center')}>
+      <div className={cn('flex h-12 items-stretch border-b border-white/10', open ? 'pr-2' : 'justify-center')}>
         <div className="flex items-center px-1.5">
           <Button
             variant="ghost"

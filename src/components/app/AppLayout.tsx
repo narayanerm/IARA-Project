@@ -81,16 +81,17 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
         <CaseView onForecastMapChange={setForecastMap} />
         <CasePicker introDone={introDone} />
         {/* Floating ask bar, only inside a case once the camera has arrived: centred in the map area the
-            case panel leaves free, clear of the SAR band panel. It unrolls from a tuft of leaves, steps
-            aside while the assistant panel is open, and hides on phones (the case sheet covers the bottom). */}
-        {introDone && !rightOpen && aoiActive && caseArrived && (
+            case panel leaves free, clear of the SAR band panel. It unrolls from a tuft of leaves and stays
+            in place while the assistant panel is open, so the capybara can repeat the answer in her
+            balloon. Hidden on phones (the case sheet covers the bottom). */}
+        {introDone && aoiActive && caseArrived && (
           <div className="pointer-events-none absolute inset-x-3 bottom-10 z-30 hidden justify-center md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-[460px] md:bottom-14">
             <AskBar reveal className="pointer-events-auto" />
           </div>
         )}
         {/* Assistant and tools open as a floating drawer below the header (also on the home screen, for questions asked in the ask bar). */}
         {rightOpen && (
-          <div className="absolute bottom-3 right-3 top-[68px] z-40 max-w-[calc(100%-24px)] overflow-hidden rounded-[14px] shadow-2xl animate-in slide-in-from-right-6 fade-in duration-300 motion-reduce:animate-none">
+          <div className="glass-panel absolute bottom-3 right-3 top-[68px] z-40 max-w-[calc(100%-24px)] overflow-hidden rounded-[18px] animate-in slide-in-from-right-6 fade-in duration-300 motion-reduce:animate-none">
             <RightPanel />
           </div>
         )}

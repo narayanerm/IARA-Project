@@ -416,3 +416,190 @@
 .layers-enter { animation: layers-enter 750ms ease-out both; }
 @keyframes layers-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .layers-enter { animation-duration: 300ms; } }
+
+/* ------------------------------------------------------------------ */
+/* Assistant: capybara, speech balloon and the glass side panel        */
+/* ------------------------------------------------------------------ */
+.capy { display: block; overflow: visible; }
+.ask-capy .capy, .capy-avatar .capy { width: 100%; height: 100%; }
+.capy-eyes { transform-box: fill-box; transform-origin: 50% 60%; animation: capy-blink 4.6s infinite; }
+@keyframes capy-blink {
+  0%, 44%, 48%, 92%, 96%, 100% { transform: scaleY(1); }
+  46%, 94% { transform: scaleY(0.1); }
+}
+.capy-ear { transform-box: fill-box; transform-origin: 50% 90%; }
+.capy.is-thinking .capy-ear.is-left { animation: capy-ear 700ms ease-in-out infinite alternate; }
+.capy.is-thinking .capy-ear.is-right { animation: capy-ear 700ms ease-in-out 180ms infinite alternate-reverse; }
+@keyframes capy-ear { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
+.capy.is-thinking .capy-eyes { animation: none; transform: translateY(-1.6px); }
+.capy-mouth { opacity: 0; transform-box: fill-box; transform-origin: 50% 0; }
+.capy.is-talking .capy-mouth { opacity: 1; animation: capy-talk 380ms ease-in-out 9 alternate; }
+@keyframes capy-talk { from { transform: scaleY(0.15); } to { transform: scaleY(1); } }
+
+/* She sits in the tuft of leaves at the left end of the ask bar. */
+.ask-capy {
+  position: absolute;
+  left: -26px;
+  bottom: 0;
+  z-index: 3;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.55));
+  transform-origin: 50% 100%;
+  transition: transform 180ms cubic-bezier(0.34, 1.7, 0.64, 1);
+}
+.ask-capy-front { position: absolute; left: 0; bottom: -3px; width: 100%; overflow: visible; }
+.ask-capy:hover { transform: translateY(-2px) scale(1.07) rotate(-3deg); }
+.ask-capy:active { transform: scale(0.96); }
+.ask-capy:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
+.ask-capy.is-reveal { animation: capy-pop 620ms cubic-bezier(0.34, 1.7, 0.64, 1) 380ms both; }
+@keyframes capy-pop {
+  from { opacity: 0; transform: translateY(14px) scale(0.2); }
+  to { opacity: 1; transform: none; }
+}
+
+.capy-balloon {
+  position: absolute;
+  left: -12px;
+  bottom: 70px;
+  z-index: 4;
+  max-width: min(360px, 100%);
+  padding: 9px 30px 9px 13px;
+  border-radius: 16px 16px 16px 6px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  background: linear-gradient(150deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.07) 55%), hsl(150 14% 7% / 0.62);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 10px 28px rgb(0 0 0 / 0.45);
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  line-height: 1.4;
+  transform-origin: 26px 100%;
+  animation: capy-balloon-in 360ms cubic-bezier(0.34, 1.6, 0.64, 1) both;
+}
+/* the tail, pointing down at her */
+.capy-balloon::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  bottom: -7px;
+  width: 13px;
+  height: 13px;
+  border-right: 1px solid rgb(255 255 255 / 0.2);
+  border-bottom: 1px solid rgb(255 255 255 / 0.2);
+  border-bottom-right-radius: 4px;
+  background: hsl(150 12% 24% / 0.94);
+  transform: rotate(45deg);
+}
+.capy-balloon-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; white-space: pre-line; }
+.capy-balloon-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: hsl(var(--foreground) / 0.6);
+}
+.capy-balloon-close:hover { background: rgb(255 255 255 / 0.14); color: hsl(var(--foreground)); }
+@keyframes capy-balloon-in { from { opacity: 0; transform: translateY(6px) scale(0.6); } to { opacity: 1; transform: none; } }
+.capy-dots { display: inline-flex; gap: 4px; padding: 5px 0 3px; }
+.capy-dots i { width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--foreground) / 0.75); animation: capy-dot 900ms ease-in-out infinite; }
+.capy-dots i:nth-child(2) { animation-delay: 150ms; }
+.capy-dots i:nth-child(3) { animation-delay: 300ms; }
+@keyframes capy-dot { 0%, 60%, 100% { transform: none; opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+.capy-avatar {
+  display: block;
+  overflow: hidden;
+  border-radius: 50%;
+  background: linear-gradient(160deg, hsl(var(--primary) / 0.34), rgb(121 201 122 / 0.22));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
+}
+.capy-avatar .capy { transform: translateY(8%) scale(1.08); }
+
+/* Liquid glass: the map shows through, blurred and saturated, under a bright rim and a soft sheen. */
+.glass-panel {
+  --leaf-1: #3f9a5e;
+  --leaf-2: #79c97a;
+  --leaf-3: #2c6b45;
+  --leaf-4: #a7dc7c;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgb(255 255 255 / 0.16), transparent 60%),
+    radial-gradient(90% 50% at 100% 100%, hsl(var(--primary) / 0.1), transparent 70%),
+    linear-gradient(180deg, hsl(150 16% 9% / 0.5), hsl(150 16% 6% / 0.64));
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  backdrop-filter: blur(26px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.34),
+    inset 1px 0 0 rgb(255 255 255 / 0.1),
+    inset 0 -1px 0 rgb(0 0 0 / 0.35),
+    0 24px 60px rgb(0 0 0 / 0.55);
+}
+/* one slow sheen across the glass when it opens */
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.16) 48%, transparent 60%);
+  background-size: 250% 100%;
+  background-position: 130% 0;
+  animation: glass-sheen 1400ms ease-out 250ms 1 both;
+}
+@keyframes glass-sheen { from { background-position: 130% 0; opacity: 1; } to { background-position: -70% 0; opacity: 0; } }
+.glass-bubble {
+  border: 1px solid rgb(255 255 255 / 0.14);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 4px 14px rgb(0 0 0 / 0.22);
+}
+.glass-bubble.is-capy { border-radius: 5px 14px 14px 14px; background: linear-gradient(150deg, rgb(255 255 255 / 0.15), rgb(255 255 255 / 0.06)), hsl(150 14% 8% / 0.45); }
+.glass-bubble.is-user { border-radius: 14px 5px 14px 14px; border-color: hsl(var(--primary) / 0.4); background: linear-gradient(150deg, hsl(var(--primary) / 0.36), hsl(var(--primary) / 0.18)); }
+.glass-chip { border: 1px solid rgb(255 255 255 / 0.16); background: rgb(255 255 255 / 0.08); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16); }
+.glass-chip:hover { border-color: hsl(var(--primary) / 0.6); background: hsl(var(--primary) / 0.16); }
+.glass-field { border: 1px solid rgb(255 255 255 / 0.16); background: rgb(0 0 0 / 0.26); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35); }
+
+/* Forest details inside the panel. */
+.flora { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.flora-tuft { position: absolute; bottom: 58px; width: 0; height: 0; }
+.flora-tuft.is-left { left: -4px; }
+.flora-tuft.is-right { right: -4px; }
+.flora-leaf {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin-top: -6.5px;
+  transform-origin: 0 50%;
+  opacity: 0;
+  transform: rotate(var(--a)) scale(0);
+  animation:
+    flora-leaf-in 600ms cubic-bezier(0.34, 1.7, 0.64, 1) calc(250ms + var(--i) * 60ms) forwards,
+    flora-leaf-sway 3.6s ease-in-out calc(900ms + var(--i) * 140ms) infinite alternate;
+}
+.flora-leaf svg { display: block; filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.5)); }
+@keyframes flora-leaf-in { to { opacity: 0.9; transform: rotate(var(--a)) scale(var(--s)); } }
+@keyframes flora-leaf-sway {
+  from { opacity: 0.9; transform: rotate(calc(var(--a) - 4deg)) scale(var(--s)); }
+  to { opacity: 0.9; transform: rotate(calc(var(--a) + 4deg)) scale(var(--s)); }
+}
+.flora-river { position: absolute; left: 0; bottom: 53px; width: 300%; height: 16px; opacity: 0.7; animation: flora-river 9s linear infinite; }
+.flora-river .is-water { opacity: 0.5; }
+.flora-river .is-shimmer { fill: none; stroke: rgb(255 255 255 / 0.75); stroke-width: 1.4; stroke-dasharray: 26 18; }
+@keyframes flora-river { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+.flora-toucan { overflow: visible; filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.5)); animation: flora-toucan-in 700ms cubic-bezier(0.34, 1.5, 0.64, 1) 300ms both; }
+@keyframes flora-toucan-in { from { opacity: 0; transform: translate(14px, -10px) rotate(8deg); } to { opacity: 1; transform: none; } }
+.flora-toucan-head { transform-box: fill-box; transform-origin: 80% 80%; animation: flora-toucan-tilt 7s ease-in-out 1.5s infinite; }
+@keyframes flora-toucan-tilt {
+  0%, 62%, 100% { transform: rotate(0); }
+  68%, 78% { transform: rotate(-9deg); }
+  84%, 92% { transform: rotate(5deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .capy-eyes, .capy-ear, .capy-mouth, .ask-capy.is-reveal, .capy-balloon, .capy-dots i, .flora-river, .flora-toucan, .flora-toucan-head, .glass-panel::before { animation: none !important; }
+  .glass-panel::before { display: none; }
+  .flora-leaf { animation: none; opacity: 0.9; transform: rotate(var(--a)) scale(var(--s)); }
+}
