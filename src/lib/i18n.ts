@@ -446,6 +446,15 @@ export const DICT = {
     'share.disclaimer': 'Todos os dados exportados carregam origem, unidade e incerteza quando aplicável. Não rotulamos pixel bruto como garimpo / enchente / seca confirmados.',
 
     'appLayout.tour': 'Mostrar tutorial guiado',
+    'tutorial.cases.title': 'Três regiões, três problemas',
+    'tutorial.cases.body': 'Garimpo na Terra Yanomami, enchente em Manaus e seca nas comunidades de Manaquiri. Escolha um cartão e o mapa leva você até lá.',
+    'tutorial.map.title': 'Dentro de cada recorte',
+    'tutorial.map.body': 'O mapa fica preso à região escolhida. O painel traz a história do lugar, a linha do tempo com imagens de radar e os alertas. Para ver outro problema, volte aos cartões.',
+    'tutorial.skipLabel': 'Pular tutorial',
+    'tutorial.step': 'passo {current} / {total}',
+    'tutorial.skip': 'pular',
+    'tutorial.next': 'próximo',
+    'tutorial.start': 'começar',
 
     'loadingScreen.lead': 'A IARA é o painel da equipe sobre o radar NISAR em banda L, que atravessa nuvem, fumaça e copa de árvore. Garimpo, cheia e seca na Amazônia, com as Terras Indígenas em destaque.',
     'loadingScreen.webglWarning': 'Este navegador não liberou o WebGL2, então a cena e o mapa em 3D ficam desligados. Ative a aceleração de hardware nas configurações do navegador ou abra no Firefox.',
@@ -905,6 +914,15 @@ export const DICT = {
     'share.disclaimer': 'All exports carry source, unit and uncertainty where applicable. We do not label raw pixels as confirmed mining / flood / drought.',
 
     'appLayout.tour': 'Show guided tutorial',
+    'tutorial.cases.title': 'Three regions, three challenges',
+    'tutorial.cases.body': 'Mining in Yanomami Indigenous Land, flooding in Manaus, and drought in Manaquiri communities. Choose a card to go there on the map.',
+    'tutorial.map.title': 'Explore each region',
+    'tutorial.map.body': 'The map stays focused on your selected region. The panel shows the local story, a radar imagery timeline, and alerts. Return to the cards to explore another challenge.',
+    'tutorial.skipLabel': 'Skip tutorial',
+    'tutorial.step': 'step {current} / {total}',
+    'tutorial.skip': 'skip',
+    'tutorial.next': 'next',
+    'tutorial.start': 'start',
 
     'loadingScreen.lead': 'IARA is the team dashboard for the NISAR L-band radar that cuts through cloud, smoke and canopy. Mining, flooding and drought in the Amazon, with Indigenous Lands in focus.',
     'loadingScreen.webglWarning': 'This browser did not enable WebGL2, so the 3D scene and map are off. Enable hardware acceleration in the browser settings or open it in Firefox.',
@@ -927,10 +945,32 @@ interface I18nStore {
   toggle: () => void
 }
 
+const LANGUAGE_STORAGE_KEY = 'iara.language'
+
+function initialLanguage(): Lang {
+  try {
+    const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
+    if (saved === 'pt' || saved === 'en') return saved
+  } catch {}
+
+  if (typeof navigator !== 'undefined') {
+    for (const locale of [...(navigator.languages ?? []), navigator.language]) {
+      const lang = locale?.toLowerCase().split('-')[0]
+      if (lang === 'pt' || lang === 'en') return lang
+    }
+  }
+  return 'en'
+}
+
 export const useI18n = create<I18nStore>((set, get) => ({
-  lang: 'pt',
-  setLang: (lang) => set({ lang }),
-  toggle: () => set({ lang: get().lang === 'pt' ? 'en' : 'pt' }),
+  lang: initialLanguage(),
+  setLang: (lang) => {
+    try {
+      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, lang)
+    } catch {}
+    set({ lang })
+  },
+  toggle: () => get().setLang(get().lang === 'pt' ? 'en' : 'pt'),
 }))
 
 export function useT(): (k: TKey, vars?: Record<string, string>) => string {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, X } from 'lucide-react'
+import { useT } from '@/lib/i18n'
 
 interface Step {
   anchor: string
@@ -45,6 +46,7 @@ export function triggerTutorial(): void {
 }
 
 export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => void }) {
+  const t = useT()
   const [i, setI] = useState(0)
   const step = steps[i]
   const [rect, setRect] = useState<Rect | null>(null)
@@ -172,12 +174,12 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
         <button
           onClick={skip}
           className="absolute top-2 right-2 rounded p-1 text-muted-foreground hover:text-foreground"
-          aria-label="Pular tutorial"
+          aria-label={t('tutorial.skipLabel')}
         >
           <X className="h-3.5 w-3.5" />
         </button>
         <div className="text-[11px] font-mono uppercase tracking-wider text-primary">
-          passo {i + 1} / {steps.length}
+          {t('tutorial.step', { current: String(i + 1), total: String(steps.length) })}
         </div>
         <div className="mt-1 text-[15px] font-semibold text-foreground leading-tight pr-6">
           {step.title}
@@ -190,13 +192,13 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
             onClick={skip}
             className="text-[12px] font-mono text-muted-foreground hover:text-foreground"
           >
-            pular
+            {t('tutorial.skip')}
           </button>
           <button
             onClick={next}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/50 bg-primary/15 px-3 py-1.5 text-[12px] font-mono font-semibold text-primary hover:bg-primary/25 transition-colors"
           >
-            {i < steps.length - 1 ? 'próximo' : 'começar'}
+            {t(i < steps.length - 1 ? 'tutorial.next' : 'tutorial.start')}
             <ArrowRight className="h-3 w-3" />
           </button>
         </div>
