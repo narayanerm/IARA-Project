@@ -10,9 +10,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Archivo', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['Archivo', 'ui-sans-serif', 'sans-serif'],
-        mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'ui-sans-serif', 'sans-serif'],
+        mono: ['Inter', 'ui-sans-serif', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
