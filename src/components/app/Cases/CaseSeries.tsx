@@ -29,7 +29,7 @@ interface ShapeProps {
   payload?: Row
 }
 
-/** Time series of the case: measured years as bars, plus the slot reserved for the forecast. */
+/** Historical observations, with a forecast placeholder for mining. */
 export function CaseSeries({ c }: { c: CaseStudy }) {
   const t = useT()
   const tr = useTr()
@@ -45,9 +45,11 @@ export function CaseSeries({ c }: { c: CaseStudy }) {
   const rows = useMemo<Row[]>(
     () => [
       ...s.points.map((p) => ({ key: String(p.year), year: p.year, value: p.value, ghost: false })),
-      { key: 'next', year: null, value: (s.domain[0] + s.domain[1]) / 2, ghost: true },
+      ...(c.id === 'YANO'
+        ? [{ key: 'next', year: null, value: (s.domain[0] + s.domain[1]) / 2, ghost: true }]
+        : []),
     ],
-    [s]
+    [c.id, s]
   )
   // Headroom above the tallest bar so its value label stays inside the plot area.
   const domain: [number, number] = [s.domain[0], s.domain[1] + (s.domain[1] - s.domain[0]) * 0.18]

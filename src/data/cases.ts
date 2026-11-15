@@ -1,7 +1,6 @@
 import type { RegionId } from '@/lib/types'
 
-// The three focused case studies. Every figure here is traceable to the source named next to it;
-// forecast slots are placeholders until the prediction models land.
+// The three focused case studies. Historical figures name their sources alongside the values.
 
 export type L = { pt: string; en: string }
 export type RiskLevel = 'critical' | 'high' | 'watch'
@@ -47,7 +46,6 @@ export interface CaseSeries {
   thresholds: SeriesThreshold[]
   source: { label: string; url: string }
   footnote: L
-  forecast: L
 }
 
 export interface Hotspot {
@@ -238,7 +236,6 @@ export const CASES: Record<RegionId, CaseStudy> = {
         pt: 'Sem dado consolidado da Hutukara para 2019. Em 2024 o Greenpeace mediu 223 hectares novos.',
         en: 'No consolidated Hutukara figure for 2019. In 2024 Greenpeace measured 223 new hectares.',
       },
-      forecast: { pt: 'Zonas de risco previstas pelo modelo', en: 'Risk zones predicted by the model' },
     },
     risk: {
       level: 'high',
@@ -453,7 +450,6 @@ export const CASES: Record<RegionId, CaseStudy> = {
         pt: 'Anos de destaque da série. Máximas de 2023 e 2024 calculadas a partir da amplitude anual do estudo.',
         en: 'Highlight years of the series. 2023 and 2024 peaks derived from the annual range in the study.',
       },
-      forecast: { pt: 'Cota prevista para a próxima cheia', en: 'Level predicted for the next flood' },
     },
     risk: {
       level: 'high',
@@ -662,7 +658,6 @@ export const CASES: Record<RegionId, CaseStudy> = {
         pt: 'As quatro secas extremas da série histórica (cota igual ou abaixo de 13,64 m).',
         en: 'The four extreme droughts in the record (level at or below 13.64 m).',
       },
-      forecast: { pt: 'Cota prevista para a próxima vazante', en: 'Level predicted for the next low-water season' },
     },
     risk: {
       level: 'critical',
