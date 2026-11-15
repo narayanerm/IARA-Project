@@ -129,13 +129,29 @@ function CaseFrame({
     return () => window.clearTimeout(id)
   }, [photo, step, media.images.length, chosen])
 
-  // Warm the videos up in the background once the hub is showing, one after the other, so the
-  // first hover already has frames to play instead of waiting for the download.
+  // The frame must be on screen (on phones the strip can scroll) before its video is worth fetching.
+  const frame = useRef<HTMLButtonElement>(null)
+  const [visible, setVisible] = useState(false)
   useEffect(() => {
-    if (idle || armed || !media.video) return
+    const el = frame.current
+    if (!el || !media.video) return
+    if (typeof IntersectionObserver === 'undefined') {
+      setVisible(true)
+      return
+    }
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { rootMargin: '100px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [media.video])
+
+  // Warm the videos up in the background once the hub is showing, one after the other, so the
+  // first hover already has frames to play instead of waiting for the download. Before that the
+  // video has no source at all, so nothing of it downloads while the intro plays.
+  useEffect(() => {
+    if (idle || armed || !visible || !media.video) return
     const id = window.setTimeout(() => setArmed(true), 300 + index * 700)
     return () => window.clearTimeout(id)
-  }, [idle, armed, media.video, index])
+  }, [idle, armed, visible, media.video, index])
 
   // The video only runs while the frame is pointed at; it resumes where it stopped next time.
   useEffect(() => {
@@ -147,6 +163,7 @@ function CaseFrame({
 
   return (
     <button
+      ref={frame}
       type="button"
       className={cn('case-card', chosen && 'is-chosen', live && 'is-live')}
       style={{ '--case': c.color, '--i': index } as React.CSSProperties}
@@ -189,11 +206,12 @@ function CaseFrame({
             // Until its first frames arrive the satellite picture stays, instead of a black frame.
             className={cn('case-card-video', videoOn && ready && 'is-on')}
             onLoadedData={() => setReady(true)}
-            src={media.video}
+            // preload is set before src, so the download starts as soon as the source is attached
+            preload={armed ? 'auto' : 'none'}
+            src={armed ? media.video : undefined}
             muted
             loop
             playsInline
-            preload={armed ? 'auto' : 'metadata'}
           />
         )}
       </span>

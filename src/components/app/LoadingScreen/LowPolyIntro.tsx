@@ -13,7 +13,7 @@ import { hasWebGL2 } from '@/lib/webgl-support'
 const DONE = 'iara-intro:done'
 const MAX_MS = 20000
 
-export function LowPolyIntro({ onDone }: { onDone: () => void }) {
+export function LowPolyIntro({ onDone, onLoaded }: { onDone: () => void; onLoaded?: () => void }) {
   const [skip] = useState(
     () => !hasWebGL2() || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   )
@@ -51,7 +51,10 @@ export function LowPolyIntro({ onDone }: { onDone: () => void }) {
       title="IARA intro"
       aria-hidden="true"
       tabIndex={-1}
-      onLoad={(e) => e.currentTarget.contentWindow?.focus()}
+      onLoad={(e) => {
+        e.currentTarget.contentWindow?.focus()
+        onLoaded?.()
+      }}
       style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', border: 0, zIndex: 100000, background: 'transparent', colorScheme: 'normal' }}
     />
   )
