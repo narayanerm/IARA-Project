@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight } from 'lucide-react'
 import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
 import { useApp } from '@/lib/store'
 import { useT } from '@/lib/i18n'
@@ -173,8 +172,7 @@ function CaseFrame({
       <span className="case-card-top" aria-hidden="true">
         <span className="case-card-kicker">{tr(c.analysis)}</span>
         <span className="case-card-go">
-          <span className="case-card-go-label">{t('case.explore')}</span>
-          <ArrowUpRight className="h-4 w-4" strokeWidth={1.6} />
+          {t('case.explore')}
         </span>
       </span>
 
