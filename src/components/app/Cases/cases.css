@@ -714,10 +714,21 @@
 
 /* ---- floating header variant: the top bar is gone, so leave room for the controls on the map ---- */
 .case-row {
-  inset: 100px var(--gap) 72px;
+  /* the case frames run all the way up under the floating header */
+  inset: 0 var(--gap) 72px;
+}
+.case-card-top {
+  /* keep each frame's label row clear of the header controls */
+  top: calc(56px + var(--pad));
 }
 .case-hud {
-  top: 56px;
+  /* only the hint is left; it sits on the bottom line, opposite the imagery credit */
+  top: auto;
+  bottom: 8px;
+  height: auto;
+  justify-content: flex-start;
+  font-size: 9.5px;
+  color: rgb(241 238 229 / 0.55);
 }
 @media (min-width: 768px) {
   .case-panel {
