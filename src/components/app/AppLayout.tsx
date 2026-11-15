@@ -19,10 +19,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const toggleSatellite = useUi((s) => s.toggleSatellite)
   const toggleRelief = useUi((s) => s.toggleRelief)
   const rightOpen = useUi((s) => s.rightOpen)
-  const openRight = useUi((s) => s.openRight)
-  const setRightOpen = useUi((s) => s.setRightOpen)
-  const nisarVisible = useApp((s) => s.nisarVisible)
-  const setNisarVisible = useApp((s) => s.setNisarVisible)
   const aoiActive = useApp((s) => s.aoiActive)
   const clearAoi = useApp((s) => s.clearAoi)
   const caseArrived = useApp((s) => s.caseArrived)
@@ -58,19 +54,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
                 on={reliefOn}
                 onToggle={toggleRelief}
                 className="hidden sm:inline-flex"
-              />
-              <HeaderToggle
-                label={t('map.radar')}
-                hint={t('map.radarHint')}
-                on={nisarVisible}
-                onToggle={() => setNisarVisible(!nisarVisible)}
-              />
-              <span className="mx-0.5 hidden h-4 w-px bg-white/25 sm:block" aria-hidden="true" />
-              <HeaderToggle
-                label={t('rp.chat')}
-                hint={t('ask.label')}
-                on={rightOpen}
-                onToggle={() => (rightOpen ? setRightOpen(false) : openRight('chat'))}
               />
               <span data-tour="share">
                 <ShareDialog />
