@@ -104,7 +104,7 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
         )}
         {tab === 'alerts' && (
           <CaseAlerts c={c} forecast={
-            <CaseForecasts kind={c.id === 'ENCH' ? 'flood' : c.id === 'SECA' ? 'drought' : 'fire'} bounds={bounds} onMapChange={onForecastMapChange} />
+            c.id !== 'YANO' && <CaseForecasts kind={c.id === 'ENCH' ? 'flood' : 'drought'} bounds={bounds} onMapChange={onForecastMapChange} />
           } />
         )}
       </div>
