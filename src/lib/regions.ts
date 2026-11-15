@@ -18,16 +18,17 @@ export const REGIONS: Region[] = [
   },
   {
     id: 'ENCH',
-    name: 'Encontro das Águas',
+    name: 'Educandos · São Jorge',
     phenomenon: 'flood',
     phenomenonLabel: 'Enchente',
-    anchorCity: 'Manaus · AM 2024',
-    // Solimões/Negro confluence — 2024 historic flood
-    bbox: [-60.3, -3.3, -59.6, -2.9],
-    center: [-59.95, -3.1],
-    zoom: 9.6,
+    anchorCity: 'Manaus · AM',
+    // Urban Manaus waterfront: Educandos, Centro and São Jorge along the Rio Negro igarapés
+    bbox: [-60.06, -3.16, -59.99, -3.09],
+    // Camera target sits south of the sites because the map view is offset downwards for the case panel.
+    center: [-59.99, -3.135],
+    zoom: 11.7,
     tagline:
-      'Água sob nuvem perene. Especular em SAR = pixel preto, delimitação robusta.',
+      'Rio Negro invade os bairros baixos de Manaus. No SAR, água aberta fica escura e rua alagada entre casas brilha.',
     isAnchor: false,
     status: 'preview',
   },

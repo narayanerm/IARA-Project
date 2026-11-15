@@ -47,6 +47,8 @@ export interface AsfGranule {
   downloadUrl: string | null
   vertexUrl: string
   browseUrl: string | null
+  /** Full-resolution browse image for side-by-side comparison (falls back to browseUrl). */
+  previewUrl: string | null
   thumbUrl: string | null
   footprint: Polygon
 }
@@ -134,6 +136,11 @@ function normalize(r: AsfGranuleRaw): AsfGranule | null {
     vertexUrl: `https://search.asf.alaska.edu/#/?zoom=8&granule=${encodeURIComponent(r.granuleName)}`,
     browseUrl:
       r.browse?.find((u) => u.endsWith('_LATLON_thumbnail.png')) ?? r.browse?.[0] ?? null,
+    previewUrl:
+      r.browse?.find((u) => u.endsWith('_LATLON.png')) ??
+      r.browse?.find((u) => u.endsWith('.png') && !u.endsWith('_thumbnail.png')) ??
+      r.browse?.[0] ??
+      null,
     thumbUrl: r.thumb ?? null,
     footprint,
   }

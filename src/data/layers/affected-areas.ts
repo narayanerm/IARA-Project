@@ -90,67 +90,11 @@ const YANO_MINING_FOOTPRINT: FeatureCollection<Polygon, AffectedAreaProps> = {
   ],
 }
 
+// Manaus flood: no hand-drawn extent. The case uses documented sites (src/data/cases.ts) and
+// the SAR before/after pair instead of an invented polygon.
 const MANAUS_FLOOD_EXTENT: FeatureCollection<Polygon, AffectedAreaProps> = {
   type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      properties: {
-        kind: 'flood',
-        label: 'Rio Negro · lâmina de cheia 2021',
-        area_km2: 4100,
-        year: '2021-05-24',
-        source: 'ANA · Sentinel-1 derivado',
-      },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [-60.5, -3.15],
-            [-60.25, -3.1],
-            [-60.1, -3.05],
-            [-59.95, -3.0],
-            [-59.8, -3.02],
-            [-59.7, -3.08],
-            [-59.65, -3.18],
-            [-59.72, -3.28],
-            [-59.85, -3.35],
-            [-60.05, -3.32],
-            [-60.25, -3.25],
-            [-60.42, -3.2],
-            [-60.5, -3.15],
-          ],
-        ],
-      },
-    },
-    {
-      type: 'Feature',
-      properties: {
-        kind: 'flood',
-        label: 'Rio Solimões · lâmina de cheia 2021',
-        area_km2: 3200,
-        year: '2021-05-24',
-        source: 'ANA · Sentinel-1 derivado',
-      },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [-60.4, -3.3],
-            [-60.1, -3.3],
-            [-59.9, -3.28],
-            [-59.75, -3.32],
-            [-59.7, -3.4],
-            [-59.8, -3.5],
-            [-60.1, -3.55],
-            [-60.35, -3.48],
-            [-60.42, -3.38],
-            [-60.4, -3.3],
-          ],
-        ],
-      },
-    },
-  ],
+  features: [],
 }
 
 const TEFE_DROUGHT: FeatureCollection<Polygon, AffectedAreaProps> = {

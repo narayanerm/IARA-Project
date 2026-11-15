@@ -10,6 +10,7 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
   const aoiActive = useApp((s) => s.aoiActive)
   const focusedTi = useApp((s) => s.focusedTi)
   const flyTarget = useApp((s) => s.flyTarget)
+  const recenterTick = useApp((s) => s.recenterTick)
 
   useEffect(() => {
     const m = mapRef.current
@@ -34,7 +35,7 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
       duration: 1600,
       essential: true,
     })
-  }, [region, mapLoaded, aoiActive, mapRef])
+  }, [region, mapLoaded, aoiActive, mapRef, recenterTick])
 
   useEffect(() => {
     if (!focusedTi) return

@@ -3,8 +3,10 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppLayout } from '@/components/app/AppLayout'
 import { VoxelIntro } from '@/components/app/LoadingScreen/VoxelIntro'
 import { Tutorial, hasSeenTutorial, TUTORIAL_OPEN_EVENT } from '@/components/app/Tutorial/Tutorial'
-import { useApp } from '@/lib/store'
+import { CaseSelect } from '@/components/app/CaseSelect/CaseSelect'
+import { useApp, useUi } from '@/lib/store'
 import { readUrlState } from '@/lib/url-state'
+import { FEATURES } from '@/lib/features'
 
 const TUTORIAL_STEPS = [
   {
@@ -59,12 +61,23 @@ export default function App() {
   const [tutorialOn, setTutorialOn] = useState(false)
   useHydrateUrlState()
 
+  const caseSelectOpen = useUi((s) => s.caseSelectOpen)
+  const [casePrompted, setCasePrompted] = useState(false)
+
+  // After the intro, ask which case to analyze, unless a shared link already names one.
   useEffect(() => {
-    if (ready && !hasSeenTutorial()) {
+    if (!ready || casePrompted) return
+    setCasePrompted(true)
+    if (!readUrlState().aoi) useUi.getState().setCaseSelectOpen(true)
+  }, [ready, casePrompted])
+
+  // The guided tour starts once the case selection is out of the way.
+  useEffect(() => {
+    if (FEATURES.guidedTour && ready && casePrompted && !caseSelectOpen && !hasSeenTutorial()) {
       const t = window.setTimeout(() => setTutorialOn(true), 500)
       return () => window.clearTimeout(t)
     }
-  }, [ready])
+  }, [ready, casePrompted, caseSelectOpen])
 
   useEffect(() => {
     const onOpen = () => setTutorialOn(true)
@@ -78,6 +91,7 @@ export default function App() {
         {/* the dashboard is mounted underneath from the start; the intro splits open to reveal it */}
         {!ready && <VoxelIntro onDone={() => setReady(true)} />}
         <AppLayout />
+        {ready && <CaseSelect />}
         {tutorialOn && (
           <Tutorial steps={TUTORIAL_STEPS} onClose={() => setTutorialOn(false)} />
         )}

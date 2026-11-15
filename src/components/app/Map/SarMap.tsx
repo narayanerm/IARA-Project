@@ -11,6 +11,8 @@ import { GIBS_BY_REGION } from '@/lib/gibs'
 import { useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
 import { inAmazon } from '@/lib/amazon'
+import { FEATURES } from '@/lib/features'
+import { CASES } from '@/data/cases'
 
 import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { MapFallback } from './MapFallback'
@@ -27,6 +29,8 @@ import { AmazonBiomeLayer } from './layers/AmazonBiomeLayer'
 import { GibsTrueColorLayer, GibsOverlayLayer } from './layers/GibsLayers'
 import { YanoChangeLayer } from './layers/YanoChangeLayer'
 import { AffectedAreasLayer } from './layers/AffectedAreasLayer'
+import { CaseSitesLayer } from './layers/CaseSitesLayer'
+import { CaseImageryLayer } from './layers/CaseImageryLayer'
 import { FocusedTiMask } from './layers/FocusedTiMask'
 import { DeterLayer } from './layers/DeterLayer'
 import { IbgeMunicipiosLayer } from './layers/IbgeMunicipiosLayer'
@@ -46,6 +50,14 @@ export function SarMap() {
   const t = useT()
 
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
+  // Inside a case the camera cannot leave the case area (plus a margin), so the user does not get lost.
+  const maxBounds = useMemo<[number, number, number, number] | undefined>(() => {
+    if (!aoiActive) return undefined
+    const [w, s, e, n] = CASES[activeRegion].sarCrop ?? region.bbox
+    const mx = Math.max(0.15, (e - w) * 0.6)
+    const my = Math.max(0.1, (n - s) * 0.6)
+    return [w - mx, s - my, e + mx, n + my]
+  }, [aoiActive, activeRegion, region])
   const gibs = GIBS_BY_REGION[activeRegion]
 
   const focused = useFocusedTi()
@@ -59,6 +71,7 @@ export function SarMap() {
   const [satelliteOn, setSatelliteOn] = useState(false)
   // First label layer of the basemap: imagery goes under it so place and river names stay readable.
   const [labelLayerId, setLabelLayerId] = useState<string>()
+  const [imageryBeforeId, setImageryBeforeId] = useState<string>()
   useMapCamera(mapRef, region, mapLoaded)
   useBasemapAdapter(() => mapRef.current?.getMap(), satelliteOn, mapLoaded)
 
@@ -90,7 +103,7 @@ export function SarMap() {
     return (
       <div className="relative h-full w-full">
         <MapFallback region={region} />
-        <OverlayLegend />
+        {FEATURES.communityLayers && <OverlayLegend />}
       </div>
     )
   }
@@ -110,39 +123,49 @@ export function SarMap() {
           bearing: aoiActive ? BEARING : 0,
         }}
         maxPitch={60}
+        maxBounds={maxBounds}
         mapStyle={BASEMAP_URL}
         interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
         onClick={onClick}
         onLoad={(e) => {
-          setLabelLayerId(
-            e.target.getStyle().layers.find((l) => l.type === 'symbol')?.id ?? 'amazon-biome-fill'
-          )
+          const layers = e.target.getStyle().layers
+          setLabelLayerId(layers.find((l) => l.type === 'symbol')?.id ?? 'amazon-biome-fill')
+          // Case imagery covers streets and buildings, so it goes above the last road/rail line
+          // and below the street and place names that follow it.
+          let lastLine = -1
+          layers.forEach((l, i) => {
+            if (l.type === 'line' && !l.id.startsWith('boundary')) lastLine = i
+          })
+          setImageryBeforeId(layers.slice(lastLine + 1).find((l) => l.type === 'symbol')?.id)
           setMapLoaded(true)
         }}
         attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
         <TerrainSource />
         <SatelliteLayer on={satelliteOn} beforeId={labelLayerId} />
+        <CaseImageryLayer activeRegion={activeRegion} visible={aoiActive} beforeId={imageryBeforeId ?? labelLayerId} />
 
         <AmazonBiomeLayer />
 
-        <CommunityAreas />
+        {FEATURES.communityLayers && <CommunityAreas />}
         {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
         <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
 
         <GibsTrueColorLayer on={trueColorOverlay} />
-        <GibsOverlayLayer on={nasaOverlay} gibs={gibs} />
+        <GibsOverlayLayer on={FEATURES.nasaOverlay && nasaOverlay} gibs={gibs} />
 
-        <NisarImagery />
+        {FEATURES.nisarLive && <NisarImagery />}
         <YanoChangeLayer activeRegion={activeRegion} />
         <AffectedAreasLayer activeRegion={activeRegion} />
+        <CaseSitesLayer activeRegion={activeRegion} visible={aoiActive} />
         <FocusedTiMask focused={focused} />
         <IbgeMunicipiosLayer on={municipiosOn} data={ibge.data} />
         <DeterLayer focusedTi={focused.name} deter={deter} />
 
-        <CommunityPoints />
+        {FEATURES.communityLayers && <CommunityPoints />}
       </Map>
 
+      {FEATURES.communityLayers && (
       <OverlayLegend
         terrainOn={terrainOn}
         onToggleTerrain={() => setTerrainOn((v) => !v)}
@@ -152,6 +175,7 @@ export function SarMap() {
         onToggleMunicipios={() => setMunicipiosOn((v) => !v)}
         municipiosLoading={ibge.loading}
       />
+      )}
       {focused.name && (
         <FocusedTiBadge
           tiName={focused.name}

@@ -149,53 +149,37 @@ export const BRIEFINGS: Record<RegionId, PhenomenonBriefing> = {
   },
 
   ENCH: {
-    title: 'Cheias extremas em Manaus',
-    period: '2021 (recorde histórico) · 2024 (top-5)',
+    title: 'Cheias do Rio Negro em Educandos e São Jorge',
+    period: '1902–2026 · recorde de 30,02 m em 2021',
     tagline:
-      'O Rio Negro em Manaus bateu a marca histórica em 2021 e voltou a inundar bairros e ribeirinhos em cheias sucessivas na década.',
+      'Quando o Rio Negro passa de 27,50 m no Porto de Manaus, a água entra no São Jorge; acima de 29 m, alaga o centro histórico e as palafitas do Educandos.',
     narrative: [
-      'Em 24 de maio de 2021 o Rio Negro atingiu **30,02 m** no Porto de Manaus — a maior cheia registrada em 119 anos de medição. Em 2024 a cota voltou a ficar entre as 5 maiores já observadas, pressionando ribeirinhos, bairros baixos e o Encontro das Águas.',
-      'A causa é climática: a Zona de Convergência Intertropical empurra chuva extrema sobre a Bacia Amazônica em anos de La Niña. O resultado é um ciclo cada vez mais intenso de cheias e secas — o oposto do "rio equilibrado" que a região tinha.',
-      'O radar SAR é ideal para mapear inundação porque **água lisa reflete especular** (longe do sensor): a cheia aparece como uma mancha preta bem definida na imagem, mesmo sob nuvem.',
+      'Manaus mede o Rio Negro todos os dias desde **1902**. Das cinco maiores cheias dessa série, **quatro aconteceram depois de 2009**: 2009 (29,77 m), 2012 (29,97 m), 2021 (**30,02 m**, recorde) e 2022 (29,75 m).',
+      'A chance de uma cheia extrema (≥ 29,69 m) passou de **0,94% ao ano** (1903–2008) para **25% ao ano** (2009–2024). Em 2025 o rio voltou a passar de 29 m, nove meses depois da **seca recorde de 12,11 m** (out/2024).',
+      'Os bairros mais expostos ficam na beira dos igarapés: no **Educandos** e no **São Jorge**, famílias em casas de madeira e palafitas convivem com a água dentro de casa por semanas, e a prefeitura ergue passarelas (marombas) para manter o acesso.',
     ],
     beforeDate: '2020-11-15',
-    afterDate: '2021-06-01',
-    snapshotBbox: [-60.4, -3.35, -59.6, -2.85],
+    afterDate: '2021-06-16',
+    snapshotBbox: [-60.15, -3.2, -59.85, -3.02],
     snapshotLayer: 'MODIS_Terra_CorrectedReflectance_TrueColor',
     opticalLayers: AMAZON_OPTICAL_VARIANTS,
     externalViewer: {
       label: 'Abrir no NASA Worldview',
-      url: 'https://worldview.earthdata.nasa.gov/?v=-60.4,-3.35,-59.6,-2.85&t=2021-05-24&l=MODIS_Terra_CorrectedReflectance_TrueColor,Reference_Features_15m',
+      url: 'https://worldview.earthdata.nasa.gov/?v=-60.15,-3.2,-59.85,-3.02&t=2021-06-16&l=MODIS_Terra_CorrectedReflectance_TrueColor,Reference_Features_15m',
     },
     stats: [
-      {
-        value: '30,02 m',
-        label: 'cota recorde do Rio Negro em Manaus (24/mai/2021)',
-        source: 'ANA · Porto de Manaus',
-      },
-      {
-        value: '2 450 000 +',
-        label: 'pessoas afetadas por cheias no AM em 2021',
-        source: 'Defesa Civil AM',
-      },
-      {
-        value: '> 60',
-        label: 'municípios amazonenses em emergência (2021)',
-        source: 'SEDEC/MDR',
-      },
-      {
-        value: '> 29 m',
-        label: 'cotas acima desse patamar em 2012, 2015, 2021, 2024',
-        source: 'ANA',
-      },
+      { value: '30,02 m', label: 'cota recorde do Rio Negro (16/06/2021)', source: 'Porto de Manaus · SGB' },
+      { value: '27,50 m', label: 'cota de inundação: a água chega ao São Jorge', source: 'SGB' },
+      { value: '29,00 m', label: 'inundação severa: Rua dos Barés, centro histórico', source: 'SGB' },
+      { value: '0,94% → 25%', label: 'chance anual de cheia extrema, antes e depois de 2009', source: 'Oliveira 2025 · UFAM/SGB' },
     ],
     sarReading:
-      'Água aberta gera retroespalhamento quase zero em C e L-band (pixel preto, < -18 dB). Vegetação inundada (floresta de várzea) tem double-bounce: brilha mais que floresta seca em HH.',
+      'No rio e nos lagos, água lisa reflete o radar para longe do satélite: pixel escuro, mesmo sob nuvem. Na cidade é o contrário: a água entre paredes de casas cria um "duplo salto" (água → parede → satélite) e a rua alagada aparece mais clara que o normal. Por isso comparamos a mesma área na vazante e no pico da cheia.',
     sources: [
-      { label: 'ANA · Portal HidroWeb', url: 'https://www.snirh.gov.br/hidroweb/' },
-      { label: 'Defesa Civil Amazonas', url: 'http://www.defesacivil.am.gov.br/' },
-      { label: 'CPRM · Acompanhamento de cheias', url: 'https://www.sgb.gov.br/' },
-      { label: 'INPE CPTEC', url: 'https://www.cptec.inpe.br/' },
+      { label: 'SGB · Alerta Hidrológico do Amazonas', url: 'https://www.sgb.gov.br/sace/amazonas/ultimo_boletim.php' },
+      { label: 'SGB · mancha de inundação 2021 (Manaus)', url: 'https://rigeo.cprm.gov.br/bitstream/doc/23747/1/nota-explicativa_manchainundacao.pdf' },
+      { label: 'Oliveira 2025 · cheias e secas 1902–2024', url: 'https://static.even3.com/anais/1211771.pdf' },
+      { label: 'ANA · HidroWeb', url: 'https://www.snirh.gov.br/hidroweb/' },
     ],
   },
 

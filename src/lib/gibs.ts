@@ -47,7 +47,7 @@ export const GIBS_BY_REGION: Record<RegionId, GibsLayer | null> = {
     kind: 'raster',
     tileMatrixSet: 'GoogleMapsCompatible_Level6',
     format: 'png',
-    time: '2024-05-24',
+    time: '2021-06-16',
     legendLabel: 'IMERG · precipitação',
     sensor: 'GPM IMERG',
     explanation:

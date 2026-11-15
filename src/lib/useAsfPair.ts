@@ -41,7 +41,8 @@ export function useAsfPair(
   bbox: [number, number, number, number],
   beforeDate: string,
   afterDate: string,
-  windowDays = 120
+  windowDays = 120,
+  preferPlatform?: AsfPlatform
 ): PairResult {
   const [state, setState] = useState<PairResult>({
     before: null,
@@ -61,7 +62,15 @@ export function useAsfPair(
       const bw = windowFor(beforeDate, windowDays)
       const aw = windowFor(afterDate, windowDays)
 
-      for (const { platform, processingLevel } of PAIR_CHAIN) {
+      // A preferred mission (e.g. NISAR for 2026 events) is tried first; the rest of the chain is the fallback.
+      const chain = preferPlatform
+        ? [
+            ...PAIR_CHAIN.filter((c) => c.platform === preferPlatform),
+            ...PAIR_CHAIN.filter((c) => c.platform !== preferPlatform),
+          ]
+        : PAIR_CHAIN
+
+      for (const { platform, processingLevel } of chain) {
         try {
           const [beforeList, afterList] = await Promise.all([
             searchGranules(
@@ -87,7 +96,14 @@ export function useAsfPair(
 
           let bestBefore: AsfGranule | null = null
           let bestAfter: AsfGranule | null = null
-          for (const g of beforeList) {
+          // Walk the before scenes from the closest to the requested date outwards.
+          const beforeTarget = new Date(beforeDate).getTime()
+          const beforeSorted = [...beforeList].sort(
+            (a, b) =>
+              Math.abs(new Date(a.startTime).getTime() - beforeTarget) -
+              Math.abs(new Date(b.startTime).getTime() - beforeTarget)
+          )
+          for (const g of beforeSorted) {
             if (g.path == null || g.frame == null || !g.browseUrl) continue
             const k = `${g.path}:${g.frame}`
             const matches = afterByFrame.get(k)
@@ -126,7 +142,7 @@ export function useAsfPair(
           }
         } catch (err) {
           if (ctrl.signal.aborted) return
-          if (platform === PAIR_CHAIN[PAIR_CHAIN.length - 1].platform) {
+          if (platform === chain[chain.length - 1].platform) {
             setState({
               before: null,
               after: null,
@@ -156,7 +172,7 @@ export function useAsfPair(
       cancelled = true
       ctrl.abort()
     }
-  }, [bbox[0], bbox[1], bbox[2], bbox[3], beforeDate, afterDate, windowDays])
+  }, [bbox[0], bbox[1], bbox[2], bbox[3], beforeDate, afterDate, windowDays, preferPlatform])
 
   return state
 }

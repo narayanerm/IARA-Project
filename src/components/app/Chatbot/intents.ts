@@ -59,7 +59,7 @@ const REGION_PATTERNS: Array<{
   {
     region: 'ENCH',
     phen: 'flood',
-    rx: /(enchent|cheia|manaus|solim[oõ]es|encontro\s+das|alaga|inunda|flood)/,
+    rx: /(enchent|cheia|manaus|educandos|s[aã]o\s+jorge|rio\s+negro|alaga|inunda|flood)/,
   },
   {
     region: 'SECA',
@@ -238,11 +238,11 @@ const NARRATIVE_FOCUS: Record<RegionId, string> = {
 Entre 2019 e 2022, a assinatura L-band (HH) mostrou **queda de 6-10 dB** em vários polígonos — consistente com conversão de dossel em solo exposto. A operação federal de fev/2023 marca um ponto de inflexão visível na série temporal.
 
 Camadas ativadas: NDVI MODIS + polígonos de detecção.`,
-  ENCH: `Centrando no **encontro Solimões–Negro**, Manaus.
+  ENCH: `Zoom nos bairros **Educandos** e **São Jorge**, na beira do Rio Negro em Manaus.
 
-A cheia de **maio/2024** bateu recorde histórico no porto de Manaus (30,70 m). SAR separa água de vegetação com threshold de amplitude: pixel especular ≈ -18 dB vs floresta inundada ≈ -8 dB.
+A maior cheia já medida no Porto de Manaus foi em **16/06/2021: 30,02 m**. Acima de 27,50 m a água chega ao São Jorge; acima de 29 m alaga o centro histórico. Desde 2009, quatro das cinco maiores cheias da série (iniciada em 1902) já aconteceram.
 
-Camada IMERG mostra o input de precipitação na bacia.`,
+No SAR, rio e lagos ficam escuros (reflexão especular), mas rua alagada entre casas brilha por duplo salto. Compare a vazante com o pico no painel de baixo.`,
   SECA: `Zoom em **Lago Tefé**.
 
 A seca histórica de **2023-24** retraiu a área hidrográfica a níveis associados à mortandade de botos-rosa. O sinal SAR aqui é **extensão** (área em km²) ao longo do tempo, não amplitude.

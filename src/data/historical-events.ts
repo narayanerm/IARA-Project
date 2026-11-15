@@ -1,5 +1,6 @@
 import type { RegionId } from '@/lib/types'
 import type { Stat } from './phenomena-briefing'
+import type { AsfPlatform } from '@/lib/asf'
 
 export interface HistoricalEvent {
   id: string
@@ -15,6 +16,8 @@ export interface HistoricalEvent {
   // Dates passed to the ASF/Worldview snapshot queries when this event is selected.
   beforeDate: string
   afterDate: string
+  // Preferred SAR mission for this event (defaults to the longest archive, Sentinel-1).
+  sarPlatform?: AsfPlatform
   // Short contextual note (one sentence) shown as a chip when this event is active.
   note: string
   // Stats for this specific event (replace briefing.stats when selected).
@@ -132,23 +135,26 @@ const YANO_EVENTS: HistoricalEvent[] = [
   },
 ]
 
+// Manaus floods: annual maxima at the Porto de Manaus gauge (ANA 14990000).
+// Sources: SGB boletins de alerta; Oliveira (2025, UFAM/SGB, VI CoBICET); Defesa Civil via press.
+// SAR pairs compare the previous low-water season (before) with the flood peak (after).
 const ENCH_EVENTS: HistoricalEvent[] = [
   {
     id: 'ench-2009',
     year: 2009,
-    date: '2009-06-01',
+    date: '2009-07-01',
     shortLabel: '2009',
     label: 'Cheia 2009 · 29,77 m',
-    severity: 0.7,
+    severity: 0.75,
     magnitude: { value: '29,77', unit: 'm' },
     beforeDate: '2008-11-15',
-    afterDate: '2009-06-01',
-    note: 'Nova maior cheia desde 1953 — na época, considerada histórica.',
+    afterDate: '2009-07-01',
+    note: 'Primeira cheia do século a superar a marca de 1953; 16 dias acima de 29,69 m.',
     stats: [
-      { value: '29,77 m', label: 'cota máxima Rio Negro / Manaus', source: 'ANA · Porto de Manaus' },
-      { value: '184 500 +', label: 'pessoas afetadas no AM', source: 'Defesa Civil AM' },
-      { value: '40 +', label: 'municípios em emergência', source: 'SEDEC/MDR' },
-      { value: '> 29 m', label: 'cota supera limite crítico', source: 'ANA' },
+      { value: '29,77 m', label: 'pico em 01/07/2009', source: 'Porto de Manaus · SGB' },
+      { value: '16 dias', label: 'acima de 29,69 m (nível de 1953)', source: 'Oliveira 2025 · UFAM/SGB' },
+      { value: '244 dias', label: 'duração do processo de cheia', source: 'Portal Amazônia · SGB' },
+      { value: '3ª', label: 'maior cheia da série desde 1902', source: 'SGB' },
     ],
   },
   {
@@ -157,70 +163,90 @@ const ENCH_EVENTS: HistoricalEvent[] = [
     date: '2012-05-29',
     shortLabel: '2012',
     label: 'Cheia 2012 · 29,97 m',
-    severity: 0.85,
+    severity: 0.9,
     magnitude: { value: '29,97', unit: 'm' },
     beforeDate: '2011-11-15',
     afterDate: '2012-05-29',
-    note: 'Quebrou o recorde de 2009. Primeira vez acima de 29,90 m.',
+    note: 'Recorde até 2021. SGB estimou tempo de retorno de 113 anos para esse nível.',
     stats: [
-      { value: '29,97 m', label: 'cota máxima (2012)', source: 'ANA · Porto de Manaus' },
-      { value: '300 000 +', label: 'pessoas afetadas no AM', source: 'Defesa Civil AM' },
-      { value: '42', label: 'municípios em emergência', source: 'SEDEC/MDR' },
-      { value: 'recorde', label: 'maior cheia em 108 anos (até então)', source: 'ANA' },
-    ],
-  },
-  {
-    id: 'ench-2015',
-    year: 2015,
-    date: '2015-07-04',
-    shortLabel: '2015',
-    label: 'Cheia 2015 · 29,66 m',
-    severity: 0.7,
-    magnitude: { value: '29,66', unit: 'm' },
-    beforeDate: '2014-11-15',
-    afterDate: '2015-07-04',
-    note: 'Terceira cheia acima de 29,5 m na década — padrão de recorrência instalado.',
-    stats: [
-      { value: '29,66 m', label: 'cota máxima (2015)', source: 'ANA · Porto de Manaus' },
-      { value: '220 000 +', label: 'pessoas afetadas no AM', source: 'Defesa Civil AM' },
-      { value: '55', label: 'municípios em emergência', source: 'SEDEC/MDR' },
-      { value: '> 29 m', label: 'mais um ano crítico', source: 'ANA' },
+      { value: '29,97 m', label: 'pico em 29/05/2012', source: 'Porto de Manaus · SGB' },
+      { value: '34 dias', label: 'acima de 29,69 m', source: 'Oliveira 2025 · UFAM/SGB' },
+      { value: '230 dias', label: 'de enchente (12/10/2011 a 29/05/2012)', source: 'SGB · relatório 2014' },
+      { value: '113 anos', label: 'tempo de retorno estimado na época', source: 'SGB · relatório 2014' },
     ],
   },
   {
     id: 'ench-2021',
     year: 2021,
-    date: '2021-05-24',
+    date: '2021-06-16',
     shortLabel: '2021',
     label: 'RECORDE 2021 · 30,02 m',
     severity: 1.0,
     magnitude: { value: '30,02', unit: 'm (recorde)' },
     beforeDate: '2020-11-15',
-    afterDate: '2021-05-24',
-    note: 'Maior cheia em 119 anos. Primeira vez acima de 30 m na série histórica.',
+    afterDate: '2021-06-16',
+    note: 'Maior cheia desde 1902. Educandos e São Jorge entre os bairros mais atingidos.',
     stats: [
-      { value: '30,02 m', label: 'cota recorde do Rio Negro (24/mai/2021)', source: 'ANA · Porto de Manaus' },
-      { value: '2 450 000 +', label: 'pessoas afetadas no AM em 2021', source: 'Defesa Civil AM' },
-      { value: '> 60', label: 'municípios em emergência', source: 'SEDEC/MDR' },
-      { value: '119', label: 'anos: maior da série histórica', source: 'ANA' },
+      { value: '30,02 m', label: 'pico em 16/06/2021, recorde da série', source: 'Porto de Manaus · SGB' },
+      { value: '58 dias', label: 'acima de 29,69 m', source: 'Oliveira 2025 · UFAM/SGB' },
+      { value: '24 mil', label: 'moradores de Manaus atingidos em 17 bairros', source: 'Defesa Civil · Agência Estado' },
+      { value: '13 mil m', label: 'de passarelas de madeira em 21 bairros', source: 'Prefeitura de Manaus · NatGeo' },
     ],
   },
   {
-    id: 'ench-2024',
-    year: 2024,
-    date: '2024-05-20',
-    shortLabel: '2024',
-    label: 'Cheia 2024 · 29,33 m',
-    severity: 0.5,
-    magnitude: { value: '29,33', unit: 'm' },
-    beforeDate: '2023-11-01',
-    afterDate: '2024-05-20',
-    note: 'Depois da seca extrema de 2023, Rio Negro subiu rápido demais — enchente dentro do ciclo irregular.',
+    id: 'ench-2022',
+    year: 2022,
+    date: '2022-06-22',
+    shortLabel: '2022',
+    label: 'Cheia 2022 · 29,75 m',
+    severity: 0.75,
+    magnitude: { value: '29,75', unit: 'm' },
+    beforeDate: '2021-11-15',
+    afterDate: '2022-06-22',
+    note: 'Segundo ano seguido acima da inundação severa; 4ª maior cheia da história.',
     stats: [
-      { value: '29,33 m', label: 'cota máxima (2024)', source: 'ANA · Porto de Manaus' },
-      { value: '150 000 +', label: 'pessoas afetadas no AM', source: 'Defesa Civil AM' },
-      { value: 'após seca', label: 'ciclo seca → cheia extremo', source: 'CPRM · ANA' },
-      { value: '> 29 m', label: 'quarto ano acima do limiar na década', source: 'ANA' },
+      { value: '29,75 m', label: 'pico em 22/06/2022', source: 'Porto de Manaus · SGB' },
+      { value: '16 dias', label: 'acima de 29,69 m', source: 'Oliveira 2025 · UFAM/SGB' },
+      { value: '4ª', label: 'maior cheia da série desde 1902', source: 'SGB' },
+      { value: '2 anos', label: 'seguidos acima de 29,69 m (2021 e 2022)', source: 'Oliveira 2025 · UFAM/SGB' },
+    ],
+  },
+  {
+    id: 'ench-2025',
+    year: 2025,
+    date: '2025-07-05',
+    shortLabel: '2025',
+    label: 'Cheia 2025 · 29,04 m',
+    severity: 0.55,
+    magnitude: { value: '29,04', unit: 'm' },
+    beforeDate: '2024-10-09',
+    afterDate: '2025-07-05',
+    note: 'Nove meses depois da seca recorde (12,11 m), o rio passou da inundação severa em pleno julho.',
+    stats: [
+      { value: '29,04 m', label: 'em 05/07/2025, acima da inundação severa', source: 'Porto de Manaus' },
+      { value: '16,9 m', label: 'de subida desde a seca recorde de out/2024', source: 'SGB · Porto de Manaus' },
+      { value: '534 mil', label: 'pessoas atingidas no Amazonas', source: 'Defesa Civil AM' },
+      { value: '40', label: 'municípios em situação de emergência', source: 'Defesa Civil AM' },
+    ],
+  },
+  {
+    id: 'ench-2026',
+    year: 2026,
+    date: '2026-06-30',
+    shortLabel: '2026',
+    label: 'Cheia 2026 · ≈ 28,5 m · NISAR',
+    severity: 0.35,
+    magnitude: { value: '≈ 28,5', unit: 'm' },
+    // NISAR covers all of urban Manaus from June 2026: flood (before) vs low water (after).
+    beforeDate: '2026-06-23',
+    afterDate: '2026-11-02',
+    sarPlatform: 'NISAR',
+    note: 'Primeira cheia vista pelo NISAR: compare o rio na cheia (jun/2026, acima de 27,50 m) com a vazante (nov/2026).',
+    stats: [
+      { value: '28,50 m', label: 'nível em 30/06/2026', source: 'SGB · boletim de alerta' },
+      { value: '21/05', label: 'rio passa da cota de inundação (27,52 m)', source: 'Porto de Manaus' },
+      { value: '28,20 m', label: 'previsão do último alerta oficial', source: 'SGB · Alerta de Cheias' },
+      { value: 'NISAR', label: 'primeira temporada com radar banda L', source: 'NASA/ISRO · ASF DAAC' },
     ],
   },
 ]
@@ -309,4 +335,9 @@ export const HISTORICAL_EVENTS: Record<RegionId, HistoricalEvent[]> = {
 export function peakEvent(id: RegionId): HistoricalEvent {
   const list = HISTORICAL_EVENTS[id]
   return list.reduce((best, e) => (e.severity > best.severity ? e : best))
+}
+
+/** Event opened first: the NISAR one when the case has it (the challenge is about NISAR), else the peak. */
+export function defaultEvent(id: RegionId): HistoricalEvent {
+  return HISTORICAL_EVENTS[id].find((e) => e.sarPlatform === 'NISAR') ?? peakEvent(id)
 }

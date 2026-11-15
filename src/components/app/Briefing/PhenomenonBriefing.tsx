@@ -1,19 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpen, ChevronDown, ChevronUp, ExternalLink, Info, Loader2, Radar, Satellite, X } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronUp, ExternalLink, History, Info, LineChart, Loader2, Radar, Satellite, X } from 'lucide-react'
 import { useApp } from '@/lib/store'
 import { REGIONS } from '@/lib/regions'
 import { BRIEFINGS, worldviewSnapshot } from '@/data/phenomena-briefing'
 import { AFFECTED_AREAS } from '@/data/layers/affected-areas'
-import { HISTORICAL_EVENTS, peakEvent } from '@/data/historical-events'
+import { HISTORICAL_EVENTS, defaultEvent, peakEvent } from '@/data/historical-events'
 import { useAsfPair } from '@/lib/useAsfPair'
 import { bandFor, type AsfGranule, type AsfPlatform } from '@/lib/asf'
 import { BeforeAfter } from './BeforeAfter'
 import { EventTimeline } from './EventTimeline'
+import { RiverStageChart } from './RiverStageChart'
+import { SarArchiveCompare } from './SarArchiveCompare'
+import { FEATURES } from '@/lib/features'
+import { CaseForecast } from './CaseForecast'
+import { CASES } from '@/data/cases'
 import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { Polygon } from 'geojson'
 
 type Source = 'modis' | 'sar'
+type CaseTab = 'history' | 'forecast'
 
 function polygonBbox(poly: Polygon): [number, number, number, number] {
   let minX = Infinity,
@@ -55,21 +61,23 @@ export function PhenomenonBriefing() {
   const activeRegion = useApp((s) => s.activeRegion)
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const briefing = BRIEFINGS[activeRegion]
+  const caseStudy = CASES[activeRegion]
 
   const [open, setOpen] = useState(false)
   const [source, setSource] = useState<Source>('sar')
   const [opticalLayerKey, setOpticalLayerKey] = useState<string>(
     briefing.opticalLayers[0]?.key ?? 'modis-terra'
   )
-  const [selectedEventId, setSelectedEventId] = useState<string>(peakEvent(activeRegion).id)
+  const [selectedEventId, setSelectedEventId] = useState<string>(defaultEvent(activeRegion).id)
+  const [caseTab, setCaseTab] = useState<CaseTab>('history')
 
   useEffect(() => {
-    // Only auto-open the drawer when the user explicitly activates an AOI,
-    // never on page load (even when tutorial was seen before).
-    if (aoiActive) setOpen(true)
+    // The drawer starts closed (only the "Understand …" button shows); the user opens it.
+    setOpen(false)
     setSource('sar')
     setOpticalLayerKey(BRIEFINGS[activeRegion].opticalLayers[0]?.key ?? 'modis-terra')
-    setSelectedEventId(peakEvent(activeRegion).id)
+    setSelectedEventId(defaultEvent(activeRegion).id)
+    setCaseTab('history')
   }, [activeRegion, aoiActive])
 
   const events = HISTORICAL_EVENTS[activeRegion]
@@ -92,17 +100,18 @@ export function PhenomenonBriefing() {
     briefing.snapshotBbox,
     selectedEvent.beforeDate,
     selectedEvent.afterDate,
-    120
+    120,
+    selectedEvent.sarPlatform
   )
 
   const modisBeforeUrl = worldviewSnapshot(selectedEvent.beforeDate, briefing.snapshotBbox, activeOptical.layer)
   const modisAfterUrl = worldviewSnapshot(selectedEvent.afterDate, briefing.snapshotBbox, activeOptical.layer)
 
-  const showSar = source === 'sar'
+  const showSar = source === 'sar' || !FEATURES.opticalTab
   const sarAvailable = !!pair.before?.browseUrl && !!pair.after?.browseUrl
 
-  const beforeUrl = showSar && pair.before?.browseUrl ? pair.before.browseUrl : modisBeforeUrl
-  const afterUrl = showSar && pair.after?.browseUrl ? pair.after.browseUrl : modisAfterUrl
+  const beforeUrl = showSar && pair.before?.browseUrl ? pair.before.previewUrl ?? pair.before.browseUrl : modisBeforeUrl
+  const afterUrl = showSar && pair.after?.browseUrl ? pair.after.previewUrl ?? pair.after.browseUrl : modisAfterUrl
 
   const beforeBbox = showSar && pair.before ? polygonBbox(pair.before.footprint) : briefing.snapshotBbox
   const afterBbox = showSar && pair.after ? polygonBbox(pair.after.footprint) : briefing.snapshotBbox
@@ -131,7 +140,7 @@ export function PhenomenonBriefing() {
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-30 pointer-events-auto">
-      <div className="mx-auto max-w-5xl rounded-t-2xl border border-b-0 border-primary/30 bg-card/95 backdrop-blur-xl shadow-2xl animate-in slide-in-from-bottom duration-300">
+      <div className="mx-auto max-w-6xl rounded-t-2xl border border-b-0 border-primary/30 bg-card/95 backdrop-blur-xl shadow-2xl animate-in slide-in-from-bottom duration-300">
         <header className="flex items-center justify-between gap-3 px-4 pt-3 pb-2 border-b border-border/60">
           <div className="flex items-center gap-2 min-w-0">
             <div className="grid h-8 w-8 place-items-center rounded-md bg-primary/15 ring-1 ring-primary/40 shrink-0">
@@ -140,7 +149,7 @@ export function PhenomenonBriefing() {
             <div className="min-w-0">
               <div className="text-sm font-semibold truncate">{briefing.title}</div>
               <div className="text-[12px] font-mono text-muted-foreground truncate">
-                {briefing.period} · {region.anchorCity}
+                {caseStudy.community} · {caseStudy.place} · {briefing.period}
               </div>
             </div>
           </div>
@@ -162,8 +171,18 @@ export function PhenomenonBriefing() {
           </div>
         </header>
 
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[55vh] overflow-y-auto">
-          <section className="space-y-3">
+        <div className="grid grid-cols-1 gap-4 p-4 max-h-[62vh] overflow-y-auto md:h-[62vh] md:grid-cols-2 md:overflow-hidden">
+          <section className="space-y-3 md:min-h-0 md:overflow-y-auto md:pr-1">
+            {caseStudy.sarCrop ? (
+              <SarArchiveCompare
+                bbox={caseStudy.sarCrop}
+                beforeDate={selectedEvent.beforeDate}
+                afterDate={selectedEvent.afterDate}
+                prefer={selectedEvent.sarPlatform}
+                sites={caseStudy.sites}
+              />
+            ) : (
+              <>
             {showSar && pair.loading ? (
               <div className="w-full aspect-[4/3] rounded-lg border border-border/60 bg-background/40 grid place-items-center">
                 <div className="flex items-center gap-2 text-[13px] font-mono text-muted-foreground">
@@ -183,6 +202,7 @@ export function PhenomenonBriefing() {
               />
             )}
 
+            {FEATURES.opticalTab && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <SourceTab
                 active={source === 'sar'}
@@ -209,6 +229,7 @@ export function PhenomenonBriefing() {
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
+            )}
 
             {!showSar && briefing.opticalLayers.length > 1 && (
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -237,13 +258,30 @@ export function PhenomenonBriefing() {
               <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/80" />
               {showSar
                 ? pair.diagnostic
-                  ? t('briefing.sarWithDiag', { diag: pair.diagnostic })
+                  ? AFFECTED_AREAS[activeRegion].features.length
+                    ? t('briefing.sarWithDiag', { diag: pair.diagnostic })
+                    : t('briefing.sarDiag', { diag: pair.diagnostic })
                   : t('briefing.sarEmpty')
                 : t('briefing.opticalNote', { note: activeOptical.note ?? '' })}
             </p>
+              </>
+            )}
           </section>
 
-          <section className="space-y-3">
+          <section className="space-y-3 md:min-h-0 md:overflow-y-auto md:pr-1">
+            <div role="tablist" className="flex items-center gap-1.5 flex-wrap">
+              <SourceTab active={caseTab === 'history'} onClick={() => setCaseTab('history')} icon={<History className="h-3 w-3" />}>
+                {t('case.tab.history')}
+              </SourceTab>
+              <SourceTab active={caseTab === 'forecast'} onClick={() => setCaseTab('forecast')} icon={<LineChart className="h-3 w-3" />}>
+                {t('case.tab.forecast')}
+              </SourceTab>
+            </div>
+
+            {caseTab === 'forecast' && <CaseForecast forecast={caseStudy.forecast} />}
+
+            {caseTab === 'history' && (
+              <>
             <EventTimeline
               events={events}
               activeId={selectedEvent.id}
@@ -270,6 +308,10 @@ export function PhenomenonBriefing() {
             <p className="text-sm text-foreground font-medium leading-snug text-balance">
               {briefing.tagline}
             </p>
+
+            {caseStudy.riverStage && (
+              <RiverStageChart stage={caseStudy.riverStage} activeYear={selectedEvent.year} />
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               {selectedEvent.stats.map((s, i) => (
@@ -311,6 +353,8 @@ export function PhenomenonBriefing() {
                 ))}
               </div>
             </div>
+              </>
+            )}
           </section>
         </div>
       </div>
@@ -373,7 +417,7 @@ function sarGranuleLabel(
     const band = bandFor(platform)
     const d = g.startTime.slice(0, 10)
     const pol = g.polarization.join('+') || '—'
-    return `${platform} ${band}-band · ${pol} · ${d}`
+    return `${d} · ${platform} ${band}-band · ${pol}`
   }
   return t('briefing.opticalFallback', { date: fallbackDate })
 }
