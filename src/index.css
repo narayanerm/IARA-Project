@@ -422,26 +422,27 @@
 /* ------------------------------------------------------------------ */
 .capy { display: block; overflow: visible; }
 .ask-capy .capy, .capy-avatar .capy { width: 100%; height: 100%; }
-.capy-eyes { transform-box: fill-box; transform-origin: 50% 60%; animation: capy-blink 4.6s infinite; }
-@keyframes capy-blink {
-  0%, 44%, 48%, 92%, 96%, 100% { transform: scaleY(1); }
-  46%, 94% { transform: scaleY(0.1); }
-}
 .capy-ear { transform-box: fill-box; transform-origin: 50% 90%; }
-.capy.is-thinking .capy-ear { animation: capy-ear 700ms ease-in-out infinite alternate; }
-@keyframes capy-ear { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
-.capy.is-thinking .capy-eyes { animation: none; transform: translateY(-1.6px); }
-.capy-mouth { opacity: 0; transform-box: fill-box; transform-origin: 50% 20%; }
+.capy.is-thinking .capy-ear.is-left { animation: capy-ear 700ms ease-in-out infinite alternate; }
+.capy.is-thinking .capy-ear.is-right { animation: capy-ear 700ms ease-in-out 180ms infinite alternate-reverse; }
+@keyframes capy-ear { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
+/* smiling eyes by default; they open, looking up, while she thinks */
+.capy-eyes-open { display: none; }
+.capy.is-thinking .capy-eyes-open { display: inline; }
+.capy.is-thinking .capy-eyes-happy { display: none; }
+.capy-mouth { opacity: 0; transform-box: fill-box; transform-origin: 50% 0; }
 .capy.is-talking .capy-mouth { opacity: 1; animation: capy-talk 380ms ease-in-out 9 alternate; }
+.capy.is-talking .capy-smile { animation: capy-smile-hide 3420ms steps(1) 1; }
 @keyframes capy-talk { from { transform: scaleY(0.15); } to { transform: scaleY(1); } }
+@keyframes capy-smile-hide { 0% { opacity: 0; } 100% { opacity: 1; } }
 
 /* She sits in the tuft of leaves at the left end of the ask bar. */
 .ask-capy {
   position: absolute;
-  left: -34px;
-  bottom: 0;
+  left: -30px;
+  bottom: -3px;
   z-index: 3;
-  width: 66px;
+  width: 60px;
   height: 60px;
   border-radius: 50%;
   filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.55));
@@ -518,7 +519,7 @@
   background: linear-gradient(160deg, hsl(var(--primary) / 0.34), rgb(121 201 122 / 0.22));
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
 }
-.capy-avatar .capy { transform: translate(-9%, 11%) scale(1.12); }
+.capy-avatar .capy { transform: translateY(16%) scale(1.25); }
 
 /* Liquid glass: the map shows through, blurred and saturated, under a bright rim and a soft sheen. */
 .glass-panel {
@@ -598,7 +599,7 @@
   84%, 92% { transform: rotate(5deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .capy-eyes, .capy-ear, .capy-mouth, .ask-capy.is-reveal, .capy-balloon, .capy-dots i, .flora-river, .flora-toucan, .flora-toucan-head, .glass-panel::before { animation: none !important; }
+  .capy-ear, .capy-mouth, .capy-smile, .ask-capy.is-reveal, .capy-balloon, .capy-dots i, .flora-river, .flora-toucan, .flora-toucan-head, .glass-panel::before { animation: none !important; }
   .glass-panel::before { display: none; }
   .flora-leaf { animation: none; opacity: 0.9; transform: rotate(var(--a)) scale(var(--s)); }
 }
