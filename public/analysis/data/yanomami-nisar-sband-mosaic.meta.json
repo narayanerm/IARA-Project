@@ -1,0 +1,21 @@
+{
+  "bbox": [
+    -66.6269,
+    -0.47319999999999995,
+    -61.182900000000004,
+    4.4272
+  ],
+  "width": 2560,
+  "height": 2304,
+  "scenesComposited": 199,
+  "perCell": 999,
+  "dateRange": [
+    "2026-06-18",
+    "2026-11-06"
+  ],
+  "buildDate": "2026-11-15T03:27:52+00:00",
+  "source": "NISAR L2 GCOV side-band (S) NATIVE_B_HHHH \u00b7 NASA/ISRO \u00b7 ASF DAAC",
+  "band": "S",
+  "polarization": "HH",
+  "wavelengthCm": 10
+}
