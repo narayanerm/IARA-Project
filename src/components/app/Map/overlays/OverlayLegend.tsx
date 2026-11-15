@@ -28,7 +28,7 @@ export function OverlayLegend({
   const t = useT()
 
   return (
-    <div className="pointer-events-none absolute right-3 top-3 bottom-24 hidden w-[min(272px,calc(100%-24px))] sm:flex flex-col items-stretch gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none]">
+    <div className="pointer-events-none absolute right-3 top-[68px] bottom-24 hidden w-[min(272px,calc(100%-24px))] sm:flex flex-col items-stretch gap-2 overflow-y-auto overscroll-contain [scrollbar-width:none]">
       <div className="pointer-events-auto glass rounded-xl px-3 py-2.5 text-[13px] text-foreground/85">
         <div className="text-[13px] font-semibold text-foreground mb-1.5">{t('community.legend')}</div>
         <div className="grid gap-1.5">

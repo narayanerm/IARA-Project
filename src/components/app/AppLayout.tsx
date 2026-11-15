@@ -28,8 +28,9 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const [forecastMap, setForecastMap] = useState<ForecastMapProps | null>(null)
 
   return (
-    <section id="app" className="flex h-[100svh] w-full flex-col bg-background">
-      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background px-3 sm:px-5">
+    <section id="app" className="relative h-[100svh] w-full overflow-hidden bg-background">
+      {/* Floating header: no bar of its own, the controls sit straight on the map and only get a backdrop on hover. */}
+      <div className="hdr-float pointer-events-none absolute inset-x-0 top-0 z-50 flex h-14 items-center justify-between gap-2 px-3 sm:px-5 [&>*]:pointer-events-auto">
         <button
           type="button"
           onClick={clearAoi}
@@ -37,7 +38,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           aria-label={`${t('app.name')}: ${t('case.home')}`}
           title={t('case.home')}
         >
-          <img src="/marca/iara-horizontal-sem-subtitulo-escuro.svg" alt={t('app.name')} className="-ml-2 h-11 w-auto shrink-0" />
+          <img src="/marca/iara-horizontal-sem-subtitulo-escuro.svg" alt={t('app.name')} className="-ml-2 h-11 w-auto shrink-0 drop-shadow-[0_1px_6px_rgb(0_0_0/0.6)]" />
         </button>
 
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
@@ -57,7 +58,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
                 onToggle={toggleRelief}
                 className="hidden sm:inline-flex"
               />
-              <span className="mx-0.5 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+              <span className="mx-0.5 hidden h-4 w-px bg-white/25 sm:block" aria-hidden="true" />
               <HeaderToggle
                 label={t('rp.chat')}
                 hint={t('ask.label')}
@@ -75,7 +76,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           {!aoiActive && (
             <button
               onClick={() => triggerTutorial()}
-              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 font-sans text-[13px] font-bold tracking-[-0.005em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground sm:inline-flex"
+              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-transparent px-3 font-sans text-[13px] font-bold tracking-[-0.005em] text-foreground/85 transition-colors hover:bg-black/55 hover:text-foreground hover:backdrop-blur-md sm:inline-flex"
               title={t('appLayout.tour')}
             >
               Tour
@@ -85,7 +86,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
         </div>
       </div>
 
-      <div data-tour="map" className="relative min-h-0 flex-1 overflow-hidden">
+      <div data-tour="map" className="absolute inset-0 overflow-hidden">
         <SarMap forecast={aoiActive ? forecastMap : null} />
         <CaseView onForecastMapChange={setForecastMap} />
         <CasePicker introDone={introDone} />
@@ -137,8 +138,8 @@ function HeaderToggle({
       className={cn(
         'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 font-sans text-[13px] font-bold tracking-[-0.005em] transition-colors active:scale-[0.97]',
         on
-          ? 'border-foreground/70 bg-foreground text-background'
-          : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground',
+          ? 'border-transparent bg-white/15 text-foreground backdrop-blur-md hover:bg-white/25'
+          : 'border-transparent text-foreground/85 hover:bg-black/55 hover:text-foreground hover:backdrop-blur-md',
         className
       )}
     >
