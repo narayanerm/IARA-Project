@@ -61,6 +61,53 @@ export interface Hotspot {
 
 export type CaseOutline = { kind: 'ti'; name: string } | { kind: 'ibge'; code: number }
 
+// News / reports / official documents on how the problem reaches the community.
+// Ported from manaus-flood-case branch to keep sourced human context next to the data.
+export interface CaseNews {
+  title: string
+  outlet: string
+  /** ISO date (YYYY-MM-DD, YYYY-MM or YYYY) of publication. */
+  date: string
+  url: string
+  /** One sentence in our own words on why this piece matters for the community. */
+  summary: string
+}
+
+// River gauge data for the flood case (Porto de Manaus series).
+// Ported from manaus-flood-case branch for the RiverStageChart widget.
+export interface StagePeak {
+  year: number
+  /** Annual maximum at the gauge, in metres. */
+  value: number
+  date: string
+  /** True when the value is the highest reading published so far, not the consolidated annual maximum. */
+  approx?: boolean
+}
+
+export interface StageThreshold {
+  value: number
+  label: string
+}
+
+export interface RiverStage {
+  station: string
+  stationUrl: string
+  thresholds: StageThreshold[]
+  peaks: StagePeak[]
+  recordLow: { value: number; date: string }
+  /** Empirical probability of an extreme flood (≥ threshold), before and after a breakpoint year. */
+  extremeOdds: {
+    threshold: number
+    before: string
+    beforePct: number
+    after: string
+    afterPct: number
+    source: string
+    url: string
+  }
+  sources: Array<{ label: string; url: string }>
+}
+
 export interface CaseStudy {
   id: RegionId
   /** Satellite still used as the card cover (Sentinel-2 cloudless tiles). */
@@ -90,6 +137,10 @@ export interface CaseStudy {
   sarReading: L
   sources: Array<{ label: string; url: string }>
   questions: L[]
+  /** Optional river gauge series (used by the flood case for the RiverStageChart). */
+  riverStage?: RiverStage
+  /** News / official reports grounding the numbers in human experience. */
+  news?: CaseNews[]
 }
 
 const OLIVEIRA_2025 = {
@@ -304,6 +355,43 @@ export const CASES: Record<RegionId, CaseStudy> = {
     questions: [
       { pt: 'Como o radar enxerga o garimpo?', en: 'How does radar see mining?' },
       { pt: 'Onde o garimpo mais cresceu?', en: 'Where did mining grow the most?' },
+    ],
+    news: [
+      {
+        title: 'Yanomami Sob Ataque: garimpo ilegal avança 309% em quatro anos',
+        outlet: 'Hutukara Associação Yanomami',
+        date: '2022-04',
+        url: 'https://hutukara.org/wp-content/uploads/2022/04/YanomamiSobAtaque-2022.pdf',
+        summary: 'Relatório da organização indígena com cartografia das frentes de garimpo e impacto em saúde, baseado em SAR e campo.',
+      },
+      {
+        title: 'Governo decreta emergência em saúde na Terra Yanomami',
+        outlet: 'G1 · Ministério da Saúde',
+        date: '2023-01-21',
+        url: 'https://g1.globo.com/politica/noticia/2023/01/21/emergencia-saude-publica-terra-indigena-yanomami.ghtml',
+        summary: 'Declarada emergência sanitária após imagens de crianças desnutridas e expansão do garimpo durante o governo anterior.',
+      },
+      {
+        title: 'Garimpo em terras Yanomami resiste a operações e volta a crescer',
+        outlet: 'Agência Pública',
+        date: '2024-09',
+        url: 'https://apublica.org/2024/09/garimpo-yanomami-resiste-operacoes/',
+        summary: 'Reportagem acompanha retomada da atividade após desmobilização parcial da força-tarefa federal.',
+      },
+      {
+        title: 'SUMAÚMA · Diário Yanomami',
+        outlet: 'SUMAÚMA',
+        date: '2023-2024',
+        url: 'https://sumauma.com/categoria/yanomami/',
+        summary: 'Série de reportagens com relato direto das lideranças Yanomami sobre contaminação, mortes e deslocamento forçado.',
+      },
+      {
+        title: 'ISA · Terra Yanomami, a mais afetada por garimpo ilegal no Brasil',
+        outlet: 'Instituto Socioambiental',
+        date: '2023',
+        url: 'https://www.socioambiental.org/noticias-socioambientais/terra-yanomami-garimpo-ilegal',
+        summary: 'Panorama cruzando dados FUNAI, MapBiomas e PRODES; quantifica a expansão 2018-2023.',
+      },
     ],
   },
 
@@ -524,6 +612,90 @@ export const CASES: Record<RegionId, CaseStudy> = {
       { pt: 'Como o radar enxerga a enchente?', en: 'How does radar see a flood?' },
       { pt: 'Quais bairros alagam primeiro?', en: 'Which districts flood first?' },
     ],
+    news: [
+      {
+        title: 'Rio Negro chega a 27,52 metros em Manaus e atinge cota de inundação',
+        outlet: 'Portal Amazônia',
+        date: '2026-05-21',
+        url: 'https://portalamazonia.com/meio-ambiente/rio-negro-manaus-cota-inundacao-2026/',
+        summary: 'Em 2026 o rio voltou a passar da cota de inundação, com pico esperado entre junho e julho.',
+      },
+      {
+        title: 'SGB aponta que nível dos rios amazônicos não ultrapassará cota de inundação severa em 2026',
+        outlet: 'Portal Amazônia / Rede Amazônica',
+        date: '2026-05-29',
+        url: 'https://portalamazonia.com/meio-ambiente/nivel-rios-amazonicos-sgb/',
+        summary: 'Último alerta oficial da temporada previu 28,20 m em Manaus; o rio chegou a cerca de 28,50 m no fim de junho.',
+      },
+      {
+        title: 'Cheia obriga moradores de bairros afetados a viver entre lixo e risco à saúde em Manaus',
+        outlet: 'Portal Amazônia',
+        date: '2025-07',
+        url: 'https://portalamazonia.com/fram/cheia-obriga-moradores-de-bairros-afetados-a-viver-entre-lixo-e-risco-a-saude-em-manaus/',
+        summary: 'Em 2025 o rio passou de 29 m em pleno julho, e famílias dos bairros baixos ficaram entre água parada e lixo.',
+      },
+      {
+        title: 'Nota explicativa da delimitação da mancha de inundação do rio Negro na zona urbana de Manaus',
+        outlet: 'Serviço Geológico do Brasil (SGB/CPRM)',
+        date: '2021',
+        url: 'https://rigeo.cprm.gov.br/bitstream/doc/23747/1/nota-explicativa_manchainundacao.pdf',
+        summary: 'Mapeamento com drone da área alagada na cheia recorde; Educandos, São Jorge, Centro, Mauazinho e Raiz entre os mais atingidos.',
+      },
+      {
+        title: 'Cheias recordes atingiram cidades na bacia amazônica este ano – mas a vida seguiu',
+        outlet: 'National Geographic Brasil',
+        date: '2021-09',
+        url: 'https://www.nationalgeographicbrasil.com/meio-ambiente/2021/09/cheias-recordes-atingiram-cidades-na-bacia-amazonica-este-ano-mas-a-vida-seguiu',
+        summary: 'Ensaio sobre moradores do Educandos que adaptaram as casas de madeira à água durante a maior cheia já medida.',
+      },
+      {
+        title: 'Mais de 6 mil metros de pontes são construídos pela prefeitura',
+        outlet: 'Informe Manaus',
+        date: '2021',
+        url: 'https://informemanaus.com/2021/mais-de-6-mil-metros-de-pontes-sao-construidos-pela-prefeitura',
+        summary: 'A Operação Cheia 2021 ergueu passarelas de madeira em bairros como São Jorge, Glória, Educandos e Centro.',
+      },
+      {
+        title: 'Cheia recorde do Rio Negro: AM já registrou 6 das 10 maiores cheias na última década',
+        outlet: 'Brasil de Fato',
+        date: '2021-06-01',
+        url: 'https://www.brasildefato.com.br/2021/06/01/cheia-recorde-do-rio-negro-am-ja-registrou-6-das-10-maiores-cheias-na-ultima-decada/',
+        summary: 'Uma moradora do Educandos conta que conviveu com a água dentro de casa em 20 dos seus 26 anos.',
+      },
+    ],
+    riverStage: {
+      station: 'Rio Negro · Porto de Manaus (ANA 14990000)',
+      stationUrl: 'https://www.sgb.gov.br/sace/amazonas/ultimo_boletim.php',
+      thresholds: [
+        { value: 27.0, label: 'Alerta' },
+        { value: 27.5, label: 'Inundação · São Jorge' },
+        { value: 29.0, label: 'Inundação severa · Rua dos Barés' },
+      ],
+      peaks: [
+        { year: 1953, value: 29.69, date: '1953-06-09' },
+        { year: 2009, value: 29.77, date: '2009-07-01' },
+        { year: 2012, value: 29.97, date: '2012-05-29' },
+        { year: 2021, value: 30.02, date: '2021-06-16' },
+        { year: 2022, value: 29.75, date: '2022-06-22' },
+        { year: 2025, value: 29.04, date: '2025-07-05', approx: true },
+        { year: 2026, value: 28.5, date: '2026-06-30', approx: true },
+      ],
+      recordLow: { value: 12.11, date: '2024-10-09' },
+      extremeOdds: {
+        threshold: 29.69,
+        before: '1903–2008',
+        beforePct: 0.94,
+        after: '2009–2024',
+        afterPct: 25,
+        source: 'Oliveira, H. S. (UFAM/SGB) · VI CoBICET 2025',
+        url: 'https://static.even3.com/anais/1211771.pdf',
+      },
+      sources: [
+        { label: 'SGB · Alerta Hidrológico do Amazonas', url: 'https://www.sgb.gov.br/sace/amazonas/ultimo_boletim.php' },
+        { label: 'Oliveira (2025) · cheias e secas extremas 1902–2024', url: 'https://static.even3.com/anais/1211771.pdf' },
+        { label: 'ANA · HidroWeb (estação 14990000)', url: 'https://www.snirh.gov.br/hidroweb/' },
+      ],
+    },
   },
 
   SECA: {
@@ -718,6 +890,43 @@ export const CASES: Record<RegionId, CaseStudy> = {
     questions: [
       { pt: 'Como o radar mede a seca?', en: 'How does radar measure drought?' },
       { pt: 'Quais comunidades ficam isoladas?', en: 'Which communities get cut off?' },
+    ],
+    news: [
+      {
+        title: 'Seca extrema mata mais de 150 botos-rosa no Lago Tefé',
+        outlet: 'Instituto Mamirauá',
+        date: '2023-10',
+        url: 'https://www.mamiraua.org.br/noticias/mortandade-de-botos-lago-tefe/',
+        summary: 'Temperatura da água chegou a 39,1 °C em setembro de 2023, muito acima do limite fisiológico dos cetáceos amazônicos.',
+      },
+      {
+        title: 'Rio Negro atinge 12,70 m em Manaus, menor nível em 121 anos',
+        outlet: 'G1 Amazonas · SGB',
+        date: '2024-10-04',
+        url: 'https://g1.globo.com/am/amazonas/noticia/2024/10/04/rio-negro-menor-nivel-ja-registrado.ghtml',
+        summary: 'Em 2024 o rio bateu o recorde negativo de 12,11 m (09/10/2024), superando 2023 e expondo navios encalhados.',
+      },
+      {
+        title: 'Seca deixa centenas de comunidades amazônicas isoladas',
+        outlet: 'Amazônia Real',
+        date: '2024-09',
+        url: 'https://amazoniareal.com.br/seca-amazonia-comunidades-isoladas-2024/',
+        summary: 'Famílias ribeirinhas sem acesso a saúde e alimentos após rebaixamento dos rios; municípios como Manaquiri entre os mais atingidos.',
+      },
+      {
+        title: 'Amazon drought dries up rivers, strands communities',
+        outlet: 'NASA Earth Observatory',
+        date: '2023-10-25',
+        url: 'https://earthobservatory.nasa.gov/images/151976/drought-dries-up-the-amazon',
+        summary: 'Comparação Landsat antes/depois mostra o encolhimento do espelho d\'água dos lagos da várzea central.',
+      },
+      {
+        title: 'Oliveira 2025 · Cheias e secas extremas em Manaus 1902-2024',
+        outlet: 'UFAM / SGB · VI CoBICET',
+        date: '2025',
+        url: 'https://static.even3.com/anais/1211771.pdf',
+        summary: 'Série centenária do Porto de Manaus mostra que 4 das 5 maiores secas também aconteceram pós-2009.',
+      },
     ],
   },
 }

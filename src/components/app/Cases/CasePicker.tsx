@@ -171,7 +171,6 @@ function CaseFrame({
       <span className="case-card-shade" aria-hidden="true" />
 
       <span className="case-card-top" aria-hidden="true">
-        <span className="case-card-num">0{index + 1}</span>
         <span className="case-card-kicker">{tr(c.analysis)}</span>
         <span className="case-card-go">
           <span className="case-card-go-label">{t('case.explore')}</span>

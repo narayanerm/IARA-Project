@@ -70,11 +70,6 @@ export function VoxelIntro({ onDone }: { onDone: () => void }) {
       <canvas ref={cvRef} className="pxz-c" aria-hidden="true" />
       <header ref={topoRef} className="pxz-topo">
         <b>IARA</b>
-        <p>
-          NASA Space Apps 2026
-          <br />
-          Dancing with the SARs
-        </p>
       </header>
       <div ref={hudRef} className="pxz-hud">
         <div ref={barraRef} className="pxz-barra" />
