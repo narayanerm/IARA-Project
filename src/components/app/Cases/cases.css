@@ -783,3 +783,34 @@
 .case-panel :is(.case-panel-back, .case-panel-count, .case-tab, .case-details dt, .text-muted-foreground) {
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
 }
+
+/* Source of the hub video, bottom right of the frame while the video plays. */
+.case-card-credit {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 3;
+  max-width: 70%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.55);
+  color: rgb(255 255 255 / 0.85);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms;
+}
+.case-card-credit.is-on {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.case-card-credit.is-on:hover {
+  color: #fff;
+  text-decoration: underline;
+}

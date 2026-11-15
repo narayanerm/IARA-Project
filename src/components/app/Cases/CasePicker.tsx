@@ -75,6 +75,25 @@ export function CasePicker({ introDone }: { introDone: boolean }) {
   )
 }
 
+// Where each hub video comes from, credited on the frame while it plays.
+const VIDEO_CREDIT: Record<CaseStudy['id'], { channel: string; title: string; url: string }> = {
+  YANO: {
+    channel: 'Nat Geo',
+    title: 'Inside the Darkest Criminal Networks | Trafficked with Mariana van Zeller MEGA Episode',
+    url: 'https://www.youtube.com/watch?v=uOfbEMNLIAg',
+  },
+  ENCH: {
+    channel: 'Eliezio Amazonense',
+    title: 'Enchente 2025 na cidade de Anamã-Amazonas: 70% da cidade está debaixo da água',
+    url: 'https://www.youtube.com/watch?v=4TW4jGunjak',
+  },
+  SECA: {
+    channel: 'Canção Nova Play',
+    title: 'Seca extrema transforma a paisagem dos rios no Amazonas',
+    url: 'https://www.youtube.com/watch?v=GsZo7ZLfTeg',
+  },
+}
+
 // Photos rotate at this pace on hover when the case has no video.
 const PHOTO_MS = 2600
 
@@ -179,6 +198,21 @@ function CaseFrame({
         )}
       </span>
       <span className="case-card-shade" aria-hidden="true" />
+      {media.video && (
+        // The card is a button, so the credit opens the source itself instead of nesting a link.
+        <span
+          role="link"
+          tabIndex={-1}
+          title={`${VIDEO_CREDIT[c.id].title} · ${VIDEO_CREDIT[c.id].channel} (YouTube)`}
+          className={cn('case-card-credit', videoOn && ready && 'is-on')}
+          onClick={(e) => {
+            e.stopPropagation()
+            window.open(VIDEO_CREDIT[c.id].url, '_blank', 'noopener,noreferrer')
+          }}
+        >
+          {t('case.videoCredit')}: {VIDEO_CREDIT[c.id].channel} · YouTube
+        </span>
+      )}
 
       <span className="case-card-top" aria-hidden="true">
         <span className="case-card-kicker">{tr(c.analysis)}</span>
