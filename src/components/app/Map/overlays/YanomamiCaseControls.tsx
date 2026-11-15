@@ -120,7 +120,7 @@ export function YanomamiCaseControls() {
 
   return (
     <div
-      className="pointer-events-auto absolute z-30 flex items-end gap-2"
+      className="pointer-events-auto absolute z-40 flex items-end gap-2"
       style={{ right: 8, bottom: 44 }}
       onPointerEnter={(e) => e.pointerType === 'mouse' && show()}
       onPointerLeave={(e) => e.pointerType === 'mouse' && hide()}
@@ -129,7 +129,7 @@ export function YanomamiCaseControls() {
       {/* The row of cards opens to the left of the tile. */}
       <div
         className={cn(
-          'flex items-start gap-0.5 rounded-xl border border-white/10 bg-[#0d1512]/92 p-1.5 shadow-2xl backdrop-blur-md transition-all duration-200 ease-out',
+          'flex items-start gap-0.5 rounded-xl border border-white/10 bg-[rgb(13_21_18/0.95)] p-1.5 shadow-2xl backdrop-blur-md transition-all duration-200 ease-out',
           open ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-2 opacity-0'
         )}
         role="group"
