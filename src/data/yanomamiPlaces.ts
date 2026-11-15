@@ -20,6 +20,8 @@ export interface YanomamiPlace {
   approxNote?: Bilingual
   coordSources: SourceLink[]
   summary: Bilingual
+  /** Sources for the summary text, when it says more than the position sources. */
+  summarySources?: SourceLink[]
   images: PlaceImage[]
   stats: PlaceStat[]
   events: PlaceEvent[]
@@ -41,8 +43,8 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       "en": "Surucucu"
     },
     "river": {
-      "pt": "Serra das Surucucus, alto Parima",
-      "en": "Surucucus highlands, upper Parima"
+      "pt": "Alto Alegre (RR)",
+      "en": "Alto Alegre (Roraima)"
     },
     "lat": 2.83528,
     "lon": -63.64694,
@@ -58,33 +60,10 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       }
     ],
     "summary": {
-      "pt": "Pista de pouso registrada (SWUQ) no planalto das Surucucus, em Alto Alegre (RR), no coração da terra Yanomami.",
-      "en": "Registered airstrip (SWUQ) on the Surucucus plateau, in Alto Alegre (Roraima), at the heart of Yanomami land."
+      "pt": "Pista de pouso registrada (código SWUQ) no município de Alto Alegre (RR), no centro-norte da terra Yanomami.",
+      "en": "Registered airstrip (code SWUQ) in the municipality of Alto Alegre (Roraima), in the north-centre of Yanomami land."
     },
-    "images": [
-      {
-        "src": "https://upload.wikimedia.org/wikipedia/commons/4/45/Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel%2C_Roraima%2C_por_militares_das_For%C3%A7as_Armadas_-_2023_%2853185282296%29.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel,_Roraima,_por_militares_das_For%C3%A7as_Armadas_-_2023_(53185282296).jpg",
-        "author": "Marinha do Brasil",
-        "license": "CC BY-SA 2.0",
-        "desc": "Neutralização da pista de pouso que sustentava o garimpo ilegal em Rangel, na Terra Indígena Yanomami, Roraima, por militares das Forças Armadas - 2023",
-        "alt": {
-          "pt": "Militares inutilizam uma pista de pouso clandestina de garimpo em Rangel, Terra Indígena Yanomami, 2023.",
-          "en": "Soldiers disable a clandestine mining airstrip at Rangel, Yanomami Indigenous Territory, 2023."
-        }
-      },
-      {
-        "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/Opera%C3%A7%C3%A3o_Catrimani_-_2024_%2853817244491%29.png/960px-Opera%C3%A7%C3%A3o_Catrimani_-_2024_%2853817244491%29.png",
-        "page": "https://commons.wikimedia.org/wiki/File:Opera%C3%A7%C3%A3o_Catrimani_-_2024_(53817244491).png",
-        "author": "Marinha do Brasil",
-        "license": "CC BY-SA 2.0",
-        "desc": "A Marinha do Brasil passou a comandar o Estado-Maior Conjunto da Operação “Catrimani II” que, desde 1º de abril, combate o garimpo ilegal na Terra Indígena Yano",
-        "alt": {
-          "pt": "Operação Catrimani II contra o garimpo ilegal, 2024.",
-          "en": "Operation Catrimani II against illegal mining, 2024."
-        }
-      }
-    ],
+    "images": [],
     "stats": [],
     "events": [],
     "explore": [
@@ -130,33 +109,20 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       }
     ],
     "summary": {
-      "pt": "Comunidade às margens do Uraricoera, principal corredor de barcos do garimpo. Em maio de 2021 foi atacada a tiros por garimpeiros depois de montar uma barreira sanitária no rio.",
-      "en": "Community on the Uraricoera, the main boat corridor for mining. In May 2021 it was shot at by miners after setting up a health checkpoint on the river."
+      "pt": "Comunidade às margens do Uraricoera, rio usado para abastecer o garimpo (o governo instalou uma base no rio para barrar os suprimentos). Em maio de 2021 foi atacada a tiros por garimpeiros depois de montar uma barreira sanitária no rio.",
+      "en": "Community on the Uraricoera, a river used to supply the mines (the government set up an outpost on it to stop the supplies). In May 2021 it was shot at by miners after setting up a health checkpoint on the river."
     },
-    "images": [
+    "summarySources": [
       {
-        "src": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Gar%C3%A7a_de_eleg%C3%A2ncia.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Gar%C3%A7a_de_eleg%C3%A2ncia.jpg",
-        "author": "Suzana Lemos",
-        "license": "CC BY-SA 4.0",
-        "desc": "Registrada nas proximidades do Rio Uraricoera, Estado de Roraima, esta ave, típica dessa região, surgiu sem muita preocupação com seus predadores.",
-        "alt": {
-          "pt": "Garça às margens do rio Uraricoera, Roraima.",
-          "en": "A heron on the banks of the Uraricoera river, Roraima."
-        }
+        "label": "Wikipedia · Yanomami humanitarian crisis",
+        "url": "https://en.wikipedia.org/wiki/Yanomami_humanitarian_crisis"
       },
       {
-        "src": "https://upload.wikimedia.org/wikipedia/commons/4/45/Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel%2C_Roraima%2C_por_militares_das_For%C3%A7as_Armadas_-_2023_%2853185282296%29.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel,_Roraima,_por_militares_das_For%C3%A7as_Armadas_-_2023_(53185282296).jpg",
-        "author": "Marinha do Brasil",
-        "license": "CC BY-SA 2.0",
-        "desc": "Neutralização da pista de pouso que sustentava o garimpo ilegal em Rangel, na Terra Indígena Yanomami, Roraima, por militares das Forças Armadas - 2023",
-        "alt": {
-          "pt": "Militares inutilizam uma pista de pouso clandestina de garimpo em Rangel, Terra Indígena Yanomami, 2023.",
-          "en": "Soldiers disable a clandestine mining airstrip at Rangel, Yanomami Indigenous Territory, 2023."
-        }
+        "label": "Hutukara Associação Yanomami · ofício de 17/05/2021 (ISA)",
+        "url": "https://site-antigo.socioambiental.org/sites/blog.socioambiental.org/files/nsa/arquivos/oficio_hay_-_novo_conflito_no_palimiu_17-05-2021.pdf"
       }
     ],
+    "images": [],
     "stats": [],
     "events": [
       {
@@ -203,8 +169,8 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       "en": "Homoxi"
     },
     "river": {
-      "pt": "Alto rio Mucajaí",
-      "en": "Upper Mucajaí river"
+      "pt": "Cabeceira do rio Mucajaí, fronteira com a Venezuela",
+      "en": "Mucajaí headwaters, Venezuelan border"
     },
     "lat": 2.49778,
     "lon": -63.72972,
@@ -220,22 +186,16 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       }
     ],
     "summary": {
-      "pt": "Região do alto Mucajaí, perto da fronteira com a Venezuela, onde o garimpo abriu frentes de lavra ao longo do rio.",
-      "en": "Upper Mucajaí area near the Venezuelan border, where mining opened pits along the river."
+      "pt": "Região na cabeceira do Mucajaí, na fronteira com a Venezuela, uma das mais atingidas pelo garimpo segundo o monitoramento da Hutukara. O posto de saúde indígena de Homoxi foi engolido por uma cratera aberta pela mineração.",
+      "en": "Area at the Mucajaí headwaters, on the Venezuelan border, one of the worst hit by mining according to Hutukara's monitoring. The Homoxi Indigenous health post was swallowed by a crater opened by mining."
     },
-    "images": [
+    "summarySources": [
       {
-        "src": "https://upload.wikimedia.org/wikipedia/commons/4/45/Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel%2C_Roraima%2C_por_militares_das_For%C3%A7as_Armadas_-_2023_%2853185282296%29.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel,_Roraima,_por_militares_das_For%C3%A7as_Armadas_-_2023_(53185282296).jpg",
-        "author": "Marinha do Brasil",
-        "license": "CC BY-SA 2.0",
-        "desc": "Neutralização da pista de pouso que sustentava o garimpo ilegal em Rangel, na Terra Indígena Yanomami, Roraima, por militares das Forças Armadas - 2023",
-        "alt": {
-          "pt": "Militares inutilizam uma pista de pouso clandestina de garimpo em Rangel, Terra Indígena Yanomami, 2023.",
-          "en": "Soldiers disable a clandestine mining airstrip at Rangel, Yanomami Indigenous Territory, 2023."
-        }
+        "label": "ISA · relatório Yanomami Sob Ataque (Hutukara e Wanasseduume Ye'kwana, 2022)",
+        "url": "https://site-antigo.socioambiental.org/en/print/7572"
       }
     ],
+    "images": [],
     "stats": [],
     "events": [],
     "explore": [
@@ -264,8 +224,8 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       "en": "Auaris"
     },
     "river": {
-      "pt": "Rio Auaris, extremo noroeste",
-      "en": "Auaris river, far north-west"
+      "pt": "Extremo noroeste, fronteira com a Venezuela",
+      "en": "Far north-west, Venezuelan border"
     },
     "lat": 4.01639,
     "lon": -64.51861,
@@ -281,22 +241,10 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       }
     ],
     "summary": {
-      "pt": "Pista de pouso (SWBV) no extremo noroeste da terra, junto à fronteira com a Venezuela; região onde vivem Yanomami (Sanöma) e Ye'kwana.",
-      "en": "Airstrip (SWBV) at the far north-west of the land, by the Venezuelan border; an area where Yanomami (Sanöma) and Ye'kwana live."
+      "pt": "Pista de pouso registrada (código SWBV) no extremo noroeste da terra Yanomami, junto à fronteira com a Venezuela.",
+      "en": "Registered airstrip (code SWBV) at the far north-west of Yanomami land, by the Venezuelan border."
     },
-    "images": [
-      {
-        "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Opera%C3%A7%C3%A3o_%C3%81gata_Fronteira_Norte_-_2023_%2853120754375%29.jpg/960px-Opera%C3%A7%C3%A3o_%C3%81gata_Fronteira_Norte_-_2023_%2853120754375%29.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Opera%C3%A7%C3%A3o_%C3%81gata_Fronteira_Norte_-_2023_(53120754375).jpg",
-        "author": "Marinha do Brasil",
-        "license": "CC BY-SA 2.0",
-        "desc": "Líder indígena Júlio Ye’kwana, da Associação Wanasseduume Ye’kwana, debateu a situação na Terra Indígena Yanomami (TIY) com representantes do Centro de Operaçõe",
-        "alt": {
-          "pt": "Júlio Ye'kwana, da Associação Wanasseduume Ye'kwana, em reunião da Operação Ágata, 2023.",
-          "en": "Júlio Ye'kwana, of the Wanasseduume Ye'kwana Association, at an Operation Ágata meeting, 2023."
-        }
-      }
-    ],
+    "images": [],
     "stats": [],
     "events": [],
     "explore": [
@@ -349,30 +297,7 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       "pt": "Aldeia de Davi Kopenawa, xamã e presidente da Hutukara. Ele se mudou para Watoriki, ao lado do posto Demini da Funai, e liderou a campanha que levou à demarcação de 1992.",
       "en": "Home village of Davi Kopenawa, shaman and president of Hutukara. He moved to Watoriki, next to the Funai Demini post, and led the campaign that won the 1992 demarcation."
     },
-    "images": [
-      {
-        "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Davikopenawa.jpg/960px-Davikopenawa.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Davikopenawa.jpg",
-        "author": "Fernando Frazão/Agência Brasil",
-        "license": "CC BY 3.0 br",
-        "desc": "Davi Kopenawa at 2014 International Literary Festival of Paraty. Photo by Fernando Frazão/Agência Brasil CCBY3.0.",
-        "alt": {
-          "pt": "Davi Kopenawa Yanomami na FLIP, Paraty, 2014.",
-          "en": "Davi Kopenawa Yanomami at the Paraty literary festival, 2014."
-        }
-      },
-      {
-        "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Claudia_Andujar_e_Davi_Kopenawa.jpg/960px-Claudia_Andujar_e_Davi_Kopenawa.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Claudia_Andujar_e_Davi_Kopenawa.jpg",
-        "author": "Fernando Frazão",
-        "license": "CC BY 3.0 br",
-        "desc": "A fotógrafa suíça Claudia Andujar e o xamã indígena Davi Kopenawa, pajé e presidente da Hutukara Associação Yanomami, participam de mesa que a Flip dedicada aos",
-        "alt": {
-          "pt": "A fotógrafa Claudia Andujar e Davi Kopenawa.",
-          "en": "Photographer Claudia Andujar and Davi Kopenawa."
-        }
-      }
-    ],
+    "images": [],
     "stats": [],
     "events": [
       {
@@ -537,19 +462,7 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       "pt": "Comunidade às margens do Uraricoera, uma das áreas mais devastadas pelo garimpo. Em 2022 a Hutukara denunciou violência de garimpeiros e o sumiço dos moradores; a Polícia Federal disse não ter achado indícios do crime, e o caso segue controverso.",
       "en": "Community on the Uraricoera, one of the areas worst hit by mining. In 2022 Hutukara reported violence by miners and that residents had disappeared; the Federal Police said it found no evidence of the crime, and the case remains disputed."
     },
-    "images": [
-      {
-        "src": "https://upload.wikimedia.org/wikipedia/commons/4/45/Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel%2C_Roraima%2C_por_militares_das_For%C3%A7as_Armadas_-_2023_%2853185282296%29.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel,_Roraima,_por_militares_das_For%C3%A7as_Armadas_-_2023_(53185282296).jpg",
-        "author": "Marinha do Brasil",
-        "license": "CC BY-SA 2.0",
-        "desc": "Neutralização da pista de pouso que sustentava o garimpo ilegal em Rangel, na Terra Indígena Yanomami, Roraima, por militares das Forças Armadas - 2023",
-        "alt": {
-          "pt": "Militares inutilizam uma pista de pouso clandestina de garimpo em Rangel, Terra Indígena Yanomami, 2023.",
-          "en": "Soldiers disable a clandestine mining airstrip at Rangel, Yanomami Indigenous Territory, 2023."
-        }
-      }
-    ],
+    "images": [],
     "stats": [],
     "events": [
       {
@@ -613,22 +526,10 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       }
     ],
     "summary": {
-      "pt": "Pista de pouso da Missão Catrimani, no sul da terra Yanomami em Roraima. A região deu nome às operações federais Catrimani contra o garimpo.",
-      "en": "Airstrip of the Catrimani mission, in the south of Yanomami land in Roraima. The area gave its name to the federal Catrimani operations against mining."
+      "pt": "Pista de pouso registrada (código SJLU) da Missão Catrimani, no sul da terra Yanomami em Roraima.",
+      "en": "Registered airstrip (code SJLU) of the Catrimani mission, in the south of Yanomami land in Roraima."
     },
-    "images": [
-      {
-        "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/Opera%C3%A7%C3%A3o_Catrimani_-_2024_%2853817244491%29.png/960px-Opera%C3%A7%C3%A3o_Catrimani_-_2024_%2853817244491%29.png",
-        "page": "https://commons.wikimedia.org/wiki/File:Opera%C3%A7%C3%A3o_Catrimani_-_2024_(53817244491).png",
-        "author": "Marinha do Brasil",
-        "license": "CC BY-SA 2.0",
-        "desc": "A Marinha do Brasil passou a comandar o Estado-Maior Conjunto da Operação “Catrimani II” que, desde 1º de abril, combate o garimpo ilegal na Terra Indígena Yano",
-        "alt": {
-          "pt": "Operação Catrimani II contra o garimpo ilegal, 2024.",
-          "en": "Operation Catrimani II against illegal mining, 2024."
-        }
-      }
-    ],
+    "images": [],
     "stats": [],
     "events": [],
     "explore": [
@@ -657,8 +558,8 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       "en": "Maturacá"
     },
     "river": {
-      "pt": "Serra do Imeri, São Gabriel da Cachoeira (AM)",
-      "en": "Imeri range, São Gabriel da Cachoeira (Amazonas)"
+      "pt": "São Gabriel da Cachoeira (AM)",
+      "en": "São Gabriel da Cachoeira (Amazonas)"
     },
     "lat": 0.61639,
     "lon": -66.13111,
@@ -674,9 +575,19 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       }
     ],
     "summary": {
-      "pt": "Comunidades Yanomami no lado amazonense, ao pé do Pico da Neblina, o ponto mais alto do Brasil.",
-      "en": "Yanomami communities on the Amazonas side, at the foot of Pico da Neblina, Brazil's highest peak."
+      "pt": "Comunidade Yanomami no lado amazonense da terra, em São Gabriel da Cachoeira. A cerca de 25 km fica o Pico da Neblina, o ponto mais alto do Brasil, cujo cume está dentro da Terra Indígena Yanomami; os Yanomami o chamam de Yaripo e, desde 2022, administram o projeto de ecoturismo Yaripo.",
+      "en": "Yanomami community on the Amazonas side of the land, in São Gabriel da Cachoeira. About 25 km away is Pico da Neblina, Brazil's highest peak, whose summit lies inside the Yanomami Indigenous Territory; the Yanomami call it Yaripo and since 2022 have run the Yaripo ecotourism project."
     },
+    "summarySources": [
+      {
+        "label": "Wikimedia Commons · Entardecer em Maturacá",
+        "url": "https://commons.wikimedia.org/wiki/File:Entardecer_em_Maturac%C3%A1.JPG"
+      },
+      {
+        "label": "Wikipedia · Pico da Neblina",
+        "url": "https://pt.wikipedia.org/wiki/Pico_da_Neblina"
+      }
+    ],
     "images": [
       {
         "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Entardecer_em_Maturac%C3%A1.JPG/960px-Entardecer_em_Maturac%C3%A1.JPG",
@@ -724,7 +635,21 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       }
     ],
     "stats": [],
-    "events": [],
+    "events": [
+      {
+        "year": "2022",
+        "text": {
+          "pt": "Os Yanomami retomam as visitas ao Pico da Neblina com o projeto de ecoturismo Yaripo, administrado por eles.",
+          "en": "The Yanomami reopen visits to Pico da Neblina with the Yaripo ecotourism project, which they run."
+        },
+        "sources": [
+          {
+            "label": "Wikipedia · Pico da Neblina",
+            "url": "https://pt.wikipedia.org/wiki/Pico_da_Neblina"
+          }
+        ]
+      }
+    ],
     "explore": [
       {
         "kind": "earth",
@@ -751,8 +676,8 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       "en": "Parafuri"
     },
     "river": {
-      "pt": "Alto Uraricoera",
-      "en": "Upper Uraricoera"
+      "pt": "Alto Alegre (RR)",
+      "en": "Alto Alegre (Roraima)"
     },
     "lat": 3.28806,
     "lon": -63.84306,
@@ -768,8 +693,8 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       }
     ],
     "summary": {
-      "pt": "Pista de pouso (SJMI) no alto Uraricoera, a oeste de Palimiú.",
-      "en": "Airstrip (SJMI) on the upper Uraricoera, west of Palimiú."
+      "pt": "Pista de pouso registrada (código SJMI) em Alto Alegre (RR), cerca de 97 km a oeste de Palimiú.",
+      "en": "Registered airstrip (code SJMI) in Alto Alegre (Roraima), about 97 km west of Palimiú."
     },
     "images": [],
     "stats": [],
@@ -820,19 +745,7 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
       "pt": "Região onde nasceu Davi Kopenawa, perto da fronteira com a Venezuela.",
       "en": "The area where Davi Kopenawa was born, near the Venezuelan border."
     },
-    "images": [
-      {
-        "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Davikopenawa.jpg/960px-Davikopenawa.jpg",
-        "page": "https://commons.wikimedia.org/wiki/File:Davikopenawa.jpg",
-        "author": "Fernando Frazão/Agência Brasil",
-        "license": "CC BY 3.0 br",
-        "desc": "Davi Kopenawa at 2014 International Literary Festival of Paraty. Photo by Fernando Frazão/Agência Brasil CCBY3.0.",
-        "alt": {
-          "pt": "Davi Kopenawa Yanomami na FLIP, Paraty, 2014.",
-          "en": "Davi Kopenawa Yanomami at the Paraty literary festival, 2014."
-        }
-      }
-    ],
+    "images": [],
     "stats": [],
     "events": [],
     "explore": [
@@ -857,10 +770,80 @@ export const YANOMAMI_PLACES: YanomamiPlace[] = [
 ]
 
 export const YANOMAMI_TERRITORY: {
+  /** Photos of the territory in general, not tied to one place. */
+  images: PlaceImage[]
   stats: PlaceStat[]
   economy: { legal: Bilingual; illegal: Bilingual; sources: SourceLink[] }
   events: PlaceEvent[]
 } = {
+  "images": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/4/45/Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel%2C_Roraima%2C_por_militares_das_For%C3%A7as_Armadas_-_2023_%2853185282296%29.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel,_Roraima,_por_militares_das_For%C3%A7as_Armadas_-_2023_(53185282296).jpg",
+      "author": "Marinha do Brasil",
+      "license": "CC BY-SA 2.0",
+      "desc": "Neutralização da pista de pouso que sustentava o garimpo ilegal em Rangel, na Terra Indígena Yanomami, Roraima, por militares das Forças Armadas - 2023",
+      "alt": {
+        "pt": "Militares inutilizam uma pista de pouso clandestina de garimpo em Rangel, Terra Indígena Yanomami, 2023.",
+        "en": "Soldiers disable a clandestine mining airstrip at Rangel, Yanomami Indigenous Territory, 2023."
+      }
+    },
+    {
+      "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/Opera%C3%A7%C3%A3o_Catrimani_-_2024_%2853817244491%29.png/960px-Opera%C3%A7%C3%A3o_Catrimani_-_2024_%2853817244491%29.png",
+      "page": "https://commons.wikimedia.org/wiki/File:Opera%C3%A7%C3%A3o_Catrimani_-_2024_(53817244491).png",
+      "author": "Marinha do Brasil",
+      "license": "CC BY-SA 2.0",
+      "desc": "A Marinha do Brasil passou a comandar o Estado-Maior Conjunto da Operação “Catrimani II” que, desde 1º de abril, combate o garimpo ilegal na Terra Indígena Yano",
+      "alt": {
+        "pt": "Operação Catrimani II contra o garimpo ilegal, 2024.",
+        "en": "Operation Catrimani II against illegal mining, 2024."
+      }
+    },
+    {
+      "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Davikopenawa.jpg/960px-Davikopenawa.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Davikopenawa.jpg",
+      "author": "Fernando Frazão/Agência Brasil",
+      "license": "CC BY 3.0 br",
+      "desc": "Davi Kopenawa at 2014 International Literary Festival of Paraty. Photo by Fernando Frazão/Agência Brasil CCBY3.0.",
+      "alt": {
+        "pt": "Davi Kopenawa Yanomami na FLIP, Paraty, 2014.",
+        "en": "Davi Kopenawa Yanomami at the Paraty literary festival, 2014."
+      }
+    },
+    {
+      "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Claudia_Andujar_e_Davi_Kopenawa.jpg/960px-Claudia_Andujar_e_Davi_Kopenawa.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Claudia_Andujar_e_Davi_Kopenawa.jpg",
+      "author": "Fernando Frazão",
+      "license": "CC BY 3.0 br",
+      "desc": "A fotógrafa suíça Claudia Andujar e o xamã indígena Davi Kopenawa, pajé e presidente da Hutukara Associação Yanomami, participam de mesa que a Flip dedicada aos",
+      "alt": {
+        "pt": "A fotógrafa Claudia Andujar e Davi Kopenawa.",
+        "en": "Photographer Claudia Andujar and Davi Kopenawa."
+      }
+    },
+    {
+      "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Opera%C3%A7%C3%A3o_%C3%81gata_Fronteira_Norte_-_2023_%2853120754375%29.jpg/960px-Opera%C3%A7%C3%A3o_%C3%81gata_Fronteira_Norte_-_2023_%2853120754375%29.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Opera%C3%A7%C3%A3o_%C3%81gata_Fronteira_Norte_-_2023_(53120754375).jpg",
+      "author": "Marinha do Brasil",
+      "license": "CC BY-SA 2.0",
+      "desc": "Líder indígena Júlio Ye’kwana, da Associação Wanasseduume Ye’kwana, debateu a situação na Terra Indígena Yanomami (TIY) com representantes do Centro de Operaçõe",
+      "alt": {
+        "pt": "Júlio Ye'kwana, da Associação Wanasseduume Ye'kwana, em reunião da Operação Ágata, 2023.",
+        "en": "Júlio Ye'kwana, of the Wanasseduume Ye'kwana Association, at an Operation Ágata meeting, 2023."
+      }
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Gar%C3%A7a_de_eleg%C3%A2ncia.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Gar%C3%A7a_de_eleg%C3%A2ncia.jpg",
+      "author": "Suzana Lemos",
+      "license": "CC BY-SA 4.0",
+      "desc": "Registrada nas proximidades do Rio Uraricoera, Estado de Roraima, esta ave, típica dessa região, surgiu sem muita preocupação com seus predadores.",
+      "alt": {
+        "pt": "Garça às margens do rio Uraricoera, Roraima.",
+        "en": "A heron on the banks of the Uraricoera river, Roraima."
+      }
+    }
+  ],
   "stats": [
     {
       "label": {
@@ -890,10 +873,10 @@ export const YANOMAMI_TERRITORY: {
     },
     {
       "label": {
-        "pt": "Garimpeiros estimados (2022)",
-        "en": "Estimated miners (2022)"
+        "pt": "Garimpeiros estimados (jan. 2023)",
+        "en": "Estimated miners (Jan 2023)"
       },
-      "value": "~20.000",
+      "value": "> 20.000",
       "sources": [
         {
           "label": "Wikipedia · Yanomami humanitarian crisis",
@@ -917,21 +900,25 @@ export const YANOMAMI_TERRITORY: {
   ],
   "economy": {
     "legal": {
-      "pt": "Caça, pesca, coleta e roças de coivara (mandioca, banana); artesanato.",
-      "en": "Hunting, fishing, gathering and swidden gardens (manioc, plantain); handicraft."
+      "pt": "Caça, pesca e coleta; roças de banana-da-terra e mandioca, cultivadas pelas mulheres em áreas abertas pelos homens.",
+      "en": "Hunting, fishing and gathering; gardens of cooking plantain and cassava, tended by women in plots cleared by men."
     },
     "illegal": {
-      "pt": "Garimpo de ouro e cassiterita, com balsas e dragas nos rios, pistas de pouso clandestinas e logística por barco e avião.",
-      "en": "Gold and cassiterite mining, with barges and dredges on the rivers, clandestine airstrips and supply by boat and plane."
+      "pt": "Garimpo ilegal de ouro e cassiterita, sustentado por uma rede de políticos, servidores, empresários e empresas; abastecido pelo rio Uraricoera e por pistas de pouso clandestinas.",
+      "en": "Illegal gold and cassiterite mining, backed by a network of politicians, officials, business people and companies; supplied along the Uraricoera river and through clandestine airstrips."
     },
     "sources": [
       {
-        "label": "ISA · Povos Indígenas no Brasil: Yanomami",
-        "url": "https://pib.socioambiental.org/en/Povo:Yanomami"
+        "label": "Wikipedia · Yanomami",
+        "url": "https://en.wikipedia.org/wiki/Yanomami"
       },
       {
         "label": "Wikipedia · Yanomami humanitarian crisis",
         "url": "https://en.wikipedia.org/wiki/Yanomami_humanitarian_crisis"
+      },
+      {
+        "label": "Wikimedia Commons · pista de garimpo inutilizada em Rangel (Marinha do Brasil)",
+        "url": "https://commons.wikimedia.org/wiki/File:Neutraliza%C3%A7%C3%A3o_da_pista_de_pouso_que_sustentava_o_garimpo_ilegal_em_Rangel,_Roraima,_por_militares_das_For%C3%A7as_Armadas_-_2023_(53185282296).jpg"
       }
     ]
   },
