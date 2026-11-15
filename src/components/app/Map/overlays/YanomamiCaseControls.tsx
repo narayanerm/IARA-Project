@@ -36,7 +36,7 @@ export function YanomamiCaseControls() {
 
   return (
     <div
-      className="pointer-events-auto absolute z-30 flex flex-col gap-1.5 rounded-lg border border-border/60 bg-background/92 p-2.5 backdrop-blur-sm shadow-lg"
+      className="pointer-events-auto absolute z-30 flex flex-col gap-1.5 rounded-lg border border-border/60 bg-background/90 p-2.5 backdrop-blur-sm shadow-lg"
       style={{ right: 8, bottom: 44, width: 232 }}
     >
       <div className="flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-wider text-muted-foreground mb-0.5">

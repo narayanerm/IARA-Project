@@ -104,7 +104,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           <div
             className={cn(
               'pointer-events-none absolute inset-x-3 bottom-3 z-30 flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none',
-              aoiActive && 'hidden md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-6 md:bottom-6'
+              aoiActive && 'hidden md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-[256px] md:bottom-6'
             )}
           >
             <AskBar className={cn('pointer-events-auto', !aoiActive && 'max-w-[560px]')} />
