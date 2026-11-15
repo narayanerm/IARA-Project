@@ -7,7 +7,7 @@
 .case-picker {
   --ease: cubic-bezier(0.19, 1, 0.22, 1);
   --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
-  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --mono: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --bone: #f1eee5;
   --ink: #0a0c0b;
   --pad: clamp(16px, 1.6vw, 26px);
@@ -18,7 +18,7 @@
   overflow: hidden;
   background: var(--ink);
   color: var(--bone);
-  font-family: 'Archivo', ui-sans-serif, sans-serif;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   transition:
     opacity 1000ms var(--ease),
     visibility 0s linear 0s;
@@ -179,7 +179,7 @@
 }
 
 .case-card-top {
-  --mono: 'Bricolage Grotesque', ui-sans-serif, sans-serif;
+  --mono: 'Inter', ui-sans-serif, system-ui, sans-serif;
   position: absolute;
   top: var(--pad);
   left: var(--pad);
@@ -356,7 +356,7 @@
   transition: opacity 500ms var(--ease);
 }
 .case-hud {
-  --mono: 'Bricolage Grotesque', ui-sans-serif, sans-serif;
+  --mono: 'Inter', ui-sans-serif, system-ui, sans-serif;
   top: 0;
   height: 44px;
   align-items: center;
@@ -412,7 +412,7 @@
 .case-panel {
   --ease: cubic-bezier(0.19, 1, 0.22, 1);
   --case: hsl(var(--primary));
-  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --mono: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --scroll-thumb-color: color-mix(in srgb, var(--case) 38%, transparent);
   --scroll-thumb-hover: color-mix(in srgb, var(--case) 70%, transparent);
   position: absolute;
