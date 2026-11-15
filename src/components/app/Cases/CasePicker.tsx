@@ -69,7 +69,6 @@ export function CasePicker({ introDone }: { introDone: boolean }) {
       </nav>
 
       <div className="case-hud" aria-hidden="true">
-        <span>{t('case.eyebrow')}</span>
         <span className="case-hud-hint">{t('case.pickHint')}</span>
       </div>
       <p className="case-picker-credit">{t('case.coverCredit')}</p>
