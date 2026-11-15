@@ -1005,12 +1005,7 @@ function initialLanguage(): Lang {
     if (saved === 'pt' || saved === 'en') return saved
   } catch {}
 
-  if (typeof navigator !== 'undefined') {
-    for (const locale of [...(navigator.languages ?? []), navigator.language]) {
-      const lang = locale?.toLowerCase().split('-')[0]
-      if (lang === 'pt' || lang === 'en') return lang
-    }
-  }
+  // The site always opens in English; PT only when the visitor picked it before.
   return 'en'
 }
 

@@ -179,6 +179,7 @@
 }
 
 .case-card-top {
+  --mono: 'Bricolage Grotesque', ui-sans-serif, sans-serif;
   position: absolute;
   top: var(--pad);
   left: var(--pad);
@@ -199,8 +200,8 @@
   height: 22px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--case);
-  color: var(--ink);
+  border: 1px solid rgb(241 238 229 / 0.55);
+  color: var(--bone);
   font-weight: 500;
 }
 .case-card-kicker {
@@ -355,6 +356,7 @@
   transition: opacity 500ms var(--ease);
 }
 .case-hud {
+  --mono: 'Bricolage Grotesque', ui-sans-serif, sans-serif;
   top: 0;
   height: 44px;
   align-items: center;
