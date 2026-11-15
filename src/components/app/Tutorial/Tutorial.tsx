@@ -45,7 +45,32 @@ export function triggerTutorial(): void {
   window.dispatchEvent(new CustomEvent(TUTORIAL_OPEN_EVENT))
 }
 
-export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => void }) {
+// Second tour, shown the first time a case panel opens (same look and controls as the home tour).
+export const CASE_TOUR_KEY = 'iara.case-tour-seen'
+export const CASE_TOUR_OPEN_EVENT = 'iara:case-tour:open'
+export function hasSeenCaseTour(): boolean {
+  try {
+    return window.localStorage.getItem(CASE_TOUR_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+export function triggerCaseTour(): void {
+  window.dispatchEvent(new CustomEvent(CASE_TOUR_OPEN_EVENT))
+}
+
+export type TourStep = Step
+
+export function Tutorial({
+  steps,
+  onClose,
+  storageKey = STORAGE_KEY,
+}: {
+  steps: Step[]
+  onClose: () => void
+  /** localStorage key that records the tour as seen. */
+  storageKey?: string
+}) {
   const t = useT()
   const [i, setI] = useState(0)
   const step = steps[i]
@@ -62,6 +87,9 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
         setRect(null)
         return
       }
+      // Steps can point inside a scrolling panel: bring the target into view first.
+      const r0 = el.getBoundingClientRect()
+      if (r0.top < 0 || r0.bottom > window.innerHeight) el.scrollIntoView({ block: 'center' })
       const r = el.getBoundingClientRect()
       setRect({ x: r.left, y: r.top, width: r.width, height: r.height })
     }
@@ -72,21 +100,40 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
       measure()
     }
     window.addEventListener('resize', resize)
+    // The highlighted area stays usable, so it can scroll: follow it (capture catches inner scrollers).
+    let raf = 0
+    const onScroll = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-tour="${step.anchor}"]`)
+        if (!el) return
+        const r = el.getBoundingClientRect()
+        setRect({ x: r.left, y: r.top, width: r.width, height: r.height })
+      })
+    }
+    window.addEventListener('scroll', onScroll, true)
     // Re-measure a few frames later; panels may slide in asynchronously.
     const t1 = window.setTimeout(measure, 120)
     const t2 = window.setTimeout(measure, 360)
+    const t3 = window.setTimeout(measure, 900)
     return () => {
       window.removeEventListener('resize', resize)
+      window.removeEventListener('scroll', onScroll, true)
+      cancelAnimationFrame(raf)
       window.clearTimeout(t1)
       window.clearTimeout(t2)
+      window.clearTimeout(t3)
     }
   }, [step])
 
   const finish = () => {
-    markTutorialSeen()
+    try {
+      window.localStorage.setItem(storageKey, '1')
+    } catch {}
     onClose()
   }
   const next = () => (i < steps.length - 1 ? setI(i + 1) : finish())
+  const back = () => setI(Math.max(0, i - 1))
   const skip = () => finish()
 
   const padding = 8
@@ -102,7 +149,7 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
 
   const tooltip = useMemo(() => {
     const tooltipW = 320
-    const tooltipH = 160
+    const tooltipH = 200
     if (!rect) {
       return {
         left: viewport.w / 2 - tooltipW / 2,
@@ -128,8 +175,22 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
   }, [rect, step.placement, viewport])
 
   return (
-    <div className="fixed inset-0 z-[9998]">
-      <svg className="absolute inset-0 w-full h-full pointer-events-auto">
+    <div className="pointer-events-none fixed inset-0 z-[9998]">
+      {/* Only the dimmed area takes clicks; the highlighted element underneath stays fully usable. */}
+      {hole ? (
+        <>
+          <div className="pointer-events-auto absolute inset-x-0 top-0" style={{ height: hole.y }} />
+          <div className="pointer-events-auto absolute inset-x-0 bottom-0" style={{ top: hole.y + hole.height }} />
+          <div className="pointer-events-auto absolute left-0" style={{ top: hole.y, height: hole.height, width: hole.x }} />
+          <div
+            className="pointer-events-auto absolute right-0"
+            style={{ top: hole.y, height: hole.height, left: hole.x + hole.width }}
+          />
+        </>
+      ) : (
+        <div className="pointer-events-auto absolute inset-0" />
+      )}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none">
         <defs>
           <mask id="tour-mask">
             <rect width="100%" height="100%" fill="white" />
@@ -150,7 +211,6 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
           height="100%"
           fill="rgba(5, 10, 20, 0.72)"
           mask="url(#tour-mask)"
-          onClick={skip}
         />
         {hole && (
           <rect
@@ -168,7 +228,7 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
       </svg>
 
       <div
-        className="absolute w-[320px] rounded-xl border border-primary/40 bg-card/95 backdrop-blur-xl p-4 shadow-2xl"
+        className="pointer-events-auto absolute w-[320px] rounded-xl border border-primary/40 bg-card/95 backdrop-blur-xl p-4 shadow-2xl"
         style={{ left: tooltip.left, top: tooltip.top }}
       >
         <button
@@ -184,16 +244,25 @@ export function Tutorial({ steps, onClose }: { steps: Step[]; onClose: () => voi
         <div className="mt-1 text-[15px] font-semibold text-foreground leading-tight pr-6">
           {step.title}
         </div>
-        <div className="mt-2 text-[13px] text-foreground/85 leading-snug">
+        <div className="mt-2 whitespace-pre-line text-[13px] text-foreground/85 leading-snug">
           {step.body}
         </div>
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-3 flex items-center">
           <button
             onClick={skip}
             className="text-[12px] font-mono text-muted-foreground hover:text-foreground"
           >
             {t('tutorial.skip')}
           </button>
+          <span className="ml-auto" />
+          {i > 0 && (
+            <button
+              onClick={back}
+              className="mr-2 rounded-full px-2.5 py-1.5 text-[12px] font-mono text-muted-foreground hover:text-foreground"
+            >
+              {t('tutorial.back')}
+            </button>
+          )}
           <button
             onClick={next}
             className="inline-flex items-center gap-1.5 rounded-full border border-primary/50 bg-primary/15 px-3 py-1.5 text-[12px] font-mono font-semibold text-primary hover:bg-primary/25 transition-colors"

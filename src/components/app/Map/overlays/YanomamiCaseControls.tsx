@@ -36,6 +36,7 @@ export function YanomamiCaseControls() {
 
   return (
     <div
+      data-tour="sar-bands"
       className="pointer-events-auto absolute z-30 flex flex-col gap-1.5 rounded-lg border border-border/60 bg-background/92 p-2.5 backdrop-blur-sm shadow-lg"
       style={{ right: 8, bottom: 44, width: 232 }}
     >
@@ -88,13 +89,13 @@ export function YanomamiCaseControls() {
                 ? 'bg-background text-foreground'
                 : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
             )}
-            style={raddOn ? { borderColor: '#FF4D6D', background: '#FF4D6D20' } : undefined}
+            style={raddOn ? { borderColor: '#E3121F', background: '#E3121F20' } : undefined}
           >
             <span
               className="mt-[3px] h-2.5 w-2.5 shrink-0 rounded-sm"
               style={{
-                background: raddOn ? '#FF4D6D' : 'transparent',
-                boxShadow: 'inset 0 0 0 1px #FF4D6D',
+                background: raddOn ? '#E3121F' : 'transparent',
+                boxShadow: 'inset 0 0 0 1px #E3121F',
               }}
             />
             <span className="flex flex-col gap-0 leading-tight">
