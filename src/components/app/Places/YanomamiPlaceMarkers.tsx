@@ -62,7 +62,7 @@ export function YanomamiPlaceMarkers() {
       const reduced = reducedMotion()
       map.flyTo({
         center: [p.lon, p.lat],
-        zoom: p.approx ? 10.5 : 12,
+        zoom: p.approx ? 9 : 10.2,
         pitch: 50,
         bearing: map.getBearing(),
         // Keep the place clear of the left panel that will show its page.
