@@ -6,16 +6,27 @@ export type L = { pt: string; en: string }
 export type RiskLevel = 'critical' | 'high' | 'watch'
 export type PainIcon = 'health' | 'water' | 'forest' | 'home' | 'boat' | 'food' | 'fish' | 'fire' | 'road' | 'people'
 
+/** A clickable reference that confirms a figure or a sentence on screen. */
+export interface Ref {
+  label: string
+  url: string
+}
+
+/** Bilingual text that may carry its own references. */
+export type Sourced = L & { refs?: Ref[] }
+
 export interface CaseStat {
   value: string
   label: L
   source: string
+  refs?: Ref[]
 }
 
 export interface CasePain {
   icon: PainIcon
   title: L
   body: L
+  refs?: Ref[]
 }
 
 export interface SeriesPoint {
@@ -95,13 +106,13 @@ export interface RiverStage {
   thresholds: StageThreshold[]
   peaks: StagePeak[]
   recordLow: { value: number; date: string }
-  /** Empirical probability of an extreme flood (≥ threshold), before and after a breakpoint year. */
-  extremeOdds: {
+  /** Number of extreme floods (≥ threshold) before and after a breakpoint year. */
+  extremeCount: {
     threshold: number
     before: string
-    beforePct: number
+    beforeCount: number
     after: string
-    afterPct: number
+    afterCount: number
     source: string
     url: string
   }
@@ -116,7 +127,7 @@ export interface CaseStudy {
   outline: CaseOutline
   /** IBGE municipality code for the live census figure, when the case is a municipality. */
   ibgeCode?: number
-  meta: Array<{ label: L; value: L }>
+  meta: Array<{ label: L; value: L; refs?: Ref[] }>
   /** Short theme word and the full "analysis of" label used on the entry cards. */
   theme: L
   analysis: L
@@ -127,7 +138,7 @@ export interface CaseStudy {
   headline: L
   hero: CaseStat
   stats: CaseStat[]
-  story: L[]
+  story: Sourced[]
   pains: CasePain[]
   series: CaseSeries
   risk: { level: RiskLevel; summary: L }
@@ -160,9 +171,17 @@ export const CASES: Record<RegionId, CaseStudy> = {
     cover: { center: [-62.95, 3.4], zoom: 11 },
     outline: { kind: 'ti', name: 'Yanomami' },
     meta: [
-      { label: { pt: 'Onde', en: 'Where' }, value: { pt: 'Roraima e Amazonas', en: 'Roraima and Amazonas' } },
+      {
+        label: { pt: 'Onde', en: 'Where' },
+        value: { pt: 'Roraima e Amazonas', en: 'Roraima and Amazonas' },
+        refs: [{ label: 'ISA · Terras Indígenas no Brasil', url: 'https://terrasindigenas.org.br/pt-br/terras-indigenas/4016' }],
+      },
       { label: { pt: 'Quem', en: 'Who' }, value: { pt: "Yanomami e Ye'kwana", en: "Yanomami and Ye'kwana" } },
-      { label: { pt: 'Período', en: 'Period' }, value: { pt: '2018–2023', en: '2018–2023' } },
+      {
+        label: { pt: 'Período', en: 'Period' },
+        value: { pt: '2018–2023', en: '2018–2023' },
+        refs: [{ label: 'Hutukara · nota técnica jan/2024', url: 'https://static.congressoemfoco.com.br/2024/01/yad00623.pdf' }],
+      },
     ],
     headline: {
       pt: 'A maior terra indígena do Brasil, cercada pelo ouro ilegal',
@@ -174,25 +193,44 @@ export const CASES: Record<RegionId, CaseStudy> = {
         pt: 'de área destruída pelo garimpo entre out/2018 e dez/2022',
         en: 'more land destroyed by mining between Oct 2018 and Dec 2022',
       },
-      source: 'Hutukara · Yanomami Sob Ataque',
+      source: 'Hutukara/ISA · monitoramento (jan/2023)',
+      refs: [{ label: 'Congresso em Foco · dados Hutukara/ISA', url: 'https://congressoemfoco.com.br/area/pais/garimpo-ilegal-na-terra-yanomami-cresceu-54-em-2022-mostra-monitoramento' }],
     },
     stats: [
-      { value: '27.228', label: { pt: 'moradores (Censo 2022)', en: 'residents (2022 Census)' }, source: 'IBGE' },
-      { value: '96.650 km²', label: { pt: 'área homologada em 1992', en: 'ratified in 1992' }, source: 'FUNAI' },
-      { value: '5.432 ha', label: { pt: 'impactados até 2023', en: 'impacted up to 2023' }, source: 'Hutukara' },
+      {
+        value: '27.152',
+        label: { pt: 'indígenas na terra (Censo 2022)', en: 'Indigenous residents (2022 Census)' },
+        source: 'IBGE',
+        refs: [{ label: 'IBGE · Censo 2022, povos indígenas', url: 'https://agenciadenoticias.ibge.gov.br/en/agencia-news/37575-brazil-has-1-7-million-indigenous-persons-and-more-than-half-of-them-live-in-the-legal-amazon.html' }],
+      },
+      {
+        value: '96.650 km²',
+        label: { pt: 'área homologada em 1992', en: 'ratified in 1992' },
+        source: 'FUNAI',
+        refs: [{ label: 'ISA · Terras Indígenas no Brasil', url: 'https://terrasindigenas.org.br/pt-br/terras-indigenas/4016' }, { label: 'OPAS · Terra Yanomami', url: 'https://www.paho.org/pt/historias/opas-trabalha-em-cooperacao-tecnica-com-brasil-para-melhorar-saude-dos-povos-indigenas' }],
+      },
+      {
+        value: '5.432 ha',
+        label: { pt: 'impactados até 2023', en: 'impacted up to 2023' },
+        source: 'Hutukara',
+        refs: [{ label: 'Hutukara · nota técnica jan/2024', url: 'https://static.congressoemfoco.com.br/2024/01/yad00623.pdf' }],
+      },
     ],
     story: [
       {
         pt: 'Os Yanomami vivem na floresta entre Roraima e o Amazonas, na fronteira com a Venezuela. A terra foi homologada em 1992, depois de uma corrida do ouro que matou parte do povo nos anos 1980.',
         en: 'The Yanomami live in the forest between Roraima and Amazonas, on the Venezuelan border. Their land was ratified in 1992, after a gold rush that killed part of the people in the 1980s.',
+        refs: [{ label: 'Le Monde Diplomatique Brasil · corrida do ouro', url: 'https://diplomatique.org.br/bolsonaro-pandemia-nova-corrida-pelo-ouro-terra-indigena-yanomami/' }, { label: 'ISA · Terras Indígenas no Brasil', url: 'https://terrasindigenas.org.br/pt-br/terras-indigenas/4016' }],
       },
       {
         pt: 'A partir de 2018 o garimpo voltou em escala industrial: dragas, balsas e pistas de pouso abertas dentro da terra. A área destruída passou de 1.236 para 5.053 hectares em quatro anos.',
         en: 'From 2018 mining came back at industrial scale: dredges, barges and airstrips opened inside the land. The destroyed area went from 1,236 to 5,053 hectares in four years.',
+        refs: [{ label: 'Hutukara · Yanomami sob ataque (2022)', url: 'https://acervo.socioambiental.org/sites/default/files/documents/yal00067.pdf' }, { label: 'Congresso em Foco · dados Hutukara/ISA', url: 'https://congressoemfoco.com.br/area/pais/garimpo-ilegal-na-terra-yanomami-cresceu-54-em-2022-mostra-monitoramento' }],
       },
       {
         pt: 'Em janeiro de 2023 o governo federal declarou emergência em saúde pública. As operações derrubaram o ritmo de abertura de novas áreas, mas o garimpo migra e volta quando a fiscalização sai.',
         en: 'In January 2023 the federal government declared a public health emergency. Enforcement cut the pace of new clearings, but mining moves around and returns when inspectors leave.',
+        refs: [{ label: 'Agência Brasil · emergência em saúde', url: 'https://exame.com/brasil/ministerio-da-saude-declara-emergencia-em-saude-em-territorio-yanomami/' }, { label: 'Hutukara · nota técnica jan/2024', url: 'https://static.congressoemfoco.com.br/2024/01/yad00623.pdf' }],
       },
     ],
     pains: [
@@ -200,9 +238,10 @@ export const CASES: Record<RegionId, CaseStudy> = {
         icon: 'water',
         title: { pt: 'Rios com mercúrio', en: 'Mercury in the rivers' },
         body: {
-          pt: 'O metal usado para separar o ouro contamina a água e o peixe do Uraricoera, do Mucajaí e do Parima.',
-          en: 'The metal used to separate gold contaminates the water and fish of the Uraricoera, Mucajaí and Parima.',
+          pt: 'O metal usado para separar o ouro se acumula no peixe do Uraricoera e do Mucajaí e já aparece no cabelo de quem vive nas aldeias.',
+          en: 'The metal used to separate gold builds up in the fish of the Uraricoera and Mucajaí and already shows up in the hair of village residents.',
         },
+        refs: [{ label: 'Fiocruz · Alto Mucajaí (2024)', url: 'https://agenciagov.ebc.com.br/noticias/202404/yanomamis-de-nove-aldeias-assediadas-pelo-garimpo-estao-contaminados-por-mercurio' }],
       },
       {
         icon: 'health',
@@ -211,14 +250,16 @@ export const CASES: Record<RegionId, CaseStudy> = {
           pt: 'As cavas viram criadouro de mosquito e os garimpeiros afastam a caça. A crise de saúde levou à emergência de 2023.',
           en: 'Mining pits breed mosquitoes and miners drive game away. The health crisis led to the 2023 emergency.',
         },
+        refs: [{ label: 'Carta Capital · malária na TI (dados Hutukara)', url: 'https://www.cartacapital.com.br/?p=324077' }],
       },
       {
         icon: 'forest',
         title: { pt: 'Floresta aberta', en: 'Forest torn open' },
         body: {
-          pt: 'Cada frente abre clareira, pista e acampamento. Sob nuvem constante, só o radar acompanha esse avanço o ano inteiro.',
-          en: 'Each front opens clearings, airstrips and camps. Under constant cloud, only radar tracks that advance all year.',
+          pt: 'Cada frente abre clareira, pista e acampamento. O radar acompanha esse avanço mesmo sob nuvem, e o próprio monitoramento da Hutukara usa imagens Sentinel-1.',
+          en: 'Each front opens clearings, airstrips and camps. Radar tracks that advance even under cloud, and Hutukara’s own monitoring uses Sentinel-1 images.',
         },
+        refs: [{ label: 'Hutukara · Yanomami sob ataque (2022)', url: 'https://acervo.socioambiental.org/sites/default/files/documents/yal00067.pdf' }],
       },
       {
         icon: 'people',
@@ -227,6 +268,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
           pt: 'Comunidades próximas às frentes relatam ameaças, aliciamento e ataques armados.',
           en: 'Communities near the fronts report threats, coercion and armed attacks.',
         },
+        refs: [{ label: 'Agência Pública · 7 assassinatos em 2023', url: 'https://apublica.org/?p=152506' }],
       },
     ],
     series: {
@@ -282,7 +324,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
         },
       ],
       thresholds: [],
-      source: { label: 'Hutukara Associação Yanomami', url: 'https://hutukara.org/' },
+      source: { label: 'Hutukara Associação Yanomami · nota técnica jan/2024', url: 'https://static.congressoemfoco.com.br/2024/01/yad00623.pdf' },
       footnote: {
         pt: 'Sem dado consolidado da Hutukara para 2019. Em 2024 o Greenpeace mediu 223 hectares novos.',
         en: 'No consolidated Hutukara figure for 2019. In 2024 Greenpeace measured 223 new hectares.',
@@ -347,7 +389,10 @@ export const CASES: Record<RegionId, CaseStudy> = {
       en: 'Forest scatters the radar signal and looks bright. Bare soil and pit water return little signal: the clearing shows up as a dark patch, even under cloud.',
     },
     sources: [
-      { label: 'Hutukara', url: 'https://hutukara.org/' },
+      { label: 'Hutukara · Yanomami sob ataque (2022)', url: 'https://acervo.socioambiental.org/sites/default/files/documents/yal00067.pdf' },
+      { label: 'Hutukara · nota técnica jan/2024', url: 'https://static.congressoemfoco.com.br/2024/01/yad00623.pdf' },
+      { label: 'Greenpeace · Ouro Tóxico (2023–2024)', url: 'https://www.greenpeace.org/brasil/?p=57312' },
+      { label: 'Fiocruz/ISA · mercúrio em peixes de Roraima (2022)', url: 'https://ihu.unisinos.br/621523-garimpo-ilegal-contamina-peixes-de-rios-de-roraima-revela-estudo' },
       { label: 'MapBiomas Alerta', url: 'https://alerta.mapbiomas.org/' },
       { label: 'INPE DETER', url: 'http://terrabrasilis.dpi.inpe.br/app/map/deter' },
       { label: 'ISA · Terras Indígenas', url: 'https://terrasindigenas.org.br/pt-br/terras-indigenas/4016' },
@@ -358,39 +403,39 @@ export const CASES: Record<RegionId, CaseStudy> = {
     ],
     news: [
       {
-        title: 'Yanomami Sob Ataque: garimpo ilegal avança 309% em quatro anos',
-        outlet: 'Hutukara Associação Yanomami',
+        title: 'Yanomami sob ataque: garimpo ilegal na Terra Indígena Yanomami e propostas para combatê-lo',
+        outlet: 'Hutukara Associação Yanomami · Seduume · ISA',
         date: '2022-04',
-        url: 'https://hutukara.org/wp-content/uploads/2022/04/YanomamiSobAtaque-2022.pdf',
-        summary: 'Relatório da organização indígena com cartografia das frentes de garimpo e impacto em saúde, baseado em SAR e campo.',
+        url: 'https://acervo.socioambiental.org/sites/default/files/documents/yal00067.pdf',
+        summary: 'Relatório indígena que mapeia as frentes de garimpo (3.272 ha em 2021, alta de 46%) com imagens Planet, Sentinel-1 e Sentinel-2 e relatos das aldeias.',
       },
       {
-        title: 'Governo decreta emergência em saúde na Terra Yanomami',
-        outlet: 'G1 · Ministério da Saúde',
+        title: 'Ministério da Saúde declara emergência em saúde em território yanomami',
+        outlet: 'Agência Brasil (via Exame)',
         date: '2023-01-21',
-        url: 'https://g1.globo.com/politica/noticia/2023/01/21/emergencia-saude-publica-terra-indigena-yanomami.ghtml',
+        url: 'https://exame.com/brasil/ministerio-da-saude-declara-emergencia-em-saude-em-territorio-yanomami/',
         summary: 'Declarada emergência sanitária após imagens de crianças desnutridas e expansão do garimpo durante o governo anterior.',
       },
       {
-        title: 'Garimpo em terras Yanomami resiste a operações e volta a crescer',
-        outlet: 'Agência Pública',
-        date: '2024-09',
-        url: 'https://apublica.org/2024/09/garimpo-yanomami-resiste-operacoes/',
-        summary: 'Reportagem acompanha retomada da atividade após desmobilização parcial da força-tarefa federal.',
+        title: 'Garimpo desacelera, mas cresce 7% na TI Yanomami em 2023, apontam organizações',
+        outlet: 'Brasil de Fato',
+        date: '2024-01-26',
+        url: 'https://brasildefato.com.br/2024/01/26/garimpo-desacelera-mas-cresce-7-na-ti-yanomami-em-2023-apontam-organizacoes-entidades-cobram-plano-de-protecao-territorial-ao-governo/',
+        summary: 'Um ano depois da emergência, a área impactada chega a 5.432 ha e as lideranças cobram um plano de proteção territorial.',
       },
       {
-        title: 'SUMAÚMA · Diário Yanomami',
-        outlet: 'SUMAÚMA',
-        date: '2023-2024',
-        url: 'https://sumauma.com/categoria/yanomami/',
-        summary: 'Série de reportagens com relato direto das lideranças Yanomami sobre contaminação, mortes e deslocamento forçado.',
+        title: 'Yanomamis de nove aldeias estão contaminados por mercúrio',
+        outlet: 'Agência Gov · Fiocruz',
+        date: '2024-04-04',
+        url: 'https://agenciagov.ebc.com.br/noticias/202404/yanomamis-de-nove-aldeias-assediadas-pelo-garimpo-estao-contaminados-por-mercurio',
+        summary: 'Estudo no Alto Mucajaí: 84% das 287 amostras de cabelo acima de 2 µg/g de mercúrio, e todos os peixes analisados com algum grau de contaminação.',
       },
       {
-        title: 'ISA · Terra Yanomami, a mais afetada por garimpo ilegal no Brasil',
-        outlet: 'Instituto Socioambiental',
-        date: '2023',
-        url: 'https://www.socioambiental.org/noticias-socioambientais/terra-yanomami-garimpo-ilegal',
-        summary: 'Panorama cruzando dados FUNAI, MapBiomas e PRODES; quantifica a expansão 2018-2023.',
+        title: 'Garimpo ilegal na Terra Yanomami cresceu 54% em 2022, mostra monitoramento',
+        outlet: 'Congresso em Foco · dados Hutukara/ISA',
+        date: '2023-01-30',
+        url: 'https://congressoemfoco.com.br/area/pais/garimpo-ilegal-na-terra-yanomami-cresceu-54-em-2022-mostra-monitoramento',
+        summary: 'Monitoramento da Hutukara: 1.782 ha novos em 2022 e alta de 309% entre out/2018 e dez/2022.',
       },
     ],
   },
@@ -409,7 +454,11 @@ export const CASES: Record<RegionId, CaseStudy> = {
     meta: [
       { label: { pt: 'Onde', en: 'Where' }, value: { pt: 'Manaus, Amazonas', en: 'Manaus, Amazonas' } },
       { label: { pt: 'Rio', en: 'River' }, value: { pt: 'Negro', en: 'Negro' } },
-      { label: { pt: 'Série', en: 'Record' }, value: { pt: '1902–2024', en: '1902–2024' } },
+      {
+        label: { pt: 'Série', en: 'Record' },
+        value: { pt: '1902–2024', en: '1902–2024' },
+        refs: [{ label: 'Oliveira 2025 · série do Porto de Manaus', url: 'https://static.even3.com/anais/1211771.pdf' }],
+      },
     ],
     headline: {
       pt: 'Dois milhões de pessoas à beira de um rio que sobe cada vez mais',
@@ -422,24 +471,46 @@ export const CASES: Record<RegionId, CaseStudy> = {
         en: 'Rio Negro level on 16 Jun 2021, the highest in 119 years',
       },
       source: 'Porto de Manaus',
+      refs: [{ label: 'SGB · Relatório SAH Amazonas 2021', url: 'https://rigeo.sgb.gov.br/handle/doc/22533' }, { label: 'Oliveira 2025 · Tabela 1', url: 'https://static.even3.com/anais/1211771.pdf' }],
     },
     stats: [
-      { value: '2.063.689', label: { pt: 'moradores (Censo 2022)', en: 'residents (2022 Census)' }, source: 'IBGE' },
-      { value: '9 em 16', label: { pt: 'anos com cheia severa desde 2009', en: 'years with severe flood since 2009' }, source: 'SGB' },
-      { value: '58 dias', label: { pt: 'acima de 29,69 m em 2021', en: 'above 29.69 m in 2021' }, source: 'Oliveira 2025' },
+      {
+        value: '2.063.689',
+        label: { pt: 'moradores (Censo 2022)', en: 'residents (2022 Census)' },
+        source: 'IBGE',
+        refs: [{ label: 'IBGE Cidades · Manaus (Censo 2022)', url: 'https://www.ibge.gov.br/cidades-e-estados/am/manaus.html' }],
+      },
+      {
+        value: '9 em 16',
+        label: {
+          pt: 'anos com cheia severa (≥ 29 m) de 2009 a 2024',
+          en: 'years with a severe flood (≥ 29 m) from 2009 to 2024',
+        },
+        source: 'SGB',
+        refs: [{ label: 'SGB · nota da mancha de inundação 2021', url: 'https://rigeo.sgb.gov.br/handle/doc/23747' }, { label: 'Portal Amazônia · 29 m em jun/2017', url: 'https://portalamazonia.com/cidades/nivel-do-rio-negro-diminui-em-manaus-e-pode-indicar-inicio-de-vazante/' }, { label: 'Oliveira 2025 · Tabela 1', url: 'https://static.even3.com/anais/1211771.pdf' }],
+      },
+      {
+        value: '58 dias',
+        label: { pt: 'acima de 29,69 m em 2021', en: 'above 29.69 m in 2021' },
+        source: 'Oliveira 2025',
+        refs: [{ label: 'Oliveira 2025 · Tabela 1', url: 'https://static.even3.com/anais/1211771.pdf' }],
+      },
     ],
     story: [
       {
         pt: 'Manaus cresceu sobre igarapés. Milhares de famílias moram em palafitas nas margens, e é ali que a água chega primeiro quando o Rio Negro enche.',
         en: 'Manaus grew over its streams. Thousands of families live in stilt houses on the banks, where the water arrives first when the Rio Negro swells.',
+        refs: [{ label: 'SGB · nota da mancha de inundação 2021', url: 'https://rigeo.sgb.gov.br/handle/doc/23747' }, { label: 'National Geographic Brasil', url: 'https://www.nationalgeographicbrasil.com/meio-ambiente/2021/09/cheias-recordes-atingiram-cidades-na-bacia-amazonica-este-ano-mas-a-vida-seguiu' }],
       },
       {
-        pt: 'O nível é medido todo dia no porto desde 1902. Até 2008, a chance de uma cheia severa (acima de 29 m) era de 8% ao ano. De 2009 a 2024 passou para 56%.',
-        en: 'The level has been measured daily at the port since 1902. Until 2008 the chance of a severe flood (above 29 m) was 8% a year. From 2009 to 2024 it rose to 56%.',
+        pt: 'O nível é medido todo dia no porto desde 1902. De 1903 a 2008, o rio passou da marca de 29,69 m (a cheia de 1953) uma única vez. De 2009 a 2024, passou quatro vezes: em 2009, 2012, 2021 e 2022.',
+        en: 'The level has been measured daily at the port since 1902. From 1903 to 2008 the river topped the 29.69 m mark (the 1953 flood) only once. From 2009 to 2024 it did so four times: in 2009, 2012, 2021 and 2022.',
+        refs: [{ label: 'Oliveira 2025 · Tabelas 1 e 3', url: 'https://static.even3.com/anais/1211771.pdf' }],
       },
       {
-        pt: 'Em 2021 a água cobriu ruas do Centro Histórico e a prefeitura montou passarelas de madeira. Quatro das cinco maiores cheias da história aconteceram de 2009 para cá.',
-        en: 'In 2021 water covered streets in the historic centre and the city built wooden walkways. Four of the five largest floods on record happened from 2009 onwards.',
+        pt: 'Em 2021 a água cobriu ruas do Centro Histórico e a prefeitura montou passarelas de madeira. Quatro das cinco maiores cheias da história ocorreram a partir de 2009.',
+        en: 'In 2021 water covered streets in the historic centre and the city built wooden walkways. Four of the five largest floods on record occurred from 2009 onwards.',
+        refs: [{ label: 'SGB · Relatório SAH Amazonas 2021', url: 'https://rigeo.sgb.gov.br/handle/doc/22533' }, { label: 'National Geographic Brasil', url: 'https://www.nationalgeographicbrasil.com/meio-ambiente/2021/09/cheias-recordes-atingiram-cidades-na-bacia-amazonica-este-ano-mas-a-vida-seguiu' }, { label: 'Oliveira 2025 · Tabela 1', url: 'https://static.even3.com/anais/1211771.pdf' }],
       },
     ],
     pains: [
@@ -450,6 +521,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
           pt: 'Moradores das margens dos igarapés erguem o piso com tábuas (as marombas) ou deixam a casa.',
           en: 'People on the stream banks raise their floors with planks (marombas) or leave home.',
         },
+        refs: [{ label: 'Brasil de Fato · moradores do Educandos', url: 'https://www.brasildefato.com.br/2021/06/01/cheia-recorde-do-rio-negro-am-ja-registrou-6-das-10-maiores-cheias-na-ultima-decada/' }],
       },
       {
         icon: 'health',
@@ -458,6 +530,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
           pt: 'A água parada acumula lixo e esgoto, com risco de leptospirose e diarreia.',
           en: 'Standing water gathers waste and sewage, bringing leptospirosis and diarrhoea.',
         },
+        refs: [{ label: 'Fiocruz · rio Negro e doenças de veiculação hídrica', url: 'https://www.arca.fiocruz.br/handle/icict/24316' }],
       },
       {
         icon: 'road',
@@ -466,6 +539,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
           pt: 'Ruas, feiras e o terminal de ônibus do Centro ficam interditados por semanas.',
           en: 'Streets, markets and the downtown bus terminal stay closed for weeks.',
         },
+        refs: [{ label: 'Portal Amazônia · Centro e Manaus Moderna', url: 'https://portalamazonia.com/cidades/rio-negro-sobe-mais-e-chega-a-29-99-metros-em-manaus/' }],
       },
       {
         icon: 'boat',
@@ -474,6 +548,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
           pt: 'Nas comunidades de várzea ao redor, a cheia cobre a roça e o caminho até a cidade.',
           en: 'In the floodplain communities nearby, the flood covers crops and the way into town.',
         },
+        refs: [{ label: 'Portal Amazônia · perdas nas comunidades rurais (2021)', url: 'https://portalamazonia.com/cidades/apos-a-maior-cheia-da-historia-nivel-do-rio-negro-comeca-a-baixar-em-manaus/' }],
       },
     ],
     series: {
@@ -606,7 +681,9 @@ export const CASES: Record<RegionId, CaseStudy> = {
       OLIVEIRA_2025,
       { label: 'SGB · Alerta de Cheias', url: 'https://www.sgb.gov.br/sace/' },
       { label: 'Porto de Manaus', url: 'https://portodemanaus.com.br/' },
-      { label: 'IBGE SIDRA · Censo 2022', url: 'https://sidra.ibge.gov.br/tabela/4714' },
+      { label: 'Greenpeace · 8 mil famílias em 21 bairros (2021)', url: 'https://www.greenpeace.org/brasil/blog/cheias-em-manaus-subida-do-rio-negro-expoe-mais-de-8-mil-familias-aos-prejuizos-da-crise-climatica/' },
+      { label: 'Diário do Transporte · Terminal da Matriz (2021)', url: 'https://diariodotransporte.com.br/2021/05/27/onibus-articulados-de-manaus-am-mudam-de-itinerario-no-centro/' },
+      { label: 'IBGE Cidades · Manaus (Censo 2022)', url: 'https://www.ibge.gov.br/cidades-e-estados/am/manaus.html' },
     ],
     questions: [
       { pt: 'Como o radar enxerga a enchente?', en: 'How does radar see a flood?' },
@@ -638,7 +715,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
         title: 'Nota explicativa da delimitação da mancha de inundação do rio Negro na zona urbana de Manaus',
         outlet: 'Serviço Geológico do Brasil (SGB/CPRM)',
         date: '2021',
-        url: 'https://rigeo.cprm.gov.br/bitstream/doc/23747/1/nota-explicativa_manchainundacao.pdf',
+        url: 'https://rigeo.sgb.gov.br/handle/doc/23747',
         summary: 'Mapeamento com drone da área alagada na cheia recorde; Educandos, São Jorge, Centro, Mauazinho e Raiz entre os mais atingidos.',
       },
       {
@@ -647,13 +724,6 @@ export const CASES: Record<RegionId, CaseStudy> = {
         date: '2021-09',
         url: 'https://www.nationalgeographicbrasil.com/meio-ambiente/2021/09/cheias-recordes-atingiram-cidades-na-bacia-amazonica-este-ano-mas-a-vida-seguiu',
         summary: 'Ensaio sobre moradores do Educandos que adaptaram as casas de madeira à água durante a maior cheia já medida.',
-      },
-      {
-        title: 'Mais de 6 mil metros de pontes são construídos pela prefeitura',
-        outlet: 'Informe Manaus',
-        date: '2021',
-        url: 'https://informemanaus.com/2021/mais-de-6-mil-metros-de-pontes-sao-construidos-pela-prefeitura',
-        summary: 'A Operação Cheia 2021 ergueu passarelas de madeira em bairros como São Jorge, Glória, Educandos e Centro.',
       },
       {
         title: 'Cheia recorde do Rio Negro: AM já registrou 6 das 10 maiores cheias na última década',
@@ -677,16 +747,17 @@ export const CASES: Record<RegionId, CaseStudy> = {
         { year: 2012, value: 29.97, date: '2012-05-29' },
         { year: 2021, value: 30.02, date: '2021-06-16' },
         { year: 2022, value: 29.75, date: '2022-06-22' },
-        { year: 2025, value: 29.04, date: '2025-07-05', approx: true },
+        // Defesa Civil do Amazonas: 29,04 m on 04/07/2025.
+        { year: 2025, value: 29.04, date: '2025-07-04', approx: true },
         { year: 2026, value: 28.5, date: '2026-06-30', approx: true },
       ],
       recordLow: { value: 12.11, date: '2024-10-09' },
-      extremeOdds: {
+      extremeCount: {
         threshold: 29.69,
         before: '1903–2008',
-        beforePct: 0.94,
+        beforeCount: 1,
         after: '2009–2024',
-        afterPct: 25,
+        afterCount: 4,
         source: 'Oliveira, H. S. (UFAM/SGB) · VI CoBICET 2025',
         url: 'https://static.even3.com/anais/1211771.pdf',
       },
@@ -712,7 +783,11 @@ export const CASES: Record<RegionId, CaseStudy> = {
     meta: [
       { label: { pt: 'Onde', en: 'Where' }, value: { pt: 'Manaquiri, Amazonas', en: 'Manaquiri, Amazonas' } },
       { label: { pt: 'Quem', en: 'Who' }, value: { pt: 'Andiroba, Jutaí, Barro Alto, Janauacá', en: 'Andiroba, Jutaí, Barro Alto, Janauacá' } },
-      { label: { pt: 'Secas', en: 'Droughts' }, value: { pt: '1963–2024', en: '1963–2024' } },
+      {
+        label: { pt: 'Secas', en: 'Droughts' },
+        value: { pt: '1963–2024', en: '1963–2024' },
+        refs: [{ label: 'Oliveira 2025 · Tabela 2', url: 'https://static.even3.com/anais/1211771.pdf' }],
+      },
     ],
     headline: {
       pt: 'Quando o lago seca, a comunidade fica sem caminho',
@@ -725,24 +800,38 @@ export const CASES: Record<RegionId, CaseStudy> = {
         en: 'Rio Negro level on 9 Oct 2024, the lowest in 122 years',
       },
       source: 'Porto de Manaus',
+      refs: [{ label: 'Oliveira 2025 · Tabela 2', url: 'https://static.even3.com/anais/1211771.pdf' }],
     },
     stats: [
-      { value: '17.107', label: { pt: 'moradores no município', en: 'residents in the municipality' }, source: 'IBGE 2022' },
-      { value: '50 dias', label: { pt: 'de seca extrema em 2024', en: 'of extreme drought in 2024' }, source: 'Oliveira 2025' },
-      { value: '13,7 km', label: { pt: 'de Andiroba até a sede', en: 'from Andiroba to town' }, source: 'IBGE BC250' },
+      {
+        value: '17.107',
+        label: { pt: 'moradores no município', en: 'residents in the municipality' },
+        source: 'IBGE 2022',
+        refs: [{ label: 'IBGE Cidades · Manaquiri (Censo 2022)', url: 'https://www.ibge.gov.br/cidades-e-estados/am/manaquiri.html' }],
+      },
+      {
+        value: '50 dias',
+        label: { pt: 'abaixo de 13,64 m em 2024', en: 'below 13.64 m in 2024' },
+        source: 'Oliveira 2025',
+        refs: [{ label: 'Oliveira 2025 · Tabela 2', url: 'https://static.even3.com/anais/1211771.pdf' }],
+      },
+      { value: '13,7 km', label: { pt: 'de Andiroba até a sede', en: 'from Andiroba to town' }, source: 'medido sobre IBGE BC250' },
     ],
     story: [
       {
         pt: 'Manaquiri fica a cerca de 60 km de Manaus, entre o Solimões e uma rede de lagos e paranás. Comunidades como Andiroba, Jutaí, Barro Alto e Janauacá chegam à cidade de barco.',
         en: 'Manaquiri lies about 60 km from Manaus, between the Solimões and a web of lakes and channels. Communities such as Andiroba, Jutaí, Barro Alto and Janauacá reach town by boat.',
+        refs: [{ label: 'Portal Amazônia · Manaquiri (2015)', url: 'https://portalamazonia.com/cidades/comunidades-do-manaquiri-sofrem-sem-abastecimento-de-agua-no-am/' }, { label: 'Agência Pública · seca em Manaquiri (2024)', url: 'https://apublica.org/2024/09/seca-no-amazonas-pode-atrapalhar-120-mil-eleitores-a-votar/' }],
       },
       {
-        pt: 'Na vazante de 2023 e de 2024 os lagos viraram lama. Peixes morreram por falta de oxigênio, comunidades ficaram sem água encanada e o trajeto até a sede passou a ser feito a pé pelo leito seco.',
-        en: 'In the low-water seasons of 2023 and 2024 the lakes turned to mud. Fish died for lack of oxygen, communities lost piped water and the trip to town was made on foot across the dry bed.',
+        pt: 'Em 2024, desde o fim de agosto dava para atravessar a pé o leito seco do Paraná do Manaquiri. Cerca de vinte comunidades ficaram isoladas, os peixes ficaram presos no pouco de água que restou e faltou água potável.',
+        en: 'In 2024, from late August people could walk across the dry bed of the Paraná do Manaquiri. About twenty communities were cut off, fish were trapped in the little water left and drinking water ran short.',
+        refs: [{ label: 'EFE · El Mercurio (set/2024)', url: 'https://elmercurio.com.ec/?p=1101208' }, { label: 'Agência Gov · purificadores em Manaquiri', url: 'https://agenciagov.ebc.com.br/noticias/202409/atingida-por-seca-extrema-regiao-norte-contara-com-750-mil-litros-de-agua-potavel-por-dia-1' }],
       },
       {
-        pt: 'Não há régua no município, então usamos a do Porto de Manaus como referência regional. Antes de 2009, uma seca extrema era evento de 1 em 100 anos. Desde então, a chance subiu para quase 1 em 5.',
-        en: 'There is no gauge in the municipality, so we use the Port of Manaus as the regional reference. Before 2009 an extreme drought was a 1-in-100-year event. Since then the chance has risen to almost 1 in 5.',
+        pt: 'Não há régua no município, então usamos a do Porto de Manaus como referência regional. De 1902 a 2008, o rio ficou abaixo de 13,64 m uma única vez, em 1963. De 2009 a 2024, isso aconteceu três vezes: em 2010, 2023 e 2024.',
+        en: 'There is no gauge in the municipality, so we use the Port of Manaus as the regional reference. From 1902 to 2008 the river fell below 13.64 m only once, in 1963. From 2009 to 2024 it happened three times: in 2010, 2023 and 2024.',
+        refs: [{ label: 'Oliveira 2025 · Tabelas 2 e 3', url: 'https://static.even3.com/anais/1211771.pdf' }],
       },
     ],
     pains: [
@@ -753,14 +842,16 @@ export const CASES: Record<RegionId, CaseStudy> = {
           pt: 'Sem água no lago não há barco: escola, posto de saúde e mercado ficam fora de alcance.',
           en: 'With no water in the lake there is no boat: school, clinic and market are out of reach.',
         },
+        refs: [{ label: 'EFE · El Mercurio (set/2024)', url: 'https://elmercurio.com.ec/?p=1101208' }],
       },
       {
         icon: 'water',
         title: { pt: 'Água para beber', en: 'Drinking water' },
         body: {
-          pt: 'Poços e captações secam. A Defesa Civil do Amazonas registrou oito comunidades sem abastecimento.',
-          en: "Wells and intakes dry up. Amazonas Civil Defence recorded eight communities without supply.",
+          pt: 'Poços e captações secam. Em 2015 a Defesa Civil já registrava oito comunidades sem abastecimento. Em 2024 o governo federal levou purificadores de água para a região.',
+          en: 'Wells and intakes dry up. In 2015 Civil Defence already recorded eight communities without supply. In 2024 the federal government brought water purifiers to the area.',
         },
+        refs: [{ label: 'Portal Amazônia · Defesa Civil (2015)', url: 'https://portalamazonia.com/cidades/comunidades-do-manaquiri-sofrem-sem-abastecimento-de-agua-no-am/' }],
       },
       {
         icon: 'fish',
@@ -769,14 +860,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
           pt: 'A água rasa esquenta e perde oxigênio. A mortandade tira comida e renda de quem vive da pesca.',
           en: 'Shallow water heats up and loses oxygen. The die-off takes food and income from fishing families.',
         },
-      },
-      {
-        icon: 'fire',
-        title: { pt: 'Fogo e fumaça', en: 'Fire and smoke' },
-        body: {
-          pt: 'A mata seca queima mais fácil. Barro Alto e Janauacá têm mais de 20 focos de calor num raio de 10 km.',
-          en: 'Dry forest burns more easily. Barro Alto and Janauacá have over 20 fire hotspots within 10 km.',
-        },
+        refs: [{ label: 'NASA Earth Observatory · Drought on the Rio Negro', url: 'https://science.nasa.gov/earth/earth-observatory/drought-on-the-rio-negro-151961' }],
       },
     ],
     series: {
@@ -845,8 +929,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
         center: [-60.4679, -3.5521],
         level: 'critical',
         note: {
-          pt: 'No Lago Mirauá, a 13,7 km da sede. Depende do lago para sair.',
-          en: 'On Lake Mirauá, 13.7 km from town. Depends on the lake to get out.',
+          pt: 'Ao sul da sede, a 13,7 km. Depende do lago para sair.',
+          en: 'South of town, 13.7 km away. Depends on the lake to get out.',
         },
       },
       {
@@ -861,7 +945,10 @@ export const CASES: Record<RegionId, CaseStudy> = {
         name: 'Janauacá',
         center: [-60.2085, -3.3624],
         level: 'high',
-        note: { pt: 'No Lago Caapiranga, com 22 focos de calor em 10 km.', en: 'On Lake Caapiranga, with 22 fire hotspots within 10 km.' },
+        note: {
+          pt: 'Às margens do Lago Janauacá, dividido entre Manaquiri e Careiro.',
+          en: 'On the shores of Lake Janauacá, shared by Manaquiri and Careiro.',
+        },
       },
       {
         id: 'barro-alto',
@@ -883,8 +970,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
     },
     sources: [
       OLIVEIRA_2025,
-      { label: 'Portal Amazônia · Manaquiri sem água', url: 'https://portalamazonia.com/cidades/comunidades-do-manaquiri-sofrem-sem-abastecimento-de-agua-no-am/' },
-      { label: 'IBGE SIDRA · Censo 2022', url: 'https://sidra.ibge.gov.br/tabela/4714' },
+      { label: 'Portal Amazônia · Manaquiri sem água (2015)', url: 'https://portalamazonia.com/cidades/comunidades-do-manaquiri-sofrem-sem-abastecimento-de-agua-no-am/' },
+      { label: 'IBGE Cidades · Manaquiri (Censo 2022)', url: 'https://www.ibge.gov.br/cidades-e-estados/am/manaquiri.html' },
       { label: 'SGB · Monitoramento hidrológico', url: 'https://www.sgb.gov.br/sace/' },
     ],
     questions: [
@@ -893,39 +980,39 @@ export const CASES: Record<RegionId, CaseStudy> = {
     ],
     news: [
       {
-        title: 'Seca extrema mata mais de 150 botos-rosa no Lago Tefé',
-        outlet: 'Instituto Mamirauá',
-        date: '2023-10',
-        url: 'https://www.mamiraua.org.br/noticias/mortandade-de-botos-lago-tefe/',
-        summary: 'Temperatura da água chegou a 39,1 °C em setembro de 2023, muito acima do limite fisiológico dos cetáceos amazônicos.',
+        title: 'No Amazonas, Governo entrega filtros que tratam mais de 750 mil litros de água por dia',
+        outlet: 'Agência Gov · MDR',
+        date: '2024-09-10',
+        url: 'https://agenciagov.ebc.com.br/noticias/202409/atingida-por-seca-extrema-regiao-norte-contara-com-750-mil-litros-de-agua-potavel-por-dia-1',
+        summary: 'Na visita à região de Manaquiri, o governo federal anunciou 150 purificadores de água para comunidades sem abastecimento.',
       },
       {
-        title: 'Rio Negro atinge 12,70 m em Manaus, menor nível em 121 anos',
-        outlet: 'G1 Amazonas · SGB',
-        date: '2024-10-04',
-        url: 'https://g1.globo.com/am/amazonas/noticia/2024/10/04/rio-negro-menor-nivel-ja-registrado.ghtml',
-        summary: 'Em 2024 o rio bateu o recorde negativo de 12,11 m (09/10/2024), superando 2023 e expondo navios encalhados.',
+        title: 'La Amazonía brasileña revive el drama de la sequía: cauces vacíos y comunidades aisladas',
+        outlet: 'EFE · El Mercurio',
+        date: '2024-09-08',
+        url: 'https://elmercurio.com.ec/?p=1101208',
+        summary: 'Em Manaquiri, o leito do Paraná ficou seco desde o fim de agosto e cerca de vinte comunidades rurais ficaram isoladas.',
       },
       {
-        title: 'Seca deixa centenas de comunidades amazônicas isoladas',
-        outlet: 'Amazônia Real',
+        title: 'Seca no Amazonas pode atrapalhar 120 mil eleitores a votar',
+        outlet: 'Agência Pública',
         date: '2024-09',
-        url: 'https://amazoniareal.com.br/seca-amazonia-comunidades-isoladas-2024/',
-        summary: 'Famílias ribeirinhas sem acesso a saúde e alimentos após rebaixamento dos rios; municípios como Manaquiri entre os mais atingidos.',
+        url: 'https://apublica.org/2024/09/seca-no-amazonas-pode-atrapalhar-120-mil-eleitores-a-votar/',
+        summary: 'Mostra a comunidade Costa do Barroso, em Manaquiri, com casas flutuantes encalhadas e um banco de areia fechando a saída para o Solimões.',
       },
       {
-        title: 'Amazon drought dries up rivers, strands communities',
+        title: 'Drought on the Rio Negro',
         outlet: 'NASA Earth Observatory',
-        date: '2023-10-25',
-        url: 'https://earthobservatory.nasa.gov/images/151976/drought-dries-up-the-amazon',
-        summary: 'Comparação Landsat antes/depois mostra o encolhimento do espelho d\'água dos lagos da várzea central.',
+        date: '2023-10-18',
+        url: 'https://science.nasa.gov/earth/earth-observatory/drought-on-the-rio-negro-151961',
+        summary: 'Comparação Landsat de out/2022 e out/2023 mostra o Rio Negro encolhido perto de Manaus.',
       },
       {
         title: 'Oliveira 2025 · Cheias e secas extremas em Manaus 1902-2024',
         outlet: 'UFAM / SGB · VI CoBICET',
         date: '2025',
         url: 'https://static.even3.com/anais/1211771.pdf',
-        summary: 'Série centenária do Porto de Manaus mostra que 4 das 5 maiores secas também aconteceram pós-2009.',
+        summary: 'Série centenária do Porto de Manaus: 3 das 4 secas extremas (abaixo de 13,64 m) ocorreram a partir de 2009.',
       },
     ],
   },

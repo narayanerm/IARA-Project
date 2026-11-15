@@ -182,7 +182,7 @@ const ENCH_EVENTS: HistoricalEvent[] = [
     stats: [
       { value: '30,02 m', label: 'pico em 16/06/2021, recorde da série', source: 'Porto de Manaus · SGB' },
       { value: '58 dias', label: 'acima de 29,69 m', source: 'Oliveira 2025 · UFAM/SGB' },
-      { value: '24 mil', label: 'moradores de Manaus atingidos em 17 bairros', source: 'Defesa Civil · Agência Estado' },
+      { value: '24 mil', label: 'moradores de Manaus atingidos em 15 bairros', source: 'Defesa Civil de Manaus' },
       { value: '13 mil m', label: 'de passarelas de madeira em 21 bairros', source: 'Prefeitura de Manaus · NatGeo' },
     ],
   },
@@ -207,19 +207,19 @@ const ENCH_EVENTS: HistoricalEvent[] = [
   {
     id: 'ench-2025',
     year: 2025,
-    date: '2025-07-05',
+    date: '2025-07-04',
     shortLabel: '2025',
     label: 'Cheia 2025 · 29,04 m',
     severity: 0.55,
     magnitude: { value: '29,04', unit: 'm' },
     beforeDate: '2024-10-09',
-    afterDate: '2025-07-05',
+    afterDate: '2025-07-04',
     note: 'Nove meses depois da seca recorde (12,11 m), o rio passou da inundação severa em pleno julho.',
     stats: [
-      { value: '29,04 m', label: 'em 05/07/2025, acima da inundação severa', source: 'Porto de Manaus' },
+      { value: '29,04 m', label: 'em 04/07/2025, acima da inundação severa', source: 'Defesa Civil do Amazonas' },
       { value: '16,9 m', label: 'de subida desde a seca recorde de out/2024', source: 'SGB · Porto de Manaus' },
-      { value: '534 mil', label: 'pessoas atingidas no Amazonas', source: 'Defesa Civil AM' },
-      { value: '40', label: 'municípios em situação de emergência', source: 'Defesa Civil AM' },
+      { value: '534 mil', label: 'pessoas atingidas no estado do Amazonas (todas as calhas)', source: 'Defesa Civil do Amazonas' },
+      { value: '40', label: 'dos 62 municípios do estado do Amazonas em situação de emergência', source: 'Defesa Civil do Amazonas' },
     ],
   },
   {

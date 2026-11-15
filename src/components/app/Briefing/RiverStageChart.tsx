@@ -28,14 +28,14 @@ const COPY = {
   pt: {
     titlePrefix: 'Cotas máximas anuais ·',
     partial: 'leitura parcial (ano em curso)',
-    oddsLabel: (th: string) => `Chance anual de cheia ≥ ${th} m`,
+    oddsLabel: (th: string) => `Cheias ≥ ${th} m no período`,
     range: 'Amplitude recente (cheia – vazante)',
     recordLow: (v: string, d: string) => `vazante recorde ${v} m em ${d}`,
   },
   en: {
     titlePrefix: 'Annual peaks ·',
     partial: 'partial reading (ongoing year)',
-    oddsLabel: (th: string) => `Annual chance of flood ≥ ${th} m`,
+    oddsLabel: (th: string) => `Floods ≥ ${th} m in the period`,
     range: 'Recent range (flood – low water)',
     recordLow: (v: string, d: string) => `record low ${v} m on ${d}`,
   },
@@ -56,7 +56,7 @@ export function RiverStageChart({ stage, activeYear }: Props) {
   const slot = innerW / stage.peaks.length
   const barW = Math.min(26, slot * 0.62)
   const ticks = [27, 28, 29, 30]
-  const odds = stage.extremeOdds
+  const odds = stage.extremeCount
   const recordHigh = Math.max(...stage.peaks.map((p) => p.value))
   const title = `${copy.titlePrefix} ${stage.station}`
 
@@ -166,9 +166,9 @@ export function RiverStageChart({ stage, activeYear }: Props) {
             {copy.oddsLabel(fmt(odds.threshold))}
           </div>
           <div className="mt-0.5 text-[15px] font-semibold leading-tight">
-            {String(odds.beforePct).replace('.', ',')}%{' '}
+            {odds.beforeCount}{' '}
             <span className="text-muted-foreground font-normal">→</span>{' '}
-            <span style={{ color: FLOOD }}>{odds.afterPct}%</span>
+            <span style={{ color: FLOOD }}>{odds.afterCount}</span>
           </div>
           <div className="text-[10px] font-mono text-muted-foreground/80 mt-0.5">
             {odds.before} → {odds.after}

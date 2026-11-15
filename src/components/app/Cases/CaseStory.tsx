@@ -3,7 +3,7 @@ import type { CaseStudy } from '@/data/cases'
 import { useUi } from '@/lib/store'
 import { useI18n, useT } from '@/lib/i18n'
 import { useIbgePopulation } from '@/lib/useCaseOutline'
-import { PAIN_ICON, SectionTitle, useTr } from './shared'
+import { PAIN_ICON, Refs, SectionTitle, makeOnce, useTr } from './shared'
 import { CaseNews } from '../Briefing/CaseNews'
 
 /** Who lives here, what happened and what hurts: the human side of the case. */
@@ -15,6 +15,9 @@ export function CaseStory({ c }: { c: CaseStudy }) {
   const livePop = useIbgePopulation(c.ibgeCode)
 
   // The first stat of a municipal case is its census population, read live from IBGE when it answers.
+  // Each source is linked the first time it appears; later mentions only name it.
+  const once = makeOnce()
+
   const stats = c.stats.map((s, i) =>
     i === 0 && c.ibgeCode && livePop
       ? { ...s, value: livePop.toLocaleString(locale), source: t('case.ibgeLive') }
@@ -31,13 +34,17 @@ export function CaseStory({ c }: { c: CaseStudy }) {
         </div>
         <p className="mt-2 text-[13.5px] leading-snug text-foreground/90">{tr(c.hero.label)}</p>
         <p className="mt-1 text-[11px] text-muted-foreground">{c.hero.source}</p>
+        <Refs refs={once(c.hero.refs)} className="mt-0.5" />
       </div>
 
       <dl className="case-details">
         {c.meta.map((m) => (
           <div key={m.label.pt}>
             <dt>{tr(m.label)}</dt>
-            <dd>{tr(m.value)}</dd>
+            <dd>
+              {tr(m.value)}
+              <Refs refs={once(m.refs)} className="mt-0.5" />
+            </dd>
           </div>
         ))}
         {stats.map((s) => (
@@ -46,6 +53,7 @@ export function CaseStory({ c }: { c: CaseStudy }) {
             <dd>
               <span className="font-semibold tabular-nums">{s.value}</span>
               <span className="ml-1.5 text-[11px] text-muted-foreground">{s.source}</span>
+              <Refs refs={once(s.refs)} className="mt-0.5" />
             </dd>
           </div>
         ))}
@@ -55,7 +63,10 @@ export function CaseStory({ c }: { c: CaseStudy }) {
         <SectionTitle>{t('case.story')}</SectionTitle>
         <div className="space-y-2.5 text-[13.5px] leading-relaxed text-foreground/90">
           {c.story.map((p, i) => (
-            <p key={i}>{tr(p)}</p>
+            <div key={i}>
+              <p>{tr(p)}</p>
+              <Refs refs={once(p.refs)} className="mt-1" />
+            </div>
           ))}
         </div>
       </section>
@@ -76,6 +87,7 @@ export function CaseStory({ c }: { c: CaseStudy }) {
                 <div className="min-w-0">
                   <div className="text-[13.5px] font-semibold leading-tight">{tr(p.title)}</div>
                   <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{tr(p.body)}</p>
+                  <Refs refs={once(p.refs)} className="mt-1 opacity-90" />
                 </div>
               </li>
             )
@@ -110,18 +122,20 @@ export function CaseStory({ c }: { c: CaseStudy }) {
       <section className="space-y-2">
         <SectionTitle>{t('case.sources')}</SectionTitle>
         <div className="flex flex-wrap gap-1.5">
-          {c.sources.map((s) => (
-            <a
-              key={s.url + s.label}
-              href={s.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-border/70 px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {s.label}
-              <ExternalLink className="h-3 w-3 shrink-0" />
-            </a>
-          ))}
+          {c.sources
+            .filter((s) => !once.seen.has(s.url))
+            .map((s) => (
+              <a
+                key={s.url + s.label}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-full border border-border/70 px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {s.label}
+                <ExternalLink className="h-3 w-3 shrink-0" />
+              </a>
+            ))}
         </div>
       </section>
     </div>
