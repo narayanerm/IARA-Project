@@ -240,57 +240,6 @@
   margin-left: -0.04em;
   text-shadow: 0 2px 30px rgb(0 0 0 / 0.35);
 }
-/* Explore: plain bold label on a tight square pad in the brand orange (no pill, no arrow).
-   On hover the pad wipes out to the right and back in from the left. */
-.case-card-go {
-  flex: none;
-  position: relative;
-  isolation: isolate;
-  display: inline-flex;
-  align-items: center;
-  margin: -2px 4px -2px auto;
-  color: var(--ink);
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.case-card-go::before {
-  content: '';
-  position: absolute;
-  inset: -6px -9px;
-  z-index: -1;
-  background: hsl(var(--primary));
-}
-.case-card-go svg {
-  display: none;
-}
-.case-card:is(:hover, :focus-visible) .case-card-go {
-  animation: case-go-text 600ms cubic-bezier(0.6, 0, 0.2, 1);
-}
-.case-card:is(:hover, :focus-visible) .case-card-go::before {
-  animation: case-go-pad 600ms cubic-bezier(0.6, 0, 0.2, 1);
-}
-@keyframes case-go-pad {
-  0% { transform-origin: 100% 50%; transform: scaleX(1); }
-  45% { transform-origin: 100% 50%; transform: scaleX(0); }
-  55% { transform-origin: 0 50%; transform: scaleX(0); }
-  100% { transform-origin: 0 50%; transform: scaleX(1); }
-}
-@keyframes case-go-text {
-  40%, 55% { color: hsl(var(--primary)); }
-}
-.case-card:active .case-card-go {
-  scale: 0.97;
-}
-@media (prefers-reduced-motion: reduce) {
-  .case-card:is(:hover, :focus-visible) .case-card-go,
-  .case-card:is(:hover, :focus-visible) .case-card-go::before { animation: none; }
-}
-
 /* Details slide up above the word, like a caption laid over a photo. */
 .case-card-reveal {
   display: grid;
