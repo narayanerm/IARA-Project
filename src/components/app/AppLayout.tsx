@@ -66,7 +66,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           {!aoiActive && (
             <button
               onClick={() => triggerTutorial()}
-              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 font-sans text-[13px] font-bold tracking-[-0.005em] text-foreground/85 transition-colors hover:bg-black/55 hover:text-foreground hover:backdrop-blur-md sm:inline-flex"
+              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 font-sans text-[13px] font-bold tracking-[-0.005em] text-foreground/75 transition-colors hover:bg-black/55 hover:text-foreground hover:backdrop-blur-xl hover:backdrop-saturate-150 sm:inline-flex"
               title={t('appLayout.tour')}
             >
               Tour
@@ -122,8 +122,8 @@ function HeaderToggle({
       className={cn(
         'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 font-sans text-[13px] font-bold tracking-[-0.005em] transition-colors active:scale-[0.97]',
         on
-          ? 'border-transparent bg-white/15 text-foreground backdrop-blur-md hover:bg-white/25'
-          : 'border-transparent text-foreground/85 hover:bg-black/55 hover:text-foreground hover:backdrop-blur-md',
+          ? 'border-transparent bg-white/15 text-foreground/80 backdrop-blur-xl backdrop-saturate-150 hover:bg-white/25 hover:text-foreground'
+          : 'border-transparent text-foreground/75 hover:bg-black/55 hover:text-foreground hover:backdrop-blur-xl hover:backdrop-saturate-150',
         className
       )}
     >
