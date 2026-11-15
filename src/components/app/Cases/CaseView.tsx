@@ -6,6 +6,7 @@ import { useT, type TKey } from '@/lib/i18n'
 import { CaseAlerts } from './CaseAlerts'
 import { CaseSar, useCasePoint } from './CaseSar'
 import { CaseSeries } from './CaseSeries'
+import { CaseFlowOutlook } from './CaseFlowOutlook'
 import { CaseStory } from './CaseStory'
 import { useTr } from './shared'
 import { CaseForecasts, type SetCaseForecastMap } from './CaseForecasts'
@@ -97,6 +98,7 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
         {tab === 'timeline' && (
           <>
             <CaseSeries c={c} />
+            {c.id !== 'YANO' && <CaseFlowOutlook kind={c.id === 'ENCH' ? 'flood' : 'drought'} bounds={bounds} />}
             <div className="mx-5 border-t border-border" />
             {c.id === 'ENCH' && <CaseForecasts kind="observed" bounds={bounds} initialDate={timelinePoint.sar?.after} onMapChange={onForecastMapChange} />}
             <CaseSar c={c} />

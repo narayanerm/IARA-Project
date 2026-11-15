@@ -69,7 +69,7 @@ export function VoxelIntro({ onDone }: { onDone: () => void }) {
       <canvas ref={glRef} className="pxz-gl" aria-hidden="true" />
       <canvas ref={cvRef} className="pxz-c" aria-hidden="true" />
       <header ref={topoRef} className="pxz-topo">
-        <b>Curupira</b>
+        <b>IARA</b>
         <p>
           NASA Space Apps 2026
           <br />
