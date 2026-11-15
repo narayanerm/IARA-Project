@@ -1,4 +1,3 @@
-import { HelpCircle, MessageSquare, Mountain, Satellite, type LucideIcon } from 'lucide-react'
 import { SarMap } from './Map/SarMap'
 import { RightPanel } from './RightPanel/RightPanel'
 import { AskBar } from './Chatbot/AskBar'
@@ -47,14 +46,12 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           {aoiActive && (
             <>
               <HeaderToggle
-                icon={Satellite}
                 label={t('map.satellite')}
                 hint={t('map.satelliteHint')}
                 on={satelliteOn}
                 onToggle={toggleSatellite}
               />
               <HeaderToggle
-                icon={Mountain}
                 label={t('map.relief')}
                 hint={t('map.reliefHint')}
                 on={reliefOn}
@@ -63,7 +60,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
               />
               <span className="mx-0.5 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
               <HeaderToggle
-                icon={MessageSquare}
                 label={t('rp.chat')}
                 hint={t('ask.label')}
                 on={rightOpen}
@@ -80,11 +76,10 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           {!aoiActive && (
             <button
               onClick={() => triggerTutorial()}
-              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground sm:inline-flex"
+              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 font-sans text-[13px] font-bold tracking-[-0.005em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground sm:inline-flex"
               title={t('appLayout.tour')}
             >
-              <HelpCircle className="h-3.5 w-3.5" />
-              tour
+              Tour
             </button>
           )}
           <LanguageToggle compact />
@@ -121,14 +116,12 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
 }
 
 function HeaderToggle({
-  icon: Icon,
   label,
   hint,
   on,
   onToggle,
   className,
 }: {
-  icon: LucideIcon
   label: string
   hint: string
   on: boolean
@@ -143,15 +136,14 @@ function HeaderToggle({
       aria-label={label}
       title={hint}
       className={cn(
-        'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 font-mono text-[11px] uppercase tracking-[0.06em] transition-colors active:scale-[0.97] xl:px-3',
+        'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 font-sans text-[13px] font-bold tracking-[-0.005em] transition-colors active:scale-[0.97]',
         on
           ? 'border-foreground/70 bg-foreground text-background'
           : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground',
         className
       )}
     >
-      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-      <span className="hidden xl:inline">{label}</span>
+      <span>{label}</span>
     </button>
   )
 }
