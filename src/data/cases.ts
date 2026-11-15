@@ -26,6 +26,16 @@ export interface SeriesPoint {
   note: L
   /** Dates for the radar before/after pair; omitted when no satellite covers that year. */
   sar?: { before: string; after: string }
+  /** Visible-light (true colour) scenes for the before/after slider: previous low water and the flood. */
+  optical?: { before: OpticalScene; after: OpticalScene }
+}
+
+/** One Landsat or Sentinel-2 scene on Microsoft Planetary Computer. */
+export interface OpticalScene {
+  collection: 'landsat-c2-l2' | 'sentinel-2-l2a'
+  id: string
+  date: string
+  platform: string
 }
 
 export interface SeriesThreshold {
@@ -106,6 +116,8 @@ export interface RiverStage {
     url: string
   }
   sources: Array<{ label: string; url: string }>
+  /** Latest published reading at the gauge (static: no live feed reaches the app). */
+  latest?: { value: number; date: string; trend: 'rising' | 'falling' | 'steady'; source: string; url: string }
 }
 
 export interface CaseStudy {
@@ -134,6 +146,8 @@ export interface CaseStudy {
   hotspots: Hotspot[]
   hotspotsNote: L
   sarBbox: [number, number, number, number]
+  /** Tighter box for the visible-light slider (one Landsat/Sentinel-2 tile must cover it). */
+  opticalBbox?: [number, number, number, number]
   sarReading: L
   sources: Array<{ label: string; url: string }>
   questions: L[]
@@ -488,45 +502,143 @@ export const CASES: Record<RegionId, CaseStudy> = {
           value: 29.77,
           date: '2009-07-01',
           note: { pt: 'Supera a cheia de 1953 e abre a série de extremos.', en: 'Tops the 1953 flood and opens the run of extremes.' },
-          sar: { before: '2008-11-01', after: '2009-07-01' },
+          sar: { before: '2008-09-07', after: '2009-07-01' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_20080907_02_T1', date: '2008-09-07', platform: 'Landsat 5' },
+            after: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_20090708_02_T1', date: '2009-07-08', platform: 'Landsat 5' },
+          },
         },
         {
-          year: 2012,
-          value: 29.97,
-          date: '2012-05-29',
-          note: { pt: 'Novo recorde, 34 dias acima de 29,69 m.', en: 'New record, 34 days above 29.69 m.' },
-          sar: { before: '2011-11-01', after: '2012-05-29' },
+          year: 2014,
+          value: 29.5,
+          date: '2014-07-03',
+          note: { pt: 'Acima da cota de inundação severa (29 m).', en: 'Above the severe flood stage (29 m).' },
+          sar: { before: '2013-10-23', after: '2014-07-03' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20131023_02_T1', date: '2013-10-23', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20140706_02_T1', date: '2014-07-06', platform: 'Landsat 8' },
+          },
+        },
+        {
+          year: 2016,
+          value: 27.19,
+          date: '2016-06-15',
+          note: { pt: 'Ano sem inundação: o rio ficou abaixo de 27,50 m.', en: 'No flooding: the river stayed below 27.50 m.' },
+          sar: { before: '2015-09-11', after: '2016-06-15' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20150911_02_T1', date: '2015-09-11', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20160711_02_T1', date: '2016-07-11', platform: 'Landsat 8' },
+          },
+        },
+        {
+          year: 2017,
+          value: 29.0,
+          date: '2017-06-15',
+          note: { pt: 'Chegou à cota de inundação severa.', en: 'Reached the severe flood stage.' },
+          sar: { before: '2016-12-24', after: '2017-06-15' },
+          optical: {
+            before: { collection: 'sentinel-2-l2a', id: 'S2A_MSIL2A_20161224T142322_R010_T20MRB_20210214T001928', date: '2016-12-24', platform: 'Sentinel-2A' },
+            after: { collection: 'sentinel-2-l2a', id: 'S2B_MSIL2A_20170717T142319_R010_T20MRB_20210210T103259', date: '2017-07-17', platform: 'Sentinel-2B' },
+          },
+        },
+        {
+          year: 2018,
+          value: 28.38,
+          date: '2018-06-15',
+          note: { pt: 'Inundação, abaixo da cota severa.', en: 'Flooding, below the severe stage.' },
+          sar: { before: '2017-11-03', after: '2018-06-15' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20171103_02_T1', date: '2017-11-03', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20180615_02_T1', date: '2018-06-15', platform: 'Landsat 8' },
+          },
+        },
+        {
+          year: 2019,
+          value: 29.42,
+          date: '2019-06-24',
+          note: { pt: 'Acima da cota de inundação severa (29 m).', en: 'Above the severe flood stage (29 m).' },
+          sar: { before: '2018-10-21', after: '2019-06-24' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20181021_02_T1', date: '2018-10-21', platform: 'Landsat 8' },
+            after: { collection: 'sentinel-2-l2a', id: 'S2B_MSIL2A_20190727T142049_R010_T20MRB_20201106T033508', date: '2019-07-27', platform: 'Sentinel-2B' },
+          },
+        },
+        {
+          year: 2020,
+          value: 28.52,
+          date: '2020-06-15',
+          note: { pt: 'Inundação, abaixo da cota severa.', en: 'Flooding, below the severe stage.' },
+          sar: { before: '2019-11-25', after: '2020-06-15' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20191125_02_T1', date: '2019-11-25', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20200706_02_T1', date: '2020-07-06', platform: 'Landsat 8' },
+          },
         },
         {
           year: 2021,
           value: 30.02,
           date: '2021-06-16',
           note: { pt: 'Maior cheia da história: 58 dias acima de 29,69 m.', en: 'Largest flood on record: 58 days above 29.69 m.' },
-          sar: { before: '2020-11-01', after: '2021-06-16' },
+          sar: { before: '2020-10-26', after: '2021-06-16' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20201026_02_T1', date: '2020-10-26', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20210709_02_T1', date: '2021-07-09', platform: 'Landsat 8' },
+          },
         },
         {
           year: 2022,
           value: 29.75,
           date: '2022-06-22',
           note: { pt: 'Quarta maior, um ano depois do recorde.', en: 'Fourth largest, one year after the record.' },
-          sar: { before: '2021-11-01', after: '2022-06-22' },
+          sar: { before: '2021-12-28', after: '2022-06-22' },
+          optical: {
+            before: { collection: 'sentinel-2-l2a', id: 'S2A_MSIL2A_20211228T141741_R010_T20MRB_20230125T080922', date: '2021-12-28', platform: 'Sentinel-2A' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20220525_02_T1', date: '2022-05-25', platform: 'Landsat 8' },
+          },
         },
         {
           year: 2023,
           value: 28.3,
           date: '2023-06-20',
-          note: {
-            pt: 'Cheia comum, seguida pela pior seca até então: 15,60 m de diferença no mesmo ano.',
-            en: 'Ordinary flood, followed by the worst drought until then: a 15.60 m swing in one year.',
+          note: { pt: 'Cheia comum, seguida pela pior seca até então: 15,60 m de diferença no mesmo ano.', en: 'Ordinary flood, followed by the worst drought until then: a 15.60 m swing in one year.' },
+          sar: { before: '2022-10-08', after: '2023-06-20' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20221008_02_T1', date: '2022-10-08', platform: 'Landsat 9' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20230629_02_T1', date: '2023-06-29', platform: 'Landsat 8' },
           },
-          sar: { before: '2022-11-01', after: '2023-06-20' },
         },
         {
           year: 2024,
           value: 26.85,
           date: '2024-06-20',
           note: { pt: 'Rio abaixo da cota de inundação, em ano de seca recorde.', en: 'River below flood stage, in a record drought year.' },
-          sar: { before: '2023-11-01', after: '2024-06-20' },
+          sar: { before: '2023-10-11', after: '2024-06-20' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20231011_02_T1', date: '2023-10-11', platform: 'Landsat 9' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20240717_02_T1', date: '2024-07-17', platform: 'Landsat 8' },
+          },
+        },
+        {
+          year: 2025,
+          value: 29.04,
+          date: '2025-07-05',
+          note: { pt: 'Leitura parcial: passou de 29 m em julho.', en: 'Partial reading: above 29 m in July.' },
+          sar: { before: '2024-10-29', after: '2025-07-05' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20241029_02_T1', date: '2024-10-29', platform: 'Landsat 9' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20250805_02_T1', date: '2025-08-05', platform: 'Landsat 8' },
+          },
+        },
+        {
+          year: 2026,
+          value: 28.5,
+          date: '2026-06-30',
+          note: { pt: 'Leitura parcial: cerca de 28,50 m no fim de junho.', en: 'Partial reading: about 28.50 m at the end of June.' },
+          sar: { before: '2025-09-22', after: '2026-06-30' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20250922_02_T1', date: '2025-09-22', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20260731_02_T1', date: '2026-07-31', platform: 'Landsat 9' },
+          },
         },
       ],
       thresholds: [
@@ -535,8 +647,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       ],
       source: OLIVEIRA_2025,
       footnote: {
-        pt: 'Anos de destaque da série. Máximas de 2023 e 2024 calculadas a partir da amplitude anual do estudo.',
-        en: 'Highlight years of the series. 2023 and 2024 peaks derived from the annual range in the study.',
+        pt: 'Máximas de 2023 e 2024 calculadas a partir da amplitude anual do estudo; 2016–2020 segundo o Porto de Manaus.',
+        en: '2023 and 2024 peaks derived from the annual range in the study; 2016–2020 from the Porto de Manaus.',
       },
     },
     risk: {
@@ -598,6 +710,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
       en: 'Watch points placed from records of the 2021 and 2022 floods.',
     },
     sarBbox: [-60.3, -3.3, -59.75, -2.95],
+    opticalBbox: [-60.14, -3.2, -59.86, -3.02],
     sarReading: {
       pt: 'Água lisa funciona como espelho e não devolve sinal ao radar: aparece preta. Comparando a seca com a cheia, a área preta que cresce é a área alagada.',
       en: 'Smooth water acts like a mirror and returns no signal to the radar: it looks black. Comparing low and high water, the black area that grows is the flooded area.',
@@ -664,7 +777,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
       },
     ],
     riverStage: {
-      station: 'Rio Negro · Porto de Manaus (ANA 14990000)',
+      station: 'Rio Negro · Porto de Manaus',
       stationUrl: 'https://www.sgb.gov.br/sace/amazonas/ultimo_boletim.php',
       thresholds: [
         { value: 27.0, label: 'Alerta' },
@@ -674,9 +787,16 @@ export const CASES: Record<RegionId, CaseStudy> = {
       peaks: [
         { year: 1953, value: 29.69, date: '1953-06-09' },
         { year: 2009, value: 29.77, date: '2009-07-01' },
-        { year: 2012, value: 29.97, date: '2012-05-29' },
+        { year: 2014, value: 29.5, date: '2014-07-03' },
+        { year: 2016, value: 27.19, date: '2016-06' },
+        { year: 2017, value: 29.0, date: '2017-06' },
+        { year: 2018, value: 28.38, date: '2018-06' },
+        { year: 2019, value: 29.42, date: '2019-06-24' },
+        { year: 2020, value: 28.52, date: '2020-06' },
         { year: 2021, value: 30.02, date: '2021-06-16' },
         { year: 2022, value: 29.75, date: '2022-06-22' },
+        { year: 2023, value: 28.3, date: '2023-06-20' },
+        { year: 2024, value: 26.85, date: '2024-06-20' },
         { year: 2025, value: 29.04, date: '2025-07-05', approx: true },
         { year: 2026, value: 28.5, date: '2026-06-30', approx: true },
       ],
@@ -693,8 +813,15 @@ export const CASES: Record<RegionId, CaseStudy> = {
       sources: [
         { label: 'SGB · Alerta Hidrológico do Amazonas', url: 'https://www.sgb.gov.br/sace/amazonas/ultimo_boletim.php' },
         { label: 'Oliveira (2025) · cheias e secas extremas 1902–2024', url: 'https://static.even3.com/anais/1211771.pdf' },
-        { label: 'ANA · HidroWeb (estação 14990000)', url: 'https://www.snirh.gov.br/hidroweb/' },
+        { label: 'ANA · HidroWeb', url: 'https://www.snirh.gov.br/hidroweb/' },
       ],
+      latest: {
+        value: 16.59,
+        date: '2026-10-27',
+        trend: 'falling',
+        source: 'Porto de Manaus, via NC News',
+        url: 'https://ncnews.com.br/2026/10/27/rio-negro-baixa-2-metros-fica-abaixo/',
+      },
     },
   },
 
