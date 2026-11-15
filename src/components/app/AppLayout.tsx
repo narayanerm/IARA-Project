@@ -1,6 +1,7 @@
 import { HelpCircle, MessageSquare, Mountain, Radar, Satellite, type LucideIcon } from 'lucide-react'
 import { SarMap } from './Map/SarMap'
 import { RightPanel } from './RightPanel/RightPanel'
+import { AskBar } from './Chatbot/AskBar'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
 import { triggerTutorial } from './Tutorial/Tutorial'
@@ -25,6 +26,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const setNisarVisible = useApp((s) => s.setNisarVisible)
   const aoiActive = useApp((s) => s.aoiActive)
   const clearAoi = useApp((s) => s.clearAoi)
+  const caseArrived = useApp((s) => s.caseArrived)
   const [forecastMap, setForecastMap] = useState<ForecastMapProps | null>(null)
 
   return (
@@ -101,8 +103,21 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
         <SarMap forecast={aoiActive ? forecastMap : null} />
         <CaseView onForecastMapChange={setForecastMap} />
         <CasePicker introDone={introDone} />
-        {/* Assistant and tools open as a drawer over the map instead of a permanent rail. */}
-        {aoiActive && rightOpen && (
+        {/* Floating ask bar: on the home screen under the case cards, inside a case centred in the
+            map area the case panel leaves free. It steps aside while the assistant panel is open,
+            while the camera flies, and on phones inside a case (the case sheet covers the bottom). */}
+        {introDone && !rightOpen && (!aoiActive || caseArrived) && (
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-x-3 bottom-3 z-30 flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none',
+              aoiActive && 'hidden md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-6 md:bottom-6'
+            )}
+          >
+            <AskBar className={cn('pointer-events-auto', !aoiActive && 'max-w-[560px]')} />
+          </div>
+        )}
+        {/* Assistant and tools open as a drawer over the map (also on the home screen, for questions asked in the ask bar). */}
+        {rightOpen && (
           <div className="absolute inset-y-0 right-0 z-40 max-w-full shadow-2xl animate-in slide-in-from-right-6 fade-in duration-300 motion-reduce:animate-none">
             <RightPanel />
           </div>
