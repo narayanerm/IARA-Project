@@ -411,3 +411,8 @@
 @media (prefers-reduced-motion: reduce) {
   .layers-fx, .layers-leaves { display: none; }
 }
+
+/* The whole layer picker fades in right after the ask bar has unrolled. */
+.layers-enter { animation: layers-enter 750ms ease-out both; }
+@keyframes layers-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .layers-enter { animation-duration: 300ms; } }

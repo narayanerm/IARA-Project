@@ -62,6 +62,9 @@ const LAYER_LEAVES: { x: string; y: string; a: number; c: string; fly?: boolean 
   { x: '78%', y: 'calc(100% - 4px)', a: 60, c: '#3f9a5e', fly: true },
 ]
 
+// When the ask bar's unroll finishes after it mounts (see .ask-reveal .ask-unroll in index.css).
+const ASK_BAR_ENTRANCE_MS = 1750
+
 const thumb = (region: string, band: Band) => `/layer-thumbs/${region}-${band}.webp`
 
 /* Drawn thumbnails for the two overlays: scattered alert pixels, and mining polygons. */
@@ -159,6 +162,7 @@ export function YanomamiCaseControls() {
   const activeRegion = useApp((s) => s.activeRegion)
   const lang = useI18n((s) => s.lang)
   const aoiActive = useApp((s) => s.aoiActive)
+  const caseArrived = useApp((s) => s.caseArrived)
   const band = useUi((s) => s.yanomamiBand)
   const raddOn = useUi((s) => s.yanomamiRaddOn)
   const deterOn = useUi((s) => s.yanomamiDeterOn)
@@ -168,11 +172,23 @@ export function YanomamiCaseControls() {
   // Open by default (and again on every case change); the tile toggles it.
   const [open, setOpen] = useState(true)
   useEffect(() => setOpen(true), [activeRegion])
-  // Bumped on every open (and case change) so the entrance animation replays.
+  // The picker waits for the ask bar: it appears once the camera has arrived and the bar has unrolled
+  // (ask-unroll ends 1750ms after the bar mounts in index.css), then fades in.
+  const [shown, setShown] = useState(false)
+  useEffect(() => {
+    if (!caseArrived) {
+      setShown(false)
+      return
+    }
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const id = window.setTimeout(() => setShown(true), reduced ? 0 : ASK_BAR_ENTRANCE_MS + 150)
+    return () => window.clearTimeout(id)
+  }, [caseArrived, activeRegion])
+  // Bumped on every open once shown (and on case change) so the row's entrance replays when it is seen.
   const [openSeq, setOpenSeq] = useState(0)
   useEffect(() => {
-    if (open) setOpenSeq((n) => n + 1)
-  }, [open, activeRegion])
+    if (open && shown) setOpenSeq((n) => n + 1)
+  }, [open, shown, activeRegion])
 
   if (!aoiActive) return null
 
@@ -184,7 +200,11 @@ export function YanomamiCaseControls() {
 
   return (
     <div
-      className="pointer-events-auto absolute z-40 flex items-end gap-2 font-[Inter,ui-sans-serif,system-ui,sans-serif]"
+      className={cn(
+        'absolute z-40 flex items-end gap-2 font-[Inter,ui-sans-serif,system-ui,sans-serif]',
+        shown ? 'layers-enter pointer-events-auto' : 'pointer-events-none opacity-0'
+      )}
+      aria-hidden={!shown}
       style={{ right: 8, bottom: 44 }}
       onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
     >
@@ -200,7 +220,7 @@ export function YanomamiCaseControls() {
         aria-hidden={!open}
       >
         {/* Entrance: a river runs over the cards (clipped to the row), leaves rustle around the edges, then one flash. */}
-        {open && (
+        {open && shown && (
           <>
             <span className="layers-fx" aria-hidden="true">
               <svg className="layers-river" viewBox="0 0 1200 100" preserveAspectRatio="none">
