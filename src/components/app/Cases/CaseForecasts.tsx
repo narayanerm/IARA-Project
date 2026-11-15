@@ -10,7 +10,7 @@ import {
 import { PredictiveModels } from '../Map/PredictiveModels'
 
 const LAYERS = {
-  flood: [RIVER_FLOW, FLOOD_LAYER, FLOOD_EXTENT_LAYER],
+  flood: [RIVER_FLOW, FLOOD_LAYER, FLOOD_EXTENT_LAYER, SUBSEASONAL_RIVERS, SEASONAL_BASINS],
   drought: [SUBSEASONAL_RIVERS, SEASONAL_BASINS],
   observed: [MODIS_FLOOD, VIIRS_FLOOD],
   fire: [],
@@ -38,15 +38,16 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
   const [outlookRunDate, setOutlookRunDate] = useState<string | null>(null)
   const [outlookError, setOutlookError] = useState(false)
   const [outlookAttempt, setOutlookAttempt] = useState(0)
-  const [point, setPoint] = useState<ForecastPoint | null>(kind === 'flood' ? referencePoint : null)
+  const canSelectRiver = kind === 'flood' || kind === 'drought'
+  const [point, setPoint] = useState<ForecastPoint | null>(canSelectRiver ? referencePoint : null)
   const [focus, setFocus] = useState<ForecastPoint | null>(null)
   const [signals, setSignals] = useState<FloodSignal[]>([])
   const [chance, setChance] = useState<{ point: ForecastPoint; chance: FloodChance } | null>(null)
   const selectedGlofas = point
     ? signals.find((signal) => signal.glofas && signal.point[0] === point[0] && signal.point[1] === point[1])?.glofas
     : undefined
-  const riverChance = point ? (selectedGlofas ?? (chance?.point === point ? chance.chance : 'loading')) : null
-  const canSelectRiver = kind === 'flood' && (waterLayer === RIVER_FLOW || isFloodLayer(waterLayer))
+  const showFloodChance = kind === 'flood' && (waterLayer === RIVER_FLOW || isFloodLayer(waterLayer))
+  const riverChance = point && showFloodChance ? (selectedGlofas ?? (chance?.point === point ? chance.chance : 'loading')) : null
   const Icon = kind === 'observed' ? Satellite : CloudSun
   const title = {
     flood: pt ? 'Previsão de cheia' : 'Flood forecast',
@@ -102,6 +103,8 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
           mode={kind === 'fire' ? 'fire' : 'river'}
           layers={LAYERS[kind]}
           bounds={bounds}
+          showRiverFlow={canSelectRiver}
+          showFloodChance={showFloodChance}
           point={point}
           fireDate={fireDate}
           fireDates={fireDates}
@@ -121,7 +124,7 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
             setFloodError(false)
             setSignals([])
             setFocus(null)
-            setPoint(layer === RIVER_FLOW ? referencePoint : null)
+            setPoint(canSelectRiver ? referencePoint : null)
             setWaterLayer(layer)
           }}
           observedDate={date}

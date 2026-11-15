@@ -6,8 +6,9 @@ export type ForecastBounds = [west: number, south: number, east: number, north: 
 export function pointInForecastBounds([lon, lat]: ForecastPoint, [west, south, east, north]: ForecastBounds) {
   return lon >= west && lon <= east && lat >= south && lat <= north && inAmazon(lon, lat)
 }
-const RIVER_PREVIEW_POINTS: { name: string; point: ForecastPoint }[] = [
-  { name: 'Rio Negro · Manaus', point: [-59.98, -3.15] },
+const RIVER_PREVIEW_POINTS: { name: string; point: ForecastPoint; riverId?: number }[] = [
+  { name: 'Rio Negro · Manaus', point: [-59.94, -3.15], riverId: 621068228 },
+  { name: 'Solimões · Manaquiri', point: [-60.4526, -3.3361], riverId: 621098508 },
   { name: 'Solimões · Tefé', point: [-64.72, -3.35] },
   { name: 'Amazonas · Santarém', point: [-54.72, -2.38] },
   { name: 'Amazonas · Itacoatiara', point: [-58.46, -3.15] },
@@ -258,6 +259,8 @@ export async function loadFloodForecastSnapshot(signal: AbortSignal): Promise<Fl
 }
 
 export async function findForecastReach([longitude, latitude]: ForecastPoint, signal: AbortSignal): Promise<number | null> {
+  const reference = AMAZON_RIVER_SITES.find(({ point }) => point[0] === longitude && point[1] === latitude)
+  if (reference?.riverId) return reference.riverId
   const lon = ((longitude + 180) % 360 + 360) % 360 - 180
   const reach = await fetch(`${GEOGLOWS_API}/getriverid?lat=${latitude.toFixed(5)}&lon=${lon.toFixed(5)}`, { signal })
   if (reach.status === 404) return null

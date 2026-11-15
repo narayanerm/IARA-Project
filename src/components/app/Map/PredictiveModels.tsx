@@ -3,7 +3,7 @@ import { useI18n } from '@/lib/i18n'
 import { ForecastLegend } from './ForecastLegend'
 import {
   fetchFlowForecast,
-  AMAZON_RIVER_PREVIEWS,
+  AMAZON_RIVER_SITES,
   findForecastReach,
   fetchFloodChance,
   loadFloodForecastSnapshot,
@@ -49,11 +49,13 @@ const WATER_LABELS: Record<WaterOption, [string, string]> = {
   [MODIS_FLOOD]: ['Inundação observada · MODIS', 'Observed flooding · MODIS'],
 }
 
-export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance, selectedGlofas, observedDate, onObservedDate, outlookRunDate, outlookError, onOutlookRetry }: {
+export function PredictiveModels({ mode, layers, bounds, point, showRiverFlow, showFloodChance, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance, selectedGlofas, observedDate, onObservedDate, outlookRunDate, outlookError, onOutlookRetry }: {
   mode: 'river' | 'fire'
   layers: readonly WaterOption[]
   bounds: ForecastBounds
   point: ForecastPoint | null
+  showRiverFlow: boolean
+  showFloodChance: boolean
   fireDate: string
   fireDates: string[]
   onFireDate: (date: string) => void
@@ -77,17 +79,16 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
   const [attempt, setAttempt] = useState(0)
   const [chanceResult, setChanceResult] = useState<{ point: ForecastPoint; chance: FloodChance } | null>(null)
   const [regionalSignal, setRegionalSignal] = useState<{ layer: FloodLayer; point: ForecastPoint | null | 'error' } | null>(null)
-  const selected = mode === 'river' && (floodLayer === RIVER_FLOW || isFloodLayer(floodLayer)) ? point : null
-  const referencePoint = AMAZON_RIVER_PREVIEWS.find((candidate) => pointInForecastBounds(candidate, bounds))
+  const selected = showRiverFlow ? point : null
+  const referencePoint = AMAZON_RIVER_SITES.find(({ point: candidate }) => pointInForecastBounds(candidate, bounds))
 
   useEffect(() => {
-    if (mode !== 'river' || !(floodLayer === RIVER_FLOW || isFloodLayer(floodLayer))) return
+    if (!showRiverFlow) return
     const controller = new AbortController()
-    const referencePoints = floodLayer === FLOOD_LAYER || floodLayer === RIVER_FLOW
-      ? AMAZON_RIVER_PREVIEWS.filter((point) => pointInForecastBounds(point, bounds)).map((point) => ({ point, color: '#94a3b8' }))
-      : []
+    const referencePoints = AMAZON_RIVER_SITES.filter(({ point }) => pointInForecastBounds(point, bounds))
+      .map(({ point }) => ({ point, color: '#94a3b8' }))
     onFloodSignals(referencePoints)
-    if (floodLayer === RIVER_FLOW) return
+    if (!isFloodLayer(floodLayer)) return
     findRegionalFloodSignals(floodLayer, bounds, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
       .then((signals) => {
         if (controller.signal.aborted) return
@@ -96,7 +97,7 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
       })
       .catch(() => { if (!controller.signal.aborted) setRegionalSignal({ layer: floodLayer, point: 'error' }) })
     return () => controller.abort()
-  }, [mode, floodLayer, bounds, onFloodSignals])
+  }, [showRiverFlow, floodLayer, bounds, onFloodSignals])
 
   useEffect(() => {
     if (!selected) return
@@ -107,7 +108,7 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
       setChanceResult(next)
       onFloodChance(next)
     }
-    if (!selectedGlofas) updateChance('loading')
+    if (showFloodChance && !selectedGlofas) updateChance('loading')
     const selection = loadFloodForecastSnapshot(AbortSignal.any([controller.signal, AbortSignal.timeout(3000)]))
       .then(async (snapshot) => {
         controller.signal.throwIfAborted()
@@ -122,13 +123,13 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
         if (controller.signal.aborted) return
         setResult({ point: selected, error: true })
       })
-    if (!selectedGlofas) {
+    if (showFloodChance && !selectedGlofas) {
       selection.then(({ id, saved }) => saved?.chance ?? (id === null ? 'unavailable' as const : fetchFloodChance(id, AbortSignal.any([controller.signal, AbortSignal.timeout(45000)]))))
         .then(updateChance)
         .catch(() => updateChance('unavailable'))
     }
     return () => controller.abort()
-  }, [selected, attempt, onFloodChance, selectedGlofas])
+  }, [selected, attempt, onFloodChance, selectedGlofas, showFloodChance])
 
   const current = result?.point === selected ? result : null
   const chance = chanceResult?.point === selected ? chanceResult?.chance : 'loading'
@@ -165,9 +166,7 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
                 </p>
               )}
             </>
-          ) : (
-          <>
-          {floodLayer !== RIVER_FLOW && (
+          ) : isFloodLayer(floodLayer) ? (
           <>
           <p className="text-xs">{floodLayer === FLOOD_LAYER
             ? (pt ? 'Trechos com sinal de cheia nos próximos 15 dias. As cores comparam a vazão prevista com o histórico.' : 'River reaches with a flood signal over the next 15 days. Colors compare forecast discharge with historical flows.')
@@ -196,36 +195,24 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
           {floodError && <p role="status" className="mt-2">{pt ? 'Parte do mapa de cheias não pôde ser carregada.' : 'Some flood forecast tiles could not be loaded.'}</p>}
           <a href={FLOOD_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{FLOOD_ATTRIBUTION}</a>
           </>
-          )}
-          <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio no recorte para ver a previsão do trecho mais próximo.' : 'Click near a river in the case area to see the forecast for the closest modeled reach.'}</p>
-          {referencePoint && (
-            <button type="button" className="mt-2 rounded border border-border px-2 py-1 text-xs hover:bg-secondary" onClick={() => onFloodFocus(referencePoint)}>
-              {pt ? 'Ver previsão no Rio Negro' : 'View Rio Negro forecast'}
-            </button>
-          )}
-          {selectedGlofas?.band && (
-            <p className="mt-2 text-xs font-semibold">
-              {pt
-                ? `GloFAS: ${selectedGlofas.band.range} de chance de superar o limiar de ${selectedGlofas.band.threshold} anos em 15 dias.`
-                : `GloFAS: ${selectedGlofas.band.range} chance of exceeding the ${selectedGlofas.band.threshold}-year threshold over 15 days.`}
+          ) : null}
+          {showRiverFlow && (
+          <>
+          <h4 className="mt-3 border-t border-border pt-2 text-sm font-semibold">
+            {pt ? 'Vazão prevista · GEOGLOWS' : 'Streamflow forecast · GEOGLOWS'}
+          </h4>
+          {referencePoint && selected === referencePoint.point && <p className="mt-1 text-xs">{referencePoint.name}</p>}
+          {!showFloodChance && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {pt ? 'Previsão diária do trecho do rio. A perspectiva sazonal acima compara vazões com o normal para a época.'
+                : 'Daily forecast for the selected reach. The outlook above compares flows with what is normal for the season.'}
             </p>
           )}
-          {selectedGlofas && !selectedGlofas.band && (
-            <p className="mt-2 text-xs">{pt ? 'Esta camada GloFAS não fornece uma porcentagem para este ponto.' : 'This GloFAS layer supplies no percentage for this point.'}</p>
-          )}
-          {selected && !selectedGlofas && <p className="mt-1 text-xs text-muted-foreground">{pt
-            ? 'A porcentagem indica quantos cenários GEOGLOWS superam o limiar de vazão diária de 2 anos ao menos uma vez em 7 dias (UTC).'
-            : 'The percentage is the share of GEOGLOWS scenarios exceeding the 2-year daily flow threshold at least once over 7 days (UTC).'}
-          </p>}
-          {selected && !selectedGlofas && (
-            <div className="mt-2 text-xs" aria-live="polite">
-              {typeof chance === 'number'
-                ? <strong>{pt ? 'Chance em 7 dias' : '7-day chance'} · {chance}%</strong>
-                : chance === 'unavailable'
-                  ? <>{pt ? 'Chance indisponível.' : 'Chance unavailable.'}{' '}
-                    <button type="button" className="underline" onClick={() => setAttempt((n) => n + 1)}>{pt ? 'Tentar novamente' : 'Retry'}</button></>
-                  : (pt ? 'Calculando a chance de vazão alta…' : 'Calculating high-flow chance…')}
-            </div>
+          <p className="mt-2 text-xs">{pt ? 'Clique perto de um rio no recorte para ver a previsão do trecho mais próximo.' : 'Click near a river in the case area to see the forecast for the closest modeled reach.'}</p>
+          {referencePoint && (
+            <button type="button" className="mt-2 rounded border border-border px-2 py-1 text-xs hover:bg-secondary" onClick={() => onFloodFocus(referencePoint.point)}>
+              {pt ? `Ver no mapa · ${referencePoint.name}` : `Show on map · ${referencePoint.name}`}
+            </button>
           )}
           <div aria-live="polite" className="mt-2">
             {selected && !current && <p>{pt ? 'Carregando previsão…' : 'Loading forecast…'}</p>}
@@ -239,7 +226,14 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
             )}
             {current && 'data' in current && !current.data?.days.length && <p>{pt ? 'Nenhuma previsão disponível aqui.' : 'No forecast available here.'}</p>}
             {current && 'data' in current && !!current.data?.days.length && (
-              <table className="w-full text-xs tabular-nums">
+              <>
+              <div className="mb-2 rounded border border-border bg-secondary/30 p-2 text-xs">
+                <span className="block text-muted-foreground">{pt ? 'Próxima vazão mediana prevista' : 'Next forecast median flow'} · {formatDate(current.data.days[0].date)}</span>
+                <strong className="text-lg tabular-nums">{flowFormat.format(current.data.days[0].median)} m³/s</strong>
+              </div>
+              <details>
+              <summary className="cursor-pointer py-1 text-xs underline">{pt ? 'Ver vazão por dia' : 'See daily streamflow'}</summary>
+              <table className="mt-1 w-full text-xs tabular-nums">
                 <caption className="mb-1 text-left">
                   {pt ? 'Trecho' : 'Reach'} {current.data.riverId} · m³/s · 00:00 UTC
                 </caption>
@@ -260,8 +254,34 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
                   ))}
                 </tbody>
               </table>
+              </details>
+              </>
             )}
           </div>
+          {selectedGlofas?.band && (
+            <p className="mt-2 text-xs font-semibold">
+              {pt
+                ? `GloFAS: ${selectedGlofas.band.range} de chance de superar o limiar de ${selectedGlofas.band.threshold} anos em 15 dias.`
+                : `GloFAS: ${selectedGlofas.band.range} chance of exceeding the ${selectedGlofas.band.threshold}-year threshold over 15 days.`}
+            </p>
+          )}
+          {selectedGlofas && !selectedGlofas.band && (
+            <p className="mt-2 text-xs">{pt ? 'Esta camada GloFAS não fornece uma porcentagem para este ponto.' : 'This GloFAS layer supplies no percentage for this point.'}</p>
+          )}
+          {showFloodChance && selected && !selectedGlofas && <p className="mt-1 text-xs text-muted-foreground">{pt
+            ? 'A porcentagem indica quantos cenários GEOGLOWS superam o limiar de vazão diária de 2 anos ao menos uma vez em 7 dias (UTC).'
+            : 'The percentage is the share of GEOGLOWS scenarios exceeding the 2-year daily flow threshold at least once over 7 days (UTC).'}
+          </p>}
+          {showFloodChance && selected && !selectedGlofas && (
+            <div className="mt-2 text-xs" aria-live="polite">
+              {typeof chance === 'number'
+                ? <strong>{pt ? 'Chance em 7 dias' : '7-day chance'} · {chance}%</strong>
+                : chance === 'unavailable'
+                  ? <>{pt ? 'Chance indisponível.' : 'Chance unavailable.'}{' '}
+                    <button type="button" className="underline" onClick={() => setAttempt((n) => n + 1)}>{pt ? 'Tentar novamente' : 'Retry'}</button></>
+                  : (pt ? 'Calculando a chance de vazão alta…' : 'Calculating high-flow chance…')}
+            </div>
+          )}
           <a href={GEOGLOWS_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">GEOGLOWS · ECMWF</a>
           </>
           )}

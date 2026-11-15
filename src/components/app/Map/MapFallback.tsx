@@ -337,11 +337,9 @@ export function MapFallback({ region, fireDate, floodLayer, observedDate, outloo
           <CircleMarker center={[selectedForecastPoint[1], selectedForecastPoint[0]]} radius={13}
             interactive={false} pathOptions={{ stroke: false, fill: false }}
           >
-            {riverChance !== null && (
-              <Tooltip permanent direction="center" className="!border-0 !bg-transparent !p-0 !shadow-none before:!hidden">
-                <FloodProbability chance={riverChance} />
-              </Tooltip>
-            )}
+            <Tooltip permanent direction="center" className="!border-0 !bg-transparent !p-0 !shadow-none before:!hidden">
+              <FloodProbability chance={riverChance} />
+            </Tooltip>
           </CircleMarker>
         )}
       </MapContainer>

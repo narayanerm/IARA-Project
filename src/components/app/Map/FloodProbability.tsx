@@ -3,7 +3,9 @@ import { FLOOD_EXTENT_LAYER, floodChanceColor, type FloodChance } from '@/lib/pr
 
 export function FloodProbability({ chance }: { chance: FloodChance }) {
   const pt = useI18n((state) => state.lang === 'pt')
-  if (chance === null) return null
+  if (chance === null) {
+    return <span aria-hidden="true" className="block size-7 rounded-full border-2 border-cyan-300 shadow-[0_0_0_2px_#172033]" />
+  }
   const glofas = typeof chance === 'object' ? chance : null
   const label = glofas?.band
     ? (pt ? `GloFAS · 15 dias · limiar de ${glofas.band.threshold} anos` : `GloFAS · 15 days · ${glofas.band.threshold}-year threshold`)
