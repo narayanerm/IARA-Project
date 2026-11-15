@@ -758,6 +758,6 @@
 
 /* Overview panel in liquid glass (class added in CaseView). */
 .case-panel.liquid-glass {
-  background: linear-gradient(155deg, rgb(255 255 255 / 0.10) 0%, rgb(255 255 255 / 0.03) 38%, rgb(255 255 255 / 0) 60%), rgb(10 16 14 / 0.58);
+  background: linear-gradient(155deg, rgb(255 255 255 / 0.10) 0%, rgb(255 255 255 / 0.03) 38%, rgb(255 255 255 / 0) 60%), rgb(10 16 14 / 0.68);
 }
 .case-panel.liquid-glass > * { position: relative; z-index: 1; }
