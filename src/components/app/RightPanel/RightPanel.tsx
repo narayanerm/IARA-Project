@@ -10,7 +10,7 @@ import { NisarPanel } from '../NisarPanel/NisarPanel'
 import { Capybara } from '../Chatbot/Capybara'
 
 // The assistant tab wears the capybara instead of a stock icon.
-const CapyIcon = (({ className }: { className?: string }) => <Capybara className={cn(className, 'scale-[1.5]')} />) as unknown as LucideIcon
+const CapyIcon = (({ className }: { className?: string }) => <Capybara className={cn(className, 'scale-[1.3]')} />) as unknown as LucideIcon
 
 const TABS: Array<{ id: RightTab; icon: LucideIcon; label: TKey }> = [
   { id: 'nisar', icon: Satellite, label: 'rp.nisar' },

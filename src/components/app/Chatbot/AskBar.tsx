@@ -91,7 +91,7 @@ export function AskBar({ className, reveal = false }: { className?: string; reve
       >
         <Capybara mood={thinking ? 'thinking' : showBalloon && reply ? 'talking' : 'idle'} />
         {/* two leaves in front, so she sits in the tuft instead of on top of it */}
-        <svg className="ask-capy-front" viewBox="0 0 54 20" aria-hidden="true">
+        <svg className="ask-capy-front" viewBox="0 0 66 20" aria-hidden="true">
           <g transform="translate(20 17) rotate(-158) scale(1.15)">
             <path d="M0 0C3.2-4.4 9.6-6.2 15.6-4.9C13.9 1.2 8.6 4.9 3.1 4.4C1.8 4.3.8 2.8 0 0Z" fill="var(--leaf-2, #79c97a)" />
             <path d="M0.6 0.2C5 -1 9.5 -2.2 14.4 -4.4" stroke="rgb(0 0 0 / 0.28)" strokeWidth="0.6" fill="none" />
@@ -107,7 +107,7 @@ export function AskBar({ className, reveal = false }: { className?: string; reve
           e.preventDefault()
           submit(text)
         }}
-        className={cn('flex h-11 items-center gap-2 rounded-lg border border-border bg-card/70 pl-9 pr-1.5 backdrop-blur-sm focus-within:border-foreground/30', reveal && 'ask-unroll')}
+        className={cn('flex h-11 items-center gap-2 rounded-lg border border-border bg-card/70 pl-10 pr-1.5 backdrop-blur-sm focus-within:border-foreground/30', reveal && 'ask-unroll')}
       >
         <label htmlFor="ask-bar-input" className="sr-only">
           {t('ask.label')}
