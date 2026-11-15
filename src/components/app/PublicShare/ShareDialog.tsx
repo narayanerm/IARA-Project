@@ -6,7 +6,6 @@ import {
   Download,
   FileJson,
   Link as LinkIcon,
-  Share2,
   TableProperties,
   X,
 } from 'lucide-react'
@@ -122,12 +121,11 @@ export function ShareDialog() {
       <Dialog.Trigger asChild>
         <button
           className={cn(
-            'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground active:scale-[0.97]'
+            'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 font-sans text-[13px] font-bold tracking-[-0.005em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground active:scale-[0.97]'
           )}
           aria-label={t('share.aria.openShare')}
         >
-          <Share2 className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">{t('share.trigger')}</span>
+          <span>{t('share.trigger')}</span>
         </button>
       </Dialog.Trigger>
 
