@@ -4,36 +4,32 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { REGIONS } from '@/lib/regions'
-import { YANO_MINING } from '@/data/mocks/yanomami-mining'
-import { useApp } from '@/lib/store'
+import { useApp, useUi } from '@/lib/store'
 import { useDeterAlerts } from '@/lib/useDeterAlerts'
-import { useIbgeMunicipios, UF_CODE_BY_REGION } from '@/lib/useIbgeMunicipios'
 import { GIBS_BY_REGION } from '@/lib/gibs'
 import { useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
 import { inAmazon } from '@/lib/amazon'
 
-import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
 
-import { AMAZON_CENTER, AMAZON_ZOOM, BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN } from './constants'
+import { BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN, TERRAIN_MIN_ZOOM } from './constants'
 import { useBasemapAdapter } from './hooks/useBasemapAdapter'
-import { useMapCamera } from './hooks/useMapCamera'
+import { OVERVIEW_CENTER, OVERVIEW_ZOOM, useMapCamera } from './hooks/useMapCamera'
 import { useFocusedTi } from './hooks/useFocusedTi'
+import { HomeButton } from './overlays/HomeButton'
 
 import { TerrainSource } from './layers/TerrainSource'
 import { SatelliteLayer } from './layers/SatelliteLayer'
 import { AmazonBiomeLayer } from './layers/AmazonBiomeLayer'
 import { GibsTrueColorLayer, GibsOverlayLayer } from './layers/GibsLayers'
-import { YanoChangeLayer } from './layers/YanoChangeLayer'
-import { AffectedAreasLayer } from './layers/AffectedAreasLayer'
 import { FocusedTiMask } from './layers/FocusedTiMask'
 import { DeterLayer } from './layers/DeterLayer'
-import { IbgeMunicipiosLayer } from './layers/IbgeMunicipiosLayer'
 
-import { OverlayLegend } from './overlays/OverlayLegend'
-import { FocusedTiBadge } from './overlays/FocusedTiBadge'
+import { CaseMarkers } from './layers/CaseMarkers'
+import { CaseOutlineLayer } from './layers/CaseOutlineLayer'
+import { YANO_DETER_BBOX } from '../Cases/CaseAlerts'
 
 // Bundling drops MapLibre's sibling worker file, so point it at the emitted asset.
 maplibregl.setWorkerUrl(maplibreWorkerUrl)
@@ -44,7 +40,6 @@ export function SarMap() {
   const aoiActive = useApp((s) => s.aoiActive)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
-  const selectPolygon = useApp((s) => s.selectPolygon)
   const setNisarPoint = useApp((s) => s.setNisarPoint)
   const setNisarNotice = useApp((s) => s.setNisarNotice)
   const t = useT()
@@ -53,48 +48,49 @@ export function SarMap() {
   const gibs = GIBS_BY_REGION[activeRegion]
 
   const focused = useFocusedTi()
-  const deter = useDeterAlerts(focused.bbox)
-
-  const [municipiosOn, setMunicipiosOn] = useState(false)
-  const ibge = useIbgeMunicipios(UF_CODE_BY_REGION[activeRegion] ?? null, municipiosOn)
+  // Near-real-time DETER alerts follow the Yanomami case; a focused TI still takes precedence.
+  const yanoCase = aoiActive && activeRegion === 'YANO'
+  const deter = useDeterAlerts(focused.bbox ?? (yanoCase ? YANO_DETER_BBOX : null))
 
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [terrainOn, setTerrainOn] = useState(false)
-  const [satelliteOn, setSatelliteOn] = useState(false)
+  const reliefOn = useUi((s) => s.reliefOn)
+  const satelliteOn = useUi((s) => s.satelliteOn)
   // First label layer of the basemap: imagery goes under it so place and river names stay readable.
   const [labelLayerId, setLabelLayerId] = useState<string>()
   useMapCamera(mapRef, region, mapLoaded)
   useBasemapAdapter(() => mapRef.current?.getMap(), satelliteOn, mapLoaded)
 
-  // Terrain is opt-in: draping the map over the DEM renders through an offscreen texture,
-  // which costs frames and softens every layer on top of it.
+  // 3D relief: drape the map over the DEM only when zoomed in enough for it to show.
   useEffect(() => {
     const m = mapRef.current?.getMap()
     if (!m || !mapLoaded) return
-    if (terrainOn && !m.getSource(TERRAIN.source)) return
-    m.setTerrain(terrainOn ? TERRAIN : null)
-  }, [terrainOn, mapLoaded])
-
-  const onClick = (e: MapLayerMouseEvent) => {
-    const f = e.features?.[0]
-    if (!f) {
-      selectPolygon(null)
-      const { lng, lat } = e.lngLat
-      if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
-      else setNisarNotice(t('nisar.outsideAmazon'))
-      return
+    const sync = () => {
+      const want = reliefOn && m.getZoom() >= TERRAIN_MIN_ZOOM && !!m.getSource(TERRAIN.source)
+      if (want !== !!m.getTerrain()) m.setTerrain(want ? TERRAIN : null)
     }
-    const id = (f.properties as { id?: string })?.id
-    if (!id) return
-    const found = YANO_MINING.find((p) => p.id === id) ?? null
-    selectPolygon(found)
+    sync()
+    m.on('zoomend', sync)
+    m.on('sourcedata', sync)
+    // Tilt once so the relief is visible right away; a flat camera hides the mesh.
+    if (reliefOn && m.getPitch() < 20) m.easeTo({ pitch: PITCH, duration: 800, essential: true })
+    return () => {
+      m.off('zoomend', sync)
+      m.off('sourcedata', sync)
+      if (m.getTerrain()) m.setTerrain(null)
+    }
+  }, [reliefOn, mapLoaded])
+
+  // A click on the map points the live NISAR catalogue at that spot.
+  const onClick = (e: MapLayerMouseEvent) => {
+    const { lng, lat } = e.lngLat
+    if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
+    else setNisarNotice(t('nisar.outsideAmazon'))
   }
 
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
         <MapFallback region={region} />
-        <OverlayLegend />
       </div>
     )
   }
@@ -107,16 +103,15 @@ export function SarMap() {
         }}
         mapLib={maplibregl}
         initialViewState={{
-          longitude: aoiActive ? region.center[0] : AMAZON_CENTER[0],
-          latitude: aoiActive ? region.center[1] : AMAZON_CENTER[1],
-          zoom: aoiActive ? region.zoom : AMAZON_ZOOM,
+          longitude: aoiActive ? region.center[0] : OVERVIEW_CENTER[0],
+          latitude: aoiActive ? region.center[1] : OVERVIEW_CENTER[1],
+          zoom: aoiActive ? region.zoom : OVERVIEW_ZOOM,
           pitch: aoiActive ? PITCH : 0,
           bearing: aoiActive ? BEARING : 0,
         }}
         maxPitch={60}
         mapStyle={BASEMAP_URL}
-        interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
-        onClick={onClick}
+                onClick={onClick}
         onLoad={(e) => {
           setLabelLayerId(
             e.target.getStyle().layers.find((l) => l.type === 'symbol')?.id ?? 'amazon-biome-fill'
@@ -125,12 +120,12 @@ export function SarMap() {
         }}
         attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
-        <TerrainSource />
+        <TerrainSource on={reliefOn} beforeId={labelLayerId} />
         <SatelliteLayer on={satelliteOn} beforeId={labelLayerId} />
 
         <AmazonBiomeLayer />
 
-        <CommunityAreas />
+        <CaseOutlineLayer />
         {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
         <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
 
@@ -138,36 +133,12 @@ export function SarMap() {
         <GibsOverlayLayer on={nasaOverlay} gibs={gibs} />
 
         <NisarImagery />
-        <YanoChangeLayer activeRegion={activeRegion} />
-        <AffectedAreasLayer activeRegion={activeRegion} />
         <FocusedTiMask focused={focused} />
-        <IbgeMunicipiosLayer on={municipiosOn} data={ibge.data} />
-        <DeterLayer focusedTi={focused.name} deter={deter} />
+        <DeterLayer focusedTi={focused.name ?? (yanoCase ? 'TI Yanomami' : null)} deter={deter} />
 
-        <CommunityPoints />
+        <CaseMarkers />
       </Map>
-
-      <OverlayLegend
-        terrainOn={terrainOn}
-        onToggleTerrain={() => setTerrainOn((v) => !v)}
-        satelliteOn={satelliteOn}
-        onToggleSatellite={() => setSatelliteOn((v) => !v)}
-        municipiosOn={municipiosOn}
-        onToggleMunicipios={() => setMunicipiosOn((v) => !v)}
-        municipiosLoading={ibge.loading}
-      />
-      {focused.name && (
-        <FocusedTiBadge
-          tiName={focused.name}
-          funaiProps={focused.funaiProps}
-          localProps={focused.localProps}
-          sourceLabel={focused.sourceLabel}
-          loading={focused.funaiLoading}
-          error={focused.funaiError}
-          deterCount={deter.count}
-          deterLoading={deter.loading}
-        />
-      )}
+      <HomeButton />
     </div>
   )
 }

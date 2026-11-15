@@ -1,0 +1,12 @@
+Coloque aqui as fotos e vídeos deste caso. O app lê a pasta sozinho, sem mexer no código.
+Os arquivos entram em ordem alfabética, então use números no começo do nome (01-, 02-, ...).
+
+- Capa do quadro (parado, sem o mouse em cima): a imagem de radar (SAR) da região do caso.
+  O app busca sozinho no ASF a mesma cena que o painel mostra. Para usar uma imagem sua no
+  lugar, salve aqui um arquivo com "sar" no nome (por exemplo 00-sar.jpg ou 00-sar-vv.png);
+  ele vira a capa e o app não busca mais no ASF.
+- Vídeo: .mp4 (H.264) ou .webm, sem áudio, até ~4 MB, de preferência 720p ou 1080p.
+  Toca ao passar o mouse no quadro e ao selecionar o caso. Só o primeiro vídeo da pasta é usado.
+- Fotos (.jpg ou .webp, sem "sar" no nome): só aparecem se a pasta não tiver vídeo; aí giram
+  a cada 2,6 s enquanto o mouse está em cima.
+- Se o radar não responder e não houver arquivo "sar", a capa é a imagem de satélite Sentinel-2.
