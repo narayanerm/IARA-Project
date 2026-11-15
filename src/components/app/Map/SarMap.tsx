@@ -1,34 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Map, {
-  Layer,
-  Marker,
-  Source,
-  type MapLayerMouseEvent,
-  type MapRef,
-} from 'react-map-gl/maplibre'
+import Map, { Layer, Marker, Source, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/maplibre'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { REGIONS } from '@/lib/regions'
-import { YANO_MINING } from '@/data/mocks/yanomami-mining'
-import { useApp } from '@/lib/store'
+import { useApp, useUi } from '@/lib/store'
 import { useDeterAlerts } from '@/lib/useDeterAlerts'
-import { useIbgeMunicipios, UF_CODE_BY_REGION } from '@/lib/useIbgeMunicipios'
 import { GIBS_BY_REGION } from '@/lib/gibs'
 import { useI18n, useT } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
-import { AMAZON_WATER_BOUNDS, FLOOD_ATTRIBUTION, waterTileTemplate, isObservedFlood, isWaterOutlook, NASA_FLOOD_ATTRIBUTION, gwisMapUrl, GWIS_ATTRIBUTION, type WaterLayer, type ForecastMapProps } from '@/lib/predictive-models'
+import { inAmazon } from '@/lib/amazon'
+import { FLOOD_ATTRIBUTION, waterTileTemplate, isObservedFlood, SEASONAL_BASINS, NASA_FLOOD_ATTRIBUTION, gwisMapUrl, GWIS_ATTRIBUTION, type WaterLayer, type ForecastMapProps } from '@/lib/predictive-models'
 import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
 import { FloodProbability } from './FloodProbability'
-import { inAmazon } from '@/lib/amazon'
 
-import { CommunityAreas, CommunityPoints } from './CommunityLayers'
 import { MapFallback } from './MapFallback'
 import { NisarImagery } from './NisarImagery'
 
-import { AMAZON_CENTER, AMAZON_ZOOM, BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN } from './constants'
+import { BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN, TERRAIN_MIN_ZOOM } from './constants'
 import { useBasemapAdapter } from './hooks/useBasemapAdapter'
-import { useMapCamera } from './hooks/useMapCamera'
+import { OVERVIEW_CENTER, OVERVIEW_ZOOM, useMapCamera } from './hooks/useMapCamera'
 import { useFocusedTi } from './hooks/useFocusedTi'
+import { HomeButton } from './overlays/HomeButton'
+
+import { TerrainSource } from './layers/TerrainSource'
+import { SatelliteLayer } from './layers/SatelliteLayer'
+import { AmazonBiomeLayer } from './layers/AmazonBiomeLayer'
+import { GibsTrueColorLayer, GibsOverlayLayer } from './layers/GibsLayers'
+import { FocusedTiMask } from './layers/FocusedTiMask'
+import { DeterLayer } from './layers/DeterLayer'
+
+import { CaseMarkers } from './layers/CaseMarkers'
+import { CaseOutlineLayer } from './layers/CaseOutlineLayer'
+import { YANO_DETER_BBOX } from '../Cases/CaseAlerts'
+
+// Bundling drops MapLibre's sibling worker file, so point it at the emitted asset.
+maplibregl.setWorkerUrl(maplibreWorkerUrl)
+
 maplibregl.addProtocol('amazon-forecast', async ({ url }, { signal }) => {
   const [kind, value, date, zoom, column, row] = url.slice('amazon-forecast://'.length).split('/')
   const tileUrl = kind === 'fire' ? gwisMapUrl(date, '{bbox}') : waterTileTemplate(value as WaterLayer, date)
@@ -36,41 +44,31 @@ maplibregl.addProtocol('amazon-forecast', async ({ url }, { signal }) => {
   const hideInsufficientData = kind === 'flood' && isObservedFlood(value as WaterLayer)
   await drawAmazonForecastTile(canvas, tileUrl, { z: Number(zoom), x: Number(column), y: Number(row) }, signal, hideInsufficientData)
   const blob = await new Promise<Blob>((resolve, reject) =>
-    canvas.toBlob((image) => image ? resolve(image) : reject(new Error('Could not encode the fire tile'))))
+    canvas.toBlob((image) => image ? resolve(image) : reject(new Error('Could not encode the forecast tile'))))
   return { data: await blob.arrayBuffer() }
 })
 
 
-import { TerrainSource } from './layers/TerrainSource'
-import { SatelliteLayer } from './layers/SatelliteLayer'
-import { AmazonBiomeLayer } from './layers/AmazonBiomeLayer'
-import { GibsTrueColorLayer, GibsOverlayLayer } from './layers/GibsLayers'
-import { YanoChangeLayer } from './layers/YanoChangeLayer'
-import { AffectedAreasLayer } from './layers/AffectedAreasLayer'
-import { FocusedTiMask } from './layers/FocusedTiMask'
-import { DeterLayer } from './layers/DeterLayer'
-import { IbgeMunicipiosLayer } from './layers/IbgeMunicipiosLayer'
+const EMPTY_FORECAST: ForecastMapProps = {
+  fireDate: null, floodLayer: null, observedDate: '', floodFocus: null, floodSignals: [],
+  riverPoint: null, riverChance: null, onFireTileError: () => {}, onFloodTileError: () => {},
+}
 
-import { OverlayLegend } from './overlays/OverlayLegend'
-import { FocusedTiBadge } from './overlays/FocusedTiBadge'
-
-export function SarMap({ fireDate, floodLayer, observedDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: ForecastMapProps) {
+export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
+  const config = forecast ?? EMPTY_FORECAST
+  const { fireDate, floodLayer, observedDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError } = config
   const signalLabel = useI18n((s) => s.lang === 'pt' ? 'Ver previsão de vazão neste ponto' : 'View river forecast at this point')
-  const selectedForecastPoint = riverPoint ?? floodFocus
-  const mapRef = useRef<MapRef | null>(null)
   const observedFlood = floodLayer !== null && isObservedFlood(floodLayer)
   const waterSourceId = observedFlood ? 'nasa-observed-flood' : 'glofas-flood'
+  const mapRef = useRef<MapRef | null>(null)
   useEffect(() => {
-    if (isWaterOutlook(floodLayer)) mapRef.current?.fitBounds(AMAZON_WATER_BOUNDS, { padding: 36, pitch: 0, bearing: 0 })
-  }, [floodLayer])
-  useEffect(() => {
-    if (floodFocus) mapRef.current?.flyTo({ center: floodFocus, zoom: 7, pitch: 0, bearing: 0 })
+    const map = mapRef.current
+    if (floodFocus && map) map.easeTo({ center: floodFocus, duration: 600 })
   }, [floodFocus])
   const activeRegion = useApp((s) => s.activeRegion)
   const aoiActive = useApp((s) => s.aoiActive)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
-  const selectPolygon = useApp((s) => s.selectPolygon)
   const setNisarPoint = useApp((s) => s.setNisarPoint)
   const setNisarNotice = useApp((s) => s.setNisarNotice)
   const t = useT()
@@ -79,52 +77,50 @@ export function SarMap({ fireDate, floodLayer, observedDate, floodFocus, floodSi
   const gibs = GIBS_BY_REGION[activeRegion]
 
   const focused = useFocusedTi()
-  const deter = useDeterAlerts(focused.bbox)
-
-  const [municipiosOn, setMunicipiosOn] = useState(false)
-  const ibge = useIbgeMunicipios(UF_CODE_BY_REGION[activeRegion] ?? null, municipiosOn)
+  // Near-real-time DETER alerts follow the Yanomami case; a focused TI still takes precedence.
+  const yanoCase = aoiActive && activeRegion === 'YANO'
+  const deter = useDeterAlerts(focused.bbox ?? (yanoCase ? YANO_DETER_BBOX : null))
 
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [terrainOn, setTerrainOn] = useState(false)
-  const [satelliteOn, setSatelliteOn] = useState(false)
+  const reliefOn = useUi((s) => s.reliefOn)
+  const satelliteOn = useUi((s) => s.satelliteOn)
   // First label layer of the basemap: imagery goes under it so place and river names stay readable.
   const [labelLayerId, setLabelLayerId] = useState<string>()
   useMapCamera(mapRef, region, mapLoaded)
   useBasemapAdapter(() => mapRef.current?.getMap(), satelliteOn, mapLoaded)
 
-  // Terrain is opt-in: draping the map over the DEM renders through an offscreen texture,
-  // which costs frames and softens every layer on top of it.
+  // 3D relief: drape the map over the DEM only when zoomed in enough for it to show.
   useEffect(() => {
     const m = mapRef.current?.getMap()
     if (!m || !mapLoaded) return
-    if (terrainOn && !m.getSource(TERRAIN.source)) return
-    m.setTerrain(terrainOn ? TERRAIN : null)
-  }, [terrainOn, mapLoaded])
+    const sync = () => {
+      const want = reliefOn && m.getZoom() >= TERRAIN_MIN_ZOOM && !!m.getSource(TERRAIN.source)
+      if (want !== !!m.getTerrain()) m.setTerrain(want ? TERRAIN : null)
+    }
+    sync()
+    m.on('zoomend', sync)
+    m.on('sourcedata', sync)
+    // Tilt once so the relief is visible right away; a flat camera hides the mesh.
+    if (reliefOn && m.getPitch() < 20) m.easeTo({ pitch: PITCH, duration: 800, essential: true })
+    return () => {
+      m.off('zoomend', sync)
+      m.off('sourcedata', sync)
+      if (m.getTerrain()) m.setTerrain(null)
+    }
+  }, [reliefOn, mapLoaded])
 
+  // A click on the map points the live NISAR catalogue at that spot.
   const onClick = (e: MapLayerMouseEvent) => {
-    if (onRiverSelect) {
-      onRiverSelect([e.lngLat.lng, e.lngLat.lat])
-      return
-    }
-    const f = e.features?.[0]
-    if (!f) {
-      selectPolygon(null)
-      const { lng, lat } = e.lngLat
-      if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
-      else setNisarNotice(t('nisar.outsideAmazon'))
-      return
-    }
-    const id = (f.properties as { id?: string })?.id
-    if (!id) return
-    const found = YANO_MINING.find((p) => p.id === id) ?? null
-    selectPolygon(found)
+    const { lng, lat } = e.lngLat
+    if (onRiverSelect) { onRiverSelect([lng, lat]); return }
+    if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
+    else setNisarNotice(t('nisar.outsideAmazon'))
   }
 
   if (!hasWebGL2()) {
     return (
       <div className="relative h-full w-full">
-        <MapFallback region={region} fireDate={fireDate} floodLayer={floodLayer} observedDate={observedDate} floodFocus={floodFocus} floodSignals={floodSignals} riverPoint={riverPoint} riverChance={riverChance} onRiverSelect={onRiverSelect} onFireTileError={onFireTileError} onFloodTileError={onFloodTileError} />
-        <OverlayLegend />
+        <MapFallback region={region} {...config} />
       </div>
     )
   }
@@ -137,20 +133,19 @@ export function SarMap({ fireDate, floodLayer, observedDate, floodFocus, floodSi
         }}
         mapLib={maplibregl}
         initialViewState={{
-          longitude: aoiActive ? region.center[0] : AMAZON_CENTER[0],
-          latitude: aoiActive ? region.center[1] : AMAZON_CENTER[1],
-          zoom: aoiActive ? region.zoom : AMAZON_ZOOM,
+          longitude: aoiActive ? region.center[0] : OVERVIEW_CENTER[0],
+          latitude: aoiActive ? region.center[1] : OVERVIEW_CENTER[1],
+          zoom: aoiActive ? region.zoom : OVERVIEW_ZOOM,
           pitch: aoiActive ? PITCH : 0,
           bearing: aoiActive ? BEARING : 0,
         }}
         maxPitch={60}
         mapStyle={BASEMAP_URL}
-        interactiveLayerIds={activeRegion === 'YANO' ? ['yano-change-fill'] : []}
         onClick={onClick}
-        onError={(e) => {
-          if ('sourceId' in e && e.sourceId === 'gwis-fire') onFireTileError()
-          else if ('sourceId' in e && e.sourceId === waterSourceId) onFloodTileError()
-          else console.error(e.error)
+        onError={(event) => {
+          if ('sourceId' in event && event.sourceId === 'gwis-fire') onFireTileError()
+          else if ('sourceId' in event && event.sourceId === waterSourceId) onFloodTileError()
+          else console.error(event.error)
         }}
         onLoad={(e) => {
           setLabelLayerId(
@@ -160,12 +155,12 @@ export function SarMap({ fireDate, floodLayer, observedDate, floodFocus, floodSi
         }}
         attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
       >
-        <TerrainSource />
+        <TerrainSource on={reliefOn} beforeId={labelLayerId} />
         <SatelliteLayer on={satelliteOn} beforeId={labelLayerId} />
 
         <AmazonBiomeLayer />
 
-        <CommunityAreas />
+        <CaseOutlineLayer />
         {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
         <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
 
@@ -173,6 +168,9 @@ export function SarMap({ fireDate, floodLayer, observedDate, floodFocus, floodSi
         <GibsOverlayLayer on={nasaOverlay} gibs={gibs} />
 
         <NisarImagery />
+        <FocusedTiMask focused={focused} />
+        <DeterLayer focusedTi={focused.name ?? (yanoCase ? 'TI Yanomami' : null)} deter={deter} />
+
         {fireDate && (
           <Source
             id="gwis-fire"
@@ -185,17 +183,10 @@ export function SarMap({ fireDate, floodLayer, observedDate, floodFocus, floodSi
             <Layer id="gwis-fire-overlay" type="raster" paint={{ 'raster-opacity': 0.7 }} />
           </Source>
         )}
-        <YanoChangeLayer activeRegion={activeRegion} />
-        <AffectedAreasLayer activeRegion={activeRegion} />
-        <FocusedTiMask focused={focused} />
-        <IbgeMunicipiosLayer on={municipiosOn} data={ibge.data} />
-        <DeterLayer focusedTi={focused.name} deter={deter} />
-
-        <CommunityPoints />
         {floodLayer && (
           <Source key={waterSourceId} id={waterSourceId} type="raster" tiles={[`amazon-forecast://flood/${floodLayer}/${observedDate}/{z}/{x}/{y}`]} tileSize={256}
             maxzoom={observedFlood ? 9 : 11} attribution={observedFlood ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}>
-            <Layer id={`${waterSourceId}-overlay`} type="raster" paint={{ 'raster-fade-duration': 0 }} />
+            <Layer id={`${waterSourceId}-overlay`} type="raster" paint={{ 'raster-fade-duration': 0, 'raster-opacity': floodLayer === SEASONAL_BASINS ? 0.65 : 1 }} />
           </Source>
         )}
         {floodLayer && floodSignals.map(({ point, color }) => (
@@ -211,34 +202,14 @@ export function SarMap({ fireDate, floodLayer, observedDate, floodFocus, floodSi
             </button>
           </Marker>
         ))}
-        {floodLayer && selectedForecastPoint && (
-          <Marker longitude={selectedForecastPoint[0]} latitude={selectedForecastPoint[1]} className="pointer-events-none z-10">
+        {floodLayer && riverPoint && (
+          <Marker longitude={riverPoint[0]} latitude={riverPoint[1]} className="pointer-events-none z-10">
             <FloodProbability chance={riverChance} />
           </Marker>
         )}
+        <CaseMarkers />
       </Map>
-
-      <OverlayLegend
-        terrainOn={terrainOn}
-        onToggleTerrain={() => setTerrainOn((v) => !v)}
-        satelliteOn={satelliteOn}
-        onToggleSatellite={() => setSatelliteOn((v) => !v)}
-        municipiosOn={municipiosOn}
-        onToggleMunicipios={() => setMunicipiosOn((v) => !v)}
-        municipiosLoading={ibge.loading}
-      />
-      {focused.name && (
-        <FocusedTiBadge
-          tiName={focused.name}
-          funaiProps={focused.funaiProps}
-          localProps={focused.localProps}
-          sourceLabel={focused.sourceLabel}
-          loading={focused.funaiLoading}
-          error={focused.funaiError}
-          deterCount={deter.count}
-          deterLoading={deter.loading}
-        />
-      )}
+      <HomeButton />
     </div>
   )
 }

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { ForecastLegend } from './ForecastLegend'
 import {
@@ -15,7 +14,7 @@ import {
   SEASONAL_BASINS,
   MODIS_FLOOD,
   VIIRS_FLOOD,
-  WATER_LAYERS,
+  pointInForecastBounds,
   isFloodLayer,
   isObservedFlood,
   observedFloodStart,
@@ -32,6 +31,7 @@ import {
   type FloodSignal,
   type FloodChance,
   type ForecastPoint,
+  type ForecastBounds,
   type GlofasSignal,
 } from '@/lib/predictive-models'
 
@@ -46,10 +46,10 @@ const WATER_LABELS: Record<WaterLayer, [string, string]> = {
   [MODIS_FLOOD]: ['Inundação observada · MODIS', 'Observed flooding · MODIS'],
 }
 
-export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance, selectedGlofas, observedDate, onObservedDate }: {
+export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance, selectedGlofas, observedDate, onObservedDate }: {
   mode: 'river' | 'fire'
-  onModeChange: (mode: 'river' | 'fire') => void
-  onClose: () => void
+  layers: readonly WaterLayer[]
+  bounds: ForecastBounds
   point: ForecastPoint | null
   fireDate: string
   fireDates: string[]
@@ -72,23 +72,24 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   const [chanceResult, setChanceResult] = useState<{ point: ForecastPoint; chance: FloodChance } | null>(null)
   const [regionalSignal, setRegionalSignal] = useState<{ layer: FloodLayer; point: ForecastPoint | null | 'error' } | null>(null)
   const selected = mode === 'river' && isFloodLayer(floodLayer) ? point : null
+  const referencePoint = AMAZON_RIVER_PREVIEWS.find((candidate) => pointInForecastBounds(candidate, bounds))
 
   useEffect(() => {
     if (mode !== 'river' || !isFloodLayer(floodLayer)) return
     const controller = new AbortController()
     const referencePoints = floodLayer === FLOOD_LAYER
-      ? AMAZON_RIVER_PREVIEWS.map((point) => ({ point, color: '#94a3b8' }))
+      ? AMAZON_RIVER_PREVIEWS.filter((point) => pointInForecastBounds(point, bounds)).map((point) => ({ point, color: '#94a3b8' }))
       : []
     onFloodSignals(referencePoints)
-    findRegionalFloodSignals(floodLayer, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
+    findRegionalFloodSignals(floodLayer, bounds, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
       .then((signals) => {
         if (controller.signal.aborted) return
         setRegionalSignal({ layer: floodLayer, point: signals[0]?.point ?? null })
-        onFloodSignals([...referencePoints, ...signals])
+        onFloodSignals([...referencePoints, ...signals.slice(0, 24)])
       })
       .catch(() => { if (!controller.signal.aborted) setRegionalSignal({ layer: floodLayer, point: 'error' }) })
     return () => controller.abort()
-  }, [mode, floodLayer, onFloodSignals])
+  }, [mode, floodLayer, bounds, onFloodSignals])
 
   useEffect(() => {
     if (!selected) return
@@ -129,30 +130,16 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
   const flowFormat = new Intl.NumberFormat(pt ? 'pt-BR' : 'en', { maximumFractionDigits: 1 })
 
   return (
-    <section aria-label={pt ? 'Previsões' : 'Forecasts'} className="absolute left-3 top-16 z-[450] max-h-[calc(100%-9rem)] w-[min(19rem,calc(100%-1.5rem))] overflow-auto rounded-lg border border-border bg-card p-3 text-sm shadow-xl md:top-28">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-semibold">{pt ? 'Previsões' : 'Forecasts'}</h2>
-        <button type="button" onClick={onClose} aria-label={pt ? 'Fechar previsões' : 'Close forecasts'} className="rounded p-1 hover:bg-secondary">
-          <X className="size-4" />
-        </button>
-      </div>
-      <div className="mb-3 flex gap-1">
-        <button type="button" aria-pressed={mode === 'river'} onClick={() => onModeChange('river')} className="rounded-md border border-border px-2 py-1 aria-pressed:bg-primary/20">
-          {pt ? 'Cheia e seca' : 'Flood & drought'}
-        </button>
-        <button type="button" aria-pressed={mode === 'fire'} onClick={() => onModeChange('fire')} className="rounded-md border border-border px-2 py-1 aria-pressed:bg-primary/20">
-          {pt ? 'Perigo de fogo' : 'Fire danger'}
-        </button>
-      </div>
+    <div className="min-w-0 text-sm">
       {mode === 'river' ? (
         <>
           <label className="mb-2 flex flex-wrap items-center gap-2">
             {pt ? 'Camada' : 'Layer'}
             <select value={floodLayer} onChange={(e) => {
-              const layer = WATER_LAYERS.find((value) => value === e.target.value)
+              const layer = layers.find((value) => value === e.target.value)
               if (layer) onFloodLayer(layer)
             }} className="max-w-full rounded border border-border bg-background p-1">
-              {WATER_LAYERS.map((layer) => <option key={layer} value={layer}>{WATER_LABELS[layer][pt ? 0 : 1]}</option>)}
+              {layers.map((layer) => <option key={layer} value={layer}>{WATER_LABELS[layer][pt ? 0 : 1]}</option>)}
             </select>
           </label>
           {!isFloodLayer(floodLayer) ? (
@@ -168,7 +155,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
           {floodLayer === FLOOD_LAYER && <p className="mt-1 text-xs">{pt ? 'Os pontos cinza abrem previsões de vazão.' : 'Gray dots open river-flow forecasts.'}</p>}
           <div className="mt-2 text-xs" aria-live="polite">
             {regionalSignal?.layer !== floodLayer ? (
-              pt ? 'Buscando sinais na região amazônica…' : 'Checking the Amazon region for signals…'
+              pt ? 'Buscando sinais neste recorte…' : 'Checking this case area for signals…'
             ) : regionalSignal.point === 'error' ? (
               pt ? 'Não foi possível verificar a região.' : 'Could not check the region.'
             ) : regionalSignal.point ? (
@@ -179,20 +166,18 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
               </button>
             ) : (
               <>
-                {pt ? 'Sem sinais nesta camada dentro do contorno da Amazônia brasileira.' : 'No signals for this layer inside the Brazilian Amazon boundary.'}
-                {floodLayer === FLOOD_LAYER && AMAZON_RIVER_PREVIEWS.length > 0 && (
-                  <>
-                    <button type="button" className="mt-1 rounded border border-border px-2 py-1 hover:bg-secondary" onClick={() => onFloodFocus(AMAZON_RIVER_PREVIEWS[0])}>
-                      {pt ? 'Ver previsão no Rio Negro' : 'View Rio Negro forecast'}
-                    </button>
-                  </>
-                )}
+                {pt ? 'Sem sinais nesta camada dentro do recorte.' : 'No signals for this layer inside the case area.'}
               </>
             )}
           </div>
           {floodError && <p role="status" className="mt-2">{pt ? 'Parte do mapa de cheias não pôde ser carregada.' : 'Some flood forecast tiles could not be loaded.'}</p>}
           <a href={FLOOD_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{FLOOD_ATTRIBUTION}</a>
-          <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio dentro do contorno para ver a previsão do trecho mais próximo.' : 'Click near a river inside the boundary to see the forecast for the closest modeled reach.'}</p>
+          <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio no recorte para ver a previsão do trecho mais próximo.' : 'Click near a river in the case area to see the forecast for the closest modeled reach.'}</p>
+          {referencePoint && (
+            <button type="button" className="mt-2 rounded border border-border px-2 py-1 text-xs hover:bg-secondary" onClick={() => onFloodFocus(referencePoint)}>
+              {pt ? 'Ver previsão no Rio Negro' : 'View Rio Negro forecast'}
+            </button>
+          )}
           {selectedGlofas?.band && (
             <p className="mt-2 text-xs font-semibold">
               {pt
@@ -270,7 +255,7 @@ export function PredictiveModels({ mode, onModeChange, onClose, point, fireDate,
           <a href={GWIS_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{GWIS_ATTRIBUTION}</a>
         </>
       )}
-    </section>
+    </div>
   )
 }
 

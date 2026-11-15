@@ -12,7 +12,7 @@ import {
   useMapEvents,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { GridLayer, type Coords, type DoneCallback } from 'leaflet'
+import { GridLayer, latLngBounds, type Coords, type DoneCallback } from 'leaflet'
 import { AlertTriangle, MapPin } from 'lucide-react'
 import {
   AMAZON_BIOME,
@@ -28,7 +28,7 @@ import {
 import type { Region } from '@/lib/types'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
-import { AMAZON_WATER_BOUNDS, FLOOD_ATTRIBUTION, waterTileTemplate, isObservedFlood, isWaterOutlook, NASA_FLOOD_ATTRIBUTION, gwisMapUrl, GWIS_ATTRIBUTION, type ForecastMapProps, type ForecastPoint, type WaterLayer } from '@/lib/predictive-models'
+import { FLOOD_ATTRIBUTION, waterTileTemplate, isObservedFlood, SEASONAL_BASINS, NASA_FLOOD_ATTRIBUTION, gwisMapUrl, GWIS_ATTRIBUTION, type ForecastMapProps, type ForecastPoint } from '@/lib/predictive-models'
 import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
 import { FloodProbability } from './FloodProbability'
 import { useAsfGranules } from '@/lib/useAsfGranules'
@@ -83,17 +83,28 @@ function AmazonForecastLayer({ url, attribution, maxZoom, opacity, onError, hide
 
 function FloodFocus({ point }: { point: ForecastPoint }) {
   const map = useMap()
-  useEffect(() => { map.flyTo([point[1], point[0]], 7) }, [map, point])
+  useEffect(() => { map.panTo([point[1], point[0]]) }, [map, point])
   return null
 }
 
-function WaterOutlookFocus({ layer }: { layer: WaterLayer }) {
+function CaseCamera({ region }: { region: Region }) {
   const map = useMap()
+  const aoiActive = useApp((s) => s.aoiActive)
+  const setCaseArrived = useApp((s) => s.setCaseArrived)
   useEffect(() => {
-    if (!isWaterOutlook(layer)) return
-    const [west, south, east, north] = AMAZON_WATER_BOUNDS
-    map.fitBounds([[south, west], [north, east]], { padding: [36, 36] })
-  }, [layer, map])
+    map.setMinZoom(3)
+    map.setMaxBounds(latLngBounds([-85, -180], [85, 180]))
+    if (!aoiActive) {
+      map.setView([-6, -58], 4)
+      return
+    }
+    const [west, south, east, north] = region.bbox
+    const bounds = latLngBounds([south, west], [north, east])
+    map.fitBounds(bounds, { padding: [32, 32], animate: false })
+    map.setMaxBounds(bounds.pad(1))
+    map.setMinZoom(Math.max(3, map.getZoom() - 1))
+    setCaseArrived(true)
+  }, [aoiActive, map, region, setCaseArrived])
   return null
 }
 
@@ -160,7 +171,7 @@ export function MapFallback({ region, fireDate, floodLayer, observedDate, floodF
         attributionControl
       >
         <TiFocusController />
-        {floodLayer && <WaterOutlookFocus layer={floodLayer} />}
+        <CaseCamera region={region} />
         {floodFocus && <FloodFocus point={floodFocus} />}
         {onRiverSelect && <RiverSelection onSelect={onRiverSelect} />}
         {fireDate && <AmazonForecastLayer url={gwisMapUrl(fireDate, '{bbox}')} attribution={GWIS_ATTRIBUTION} maxZoom={8} opacity={0.7} onError={onFireTileError} />}
@@ -169,7 +180,7 @@ export function MapFallback({ region, fireDate, floodLayer, observedDate, floodF
             url={waterTileTemplate(floodLayer, observedDate)}
             attribution={isObservedFlood(floodLayer) ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}
             maxZoom={isObservedFlood(floodLayer) ? 9 : 11}
-            opacity={1}
+            opacity={floodLayer === SEASONAL_BASINS ? 0.65 : 1}
             hideInsufficientData={isObservedFlood(floodLayer)}
             onError={onFloodTileError}
           />

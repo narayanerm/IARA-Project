@@ -1,6 +1,11 @@
 import { inAmazon } from '@/lib/amazon'
 
 export type ForecastPoint = [longitude: number, latitude: number]
+export type ForecastBounds = [west: number, south: number, east: number, north: number]
+
+export function pointInForecastBounds([lon, lat]: ForecastPoint, [west, south, east, north]: ForecastBounds) {
+  return lon >= west && lon <= east && lat >= south && lat <= north && inAmazon(lon, lat)
+}
 const RIVER_PREVIEW_POINTS: { name: string; point: ForecastPoint }[] = [
   { name: 'Rio Negro · Manaus', point: [-59.98, -3.15] },
   { name: 'Solimões · Tefé', point: [-64.72, -3.35] },
@@ -70,15 +75,10 @@ export const VIIRS_FLOOD = 'VIIRS_Combined_Flood_3-Day'
 export type ObservedFloodLayer = typeof MODIS_FLOOD | typeof VIIRS_FLOOD
 export type OutlookLayer = typeof SUBSEASONAL_RIVERS | typeof SEASONAL_BASINS
 export type WaterLayer = FloodLayer | OutlookLayer | ObservedFloodLayer
-export const WATER_LAYERS: readonly WaterLayer[] = [
-  FLOOD_LAYER, FLOOD_EXTENT_LAYER, SUBSEASONAL_RIVERS, SEASONAL_BASINS, VIIRS_FLOOD, MODIS_FLOOD,
-]
 export const NASA_FLOOD_ATTRIBUTION = 'NASA EOSDIS · GIBS'
 export const NASA_FLOOD_VIEWER = 'https://worldview.earthdata.nasa.gov/?tr=flood-product'
 export const isFloodLayer = (layer: WaterLayer): layer is FloodLayer => layer === FLOOD_LAYER || layer === FLOOD_EXTENT_LAYER
 export const isObservedFlood = (layer: WaterLayer): layer is ObservedFloodLayer => layer === MODIS_FLOOD || layer === VIIRS_FLOOD
-export const isWaterOutlook = (layer: WaterLayer | null): layer is OutlookLayer => layer === SUBSEASONAL_RIVERS || layer === SEASONAL_BASINS
-export const AMAZON_WATER_BOUNDS: [number, number, number, number] = [-74, -13.8, -45.5, 5.5]
 export const observedFloodStart = (layer: WaterLayer) => layer === VIIRS_FLOOD ? '2025-06-01' : '2021-01-01'
 export const FLOOD_ATTRIBUTION = '© European Union · Copernicus EMS / GloFAS'
 export const FLOOD_VIEWER = 'https://global-flood.emergency.copernicus.eu/'
@@ -90,9 +90,11 @@ export function waterTileTemplate(layer: WaterLayer, date: string) {
     : floodTiles(layer)
 }
 
-export async function findRegionalFloodSignals(layer: FloodLayer, signal: AbortSignal): Promise<FloodSignal[]> {
-  // Enclose the biome, then test each sample against its actual boundary.
-  const [west, south, east, north] = [-8240000, -1560000, -5030000, 615000]
+export async function findRegionalFloodSignals(layer: FloodLayer, bounds: ForecastBounds, signal: AbortSignal): Promise<FloodSignal[]> {
+  const radius = 6378137
+  const projectLon = (lon: number) => lon * Math.PI / 180 * radius
+  const projectLat = (lat: number) => Math.asinh(Math.tan(lat * Math.PI / 180)) * radius
+  const [west, south, east, north] = [projectLon(bounds[0]), projectLat(bounds[1]), projectLon(bounds[2]), projectLat(bounds[3])]
   const response = await fetch(floodTiles(layer, [west, south, east, north].join(',')), { signal })
   if (!response.ok || !response.headers.get('content-type')?.startsWith('image/png')) {
     throw new Error('GloFAS regional preview unavailable')
@@ -110,7 +112,6 @@ export async function findRegionalFloodSignals(layer: FloodLayer, signal: AbortS
     const samples = new Map<number, FloodSignal>()
     const gridSize = 8
     const columns = Math.ceil(bitmap.width / gridSize)
-    const radius = 6378137
     for (let i = 0; i < bitmap.width * bitmap.height; i++) {
       if (data[i * 4 + 3] < 128) continue
       const column = i % bitmap.width
@@ -121,7 +122,7 @@ export async function findRegionalFloodSignals(layer: FloodLayer, signal: AbortS
       const y = north - ((row + 0.5) / bitmap.height) * (north - south)
       const lon = x / radius * 180 / Math.PI
       const lat = Math.atan(Math.sinh(y / radius)) * 180 / Math.PI
-      if (!inAmazon(lon, lat)) continue
+      if (!pointInForecastBounds([lon, lat], bounds)) continue
       const [r, g, b] = data.subarray(i * 4, i * 4 + 3)
       const color = `rgb(${r}, ${g}, ${b})`
       samples.set(key, {
@@ -130,8 +131,9 @@ export async function findRegionalFloodSignals(layer: FloodLayer, signal: AbortS
         glofas: { layer, color, band: layer === FLOOD_LAYER ? glofasProbabilityBand(r, g, b) : undefined },
       })
     }
+    const center = [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2]
     return [...samples.values()].sort((a, b) =>
-      Math.hypot(a.point[0] + 60, a.point[1] + 4) - Math.hypot(b.point[0] + 60, b.point[1] + 4))
+      Math.hypot(a.point[0] - center[0], a.point[1] - center[1]) - Math.hypot(b.point[0] - center[0], b.point[1] - center[1]))
   } finally {
     bitmap.close()
   }

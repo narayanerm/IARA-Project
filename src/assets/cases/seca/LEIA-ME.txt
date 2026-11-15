@@ -1,0 +1,9 @@
+Coloque aqui as fotos e vídeos deste caso. O app lê a pasta sozinho, sem mexer no código.
+Os arquivos entram em ordem alfabética, então use números no começo do nome (01-, 02-, ...).
+
+- Capa do quadro (parado, sem o mouse em cima): a imagem de satélite Sentinel-2 da região
+  do caso. O app monta sozinho, não precisa de arquivo.
+- Vídeo: .mp4 (H.264) ou .webm, até ~4 MB, de preferência 720p ou 1080p. Toca sem som ao
+  passar o mouse no quadro e ao selecionar o caso. Só o primeiro vídeo da pasta é usado.
+- Fotos (.jpg ou .webp): só aparecem se a pasta não tiver vídeo; aí giram a cada 2,6 s
+  enquanto o mouse está em cima.
