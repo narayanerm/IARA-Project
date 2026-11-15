@@ -1,4 +1,5 @@
 import type { ProductLayer, RegionId } from '@/lib/types'
+import { DICT, type Lang, type TKey } from '@/lib/i18n'
 import { INDIGENOUS_LANDS, type TiProps } from '@/data/layers/indigenous-lands'
 import type { Polygon } from 'geojson'
 
@@ -33,16 +34,16 @@ function norm(raw: string): string {
 // so order within a bucket doesn't matter.
 
 // "mostra | ver | zoom | ir | voa | centraliza | foca | abre | navega"
-const VERB_SHOW = /(mostra|most(ra|re)|ver|vejo|olha|zoom|zoom[a-z]+|ir\b|vou|voa[r]?|centraliza|foca[r]?|abre|abrir|navega[r]?|carrega[r]?|leva[r]?)/
+const VERB_SHOW = /(mostr[ae]|vejo|olha|zoom|ir\b|vou|voar?|centraliza|focar?|abr[ei]|navegar?|carregar?|levar?|\b(?:ver|show|see|open|focus|center|centre)\b|\b(?:go|fly|take me)\s+to\b)/
 
 // "busca | procura | encontra | cade | cadê | onde"
-const VERB_SEARCH = /(busca[r]?|procura[r]?|encontra[r]?|acha[r]?|cade|cad[eê]|onde\s+(fica|est[áa]|t(em|a))|where)/
+const VERB_SEARCH = /(buscar?|procurar?|encontrar?|achar?|cade|onde\s+(fica|esta|t(em|a))|\b(?:where|find|locate|search|look up)\b)/
 
 // "liga | ativa | mostra | habilita"
-const VERB_ON = /(liga[r]?|ativa[r]?|habilita[r]?|exibe|exibir|mostra[r]?|aparece[r]?|on\b)/
+const VERB_ON = /\b(?:ligar?|ativar?|habilitar?|exibe|exibir|mostr[ae]r?|aparecer?|on|show|enable|display)\b/
 
 // "desliga | esconde | some | remove | desativa | fecha"
-const VERB_OFF = /(desliga[r]?|esconde[r]?|some[r]?|some|remove[r]?|desativa[r]?|fecha[r]?|oculta[r]?|off\b)/
+const VERB_OFF = /\b(?:desligar?|esconder?|some|remover?|desativar?|fechar?|ocultar?|off|hide|disable)\b/
 
 // --- Entity buckets ------------------------------------------------------
 
@@ -54,7 +55,7 @@ const REGION_PATTERNS: Array<{
   {
     region: 'YANO',
     phen: 'mining',
-    rx: /(garimp|yanomam|homox|minera|mina[r]?|ouro|pit)/,
+    rx: /(garimp|yanomam|homox|minera|minar?|ouro|\b(?:mining|gold|pit)\b)/,
   },
   {
     region: 'ENCH',
@@ -64,7 +65,7 @@ const REGION_PATTERNS: Array<{
   {
     region: 'SECA',
     phen: 'drought',
-    rx: /(\bseca\b|tef[eé]|baixa\s+do|seco|drought|boto)/,
+    rx: /(\bseca\b|tefe|manaquiri|baixa\s+do|seco|drought|boto)/,
   },
 ]
 
@@ -76,27 +77,29 @@ const LAYER_PATTERNS: Array<{ layer: ProductLayer; rx: RegExp }> = [
     rx: /(interferogr|insar|gunw|fase\s+(interfer|sar)|franja|fringe)/,
   },
   { layer: 'displacement', rx: /(deslocament|displacement|subsid|afunda|recalque)/ },
-  { layer: 'change', rx: /(mudan[çc]a|change\s+detect|detec[çc][aã]o)/ },
+  { layer: 'change', rx: /(mudanca|change\s+(detect|layer|map)|detecao|deteccao)/ },
 ]
 
 // "nisar | radar | satélite | sentinela 1" (treats NISAR controls generically)
-const NISAR_RX = /(nisar|sat[eé]lite|radar\s+(sar)?|imagem\s+sar|cena\s+sar)/
-const OPACITY_UP_RX = /(aumenta|sobe|mais|claro|\+)/
-const OPACITY_DOWN_RX = /(diminui|baixa|menos|escuro|\-)/
+const NISAR_RX = /\b(?:nisar|satelite|satellite|radar|imagem sar|cena sar|sar imagery)\b/
+const OPACITY_UP_RX = /(aumenta|sobe|mais|claro|\+|\b(?:increase|raise|higher|more)\b)/
+const OPACITY_DOWN_RX = /(diminui|baixa|menos|escuro|-|\b(?:decrease|reduce|lower|less)\b)/
+const OPACITY_RX = /(opacid|opacity|transparen|visib|brilh|brightness)/
 
 // Optical / GIBS
-const OPTICAL_RX = /(optico|[óo]ptico|true.?color|modis|vis[ií]vel|colorido)/
+const OPTICAL_RX = /(optic[oa]|optical|true.?colou?r|modis|visivel|colorido)/
 const NASA_GIBS_RX = /(nasa|gibs|camada\s+nasa|ndvi|imerg|chuva|umidade|amsr)/
 
 // Timeline
-const TL_PLAY_RX = /(toca|play|rodar|rode|roda|evolu|anim|reproduz|avan[çc]a)/
-const TL_START_RX = /(voltar|volta\b|in[ií]cio|come[çc]a|reset|zero)/
-const TL_END_RX = /(fim|final|hoje|recente|[úu]ltimo)/
+const TL_PLAY_RX = /(toca|\bplay\b|rodar|rode|roda|evolu|anim|reproduz|avanca)/
+const TL_START_RX = /(voltar|volta\b|inicio|comeca|reset|zero|\b(?:start|beginning|first frame|rewind)\b)/
+const TL_END_RX = /(fim|final|hoje|recente|ultimo|\b(?:end|latest|last frame|most recent|today)\b)/
+const TIMELINE_RX = /\b(?:timeline|time series|frame|serie|linha do tempo)\b/
 
 // Help / meta
-const HELP_RX = /(ajuda|help|comando|o\s+que\s+(posso|voce|vc|rolla|rola|d[aá]|faz)|como\s+usa|use)/
-const ABOUT_RX = /(sobre|quem|time|about|dados|origem|cr[eé]dito|atribu)/
-const EXPLAIN_RX = /(l.?band|banda|physics|f[ií]sica|funciona|como\s+(o\s+)?sar|por\s+que|how|what\s+is\s+sar)/
+const HELP_RX = /(?:^(?:ajuda|help(?: me)?|comandos?|commands?|use)[\s.!?]*$|\b(?:can you help(?: me)?|show (?:me )?(?:the )?commands|what can (?:you|i) do|how (?:do i|to) use (?:this|the app|the assistant)|o que (?:posso|voce|vc|rola|da|faz)|como usa)\b)/
+const ABOUT_RX = /(sobre|quem|\b(?:about|credits|data sources|where does the data come from)\b|dados|origem|credito|atribu)/
+const EXPLAIN_RX = /(l.?band|banda|physics|fisica|funciona|como\s+(o\s+)?sar|por\s+que|\b(?:how|what|why|explain)\b.*\b(?:sar|nisar|radar)\b)/
 
 // --- TI index (built once from the hand-drawn dataset) ------------------
 
@@ -165,18 +168,27 @@ function findTi(query: string): TiEntry | null {
 export function routeIntent(raw: string): Intent {
   const s = norm(raw)
 
-  // 1. Help / meta — short strings so they win early
+  // Resolve help, explicit timeline commands and SAR explanations before layer controls.
   if (HELP_RX.test(s)) return { kind: 'help' }
+
+  if (TIMELINE_RX.test(s)) {
+    if (TL_END_RX.test(s)) return { kind: 'timeline', action: 'end' }
+    if (TL_START_RX.test(s)) return { kind: 'timeline', action: 'start' }
+    if (TL_PLAY_RX.test(s)) return { kind: 'timeline', action: 'play' }
+  }
+
+  if (EXPLAIN_RX.test(s) && !OPACITY_RX.test(s)) return { kind: 'explain-sar' }
 
   // 2. NISAR on/off/opacity (compound: verb + "nisar|satélite")
   if (NISAR_RX.test(s)) {
-    if (OPACITY_UP_RX.test(s) && /(opacid|transparen|visib|brilh)/.test(s))
+    if (OPACITY_UP_RX.test(s) && OPACITY_RX.test(s))
       return { kind: 'nisar', action: 'opacity-up' }
-    if (OPACITY_DOWN_RX.test(s) && /(opacid|transparen|visib|brilh)/.test(s))
+    if (OPACITY_DOWN_RX.test(s) && OPACITY_RX.test(s))
       return { kind: 'nisar', action: 'opacity-down' }
-    if (VERB_ON.test(s)) return { kind: 'nisar', action: 'show' }
     if (VERB_OFF.test(s)) return { kind: 'nisar', action: 'hide' }
-    return { kind: 'nisar', action: 'toggle' }
+    if (VERB_ON.test(s)) return { kind: 'nisar', action: 'show' }
+    if (!/\bradar\b/.test(s) || /\b(?:toggle|alternar?|nisar|satelite|satellite)\b/.test(s))
+      return { kind: 'nisar', action: 'toggle' }
   }
 
   // 3. GIBS / optical overlays (verb-sensitive but not strict)
@@ -223,121 +235,42 @@ export function routeIntent(raw: string): Intent {
   if (TL_START_RX.test(s)) return { kind: 'timeline', action: 'start' }
   if (TL_END_RX.test(s)) return { kind: 'timeline', action: 'end' }
 
-  // 9. About / explain
-  if (EXPLAIN_RX.test(s)) return { kind: 'explain-sar' }
+  // 9. About the project
   if (ABOUT_RX.test(s)) return { kind: 'about' }
 
   return { kind: 'unknown', query: raw }
 }
 
-// --- Narratives ----------------------------------------------------------
-
-const NARRATIVE_FOCUS: Record<RegionId, string> = {
-  YANO: `Zoom em **Homoxi**, dentro da TI Yanomami.
-
-Entre 2019 e 2022, a assinatura L-band (HH) mostrou **queda de 6-10 dB** em vários polígonos — consistente com conversão de dossel em solo exposto. A operação federal de fev/2023 marca um ponto de inflexão visível na série temporal.
-
-Camadas ativadas: NDVI MODIS + polígonos de detecção.`,
-  ENCH: `Centrando no **encontro Solimões–Negro**, Manaus.
-
-A cheia de **maio/2024** bateu recorde histórico no porto de Manaus (30,70 m). SAR separa água de vegetação com threshold de amplitude: pixel especular ≈ -18 dB vs floresta inundada ≈ -8 dB.
-
-Camada IMERG mostra o input de precipitação na bacia.`,
-  SECA: `Zoom em **Lago Tefé**.
-
-A seca histórica de **2023-24** retraiu a área hidrográfica a níveis associados à mortandade de botos-rosa. O sinal SAR aqui é **extensão** (área em km²) ao longo do tempo, não amplitude.
-
-Camada AMSR2 complementa: umidade de solo passivo.`,
-}
-
-const NARRATIVE_EXPLAIN_SAR = `**SAR** = Synthetic Aperture Radar. Emite microondas e mede o retroespalhamento.
-
-**NISAR** é L-band (λ ≈ 24 cm). Diferente do óptico, **penetra copa** e enxerga sob nuvem, fumaça e noite.
-
-Para cada fenômeno, a física muda:
-- **Garimpo**: queda de backscatter (mata → solo exposto)
-- **Enchente**: reflexão especular (água lisa = pixel preto)
-- **Seca**: retração de área hidrográfica detectável em série temporal`
-
-const NARRATIVE_ABOUT = `**Curupira** · NASA Space Apps 2026 · desafio "Dancing with the SARs".
-
-Dados: NISAR (NASA/ISRO) · análogos históricos Sentinel-1 e ALOS-2 PALSAR via ASF DAAC. Validação: MapBiomas Alerta, DETER/INPE, ANA.
-
-Chatbot determinístico — não gera números, só narra evidência pré-computada e move o mapa por comandos.`
-
-const NARRATIVE_HELP = `**Comandos que entendo**
-
-Navegação:
-- "mostra garimpo em Homoxi" · "enchente de Manaus" · "seca do Tefé"
-- "zoom na TI Kayapó" · "busca Javari" · "onde fica Munduruku"
-
-Camadas SAR:
-- "mostra amplitude" · "ver coerência" · "interferograma" · "deslocamento"
-
-Satélite NISAR:
-- "liga NISAR" · "desliga satélite" · "aumenta opacidade do radar"
-
-NASA auxiliar:
-- "camada NASA" (NDVI/IMERG/AMSR2) · "óptico MODIS"
-
-Timeline:
-- "toca a série" · "volta ao início" · "pula pro fim"
-
-Explicações:
-- "como o SAR funciona" · "sobre o projeto"`
-
-const NARRATIVE_UNKNOWN = `Não entendi o pedido. Tenta **"ajuda"** pra ver a lista de comandos, ou algo como:
-- "mostra o garimpo em Homoxi"
-- "zoom na TI Kayapó"
-- "liga NISAR"`
-
-export function narrativeFor(intent: Intent): string {
+export function narrativeFor(intent: Intent, lang: Lang): string {
+  const strings = DICT[lang]
   switch (intent.kind) {
     case 'focus':
-      return NARRATIVE_FOCUS[intent.region]
+      return strings[`assistant.focus.${intent.region}`]
     case 'focus-ti':
-      return `Focando em **${intent.tiName}**. Mapa centrado em [${intent.center[0].toFixed(2)}, ${intent.center[1].toFixed(2)}].`
+      return strings['assistant.focusLand']
+        .replace('{lng}', intent.center[0].toFixed(2))
+        .replace('{lat}', intent.center[1].toFixed(2))
+        .replace('{name}', intent.tiName)
     case 'timeline':
-      return intent.action === 'play'
-        ? 'Reproduzindo série temporal. Observe a curva evoluir.'
-        : intent.action === 'start'
-          ? 'Voltando ao início da série.'
-          : 'Saltando para o frame mais recente.'
+      return strings[`assistant.timeline.${intent.action}`]
     case 'layer':
-      return intent.action === 'toggle-truecolor'
-        ? 'Alternando camada óptica (MODIS true color). Note onde o SAR enxerga e o óptico cega.'
-        : 'Alternando camada NASA GIBS auxiliar.'
+      return strings[`assistant.overlay.${intent.action}`]
     case 'layer-set':
-      return `Camada SAR → **${intent.layer}**.`
-    case 'nisar': {
-      switch (intent.action) {
-        case 'show':
-          return 'Ligando a camada **NISAR** (browse via ASF/Vertex).'
-        case 'hide':
-          return 'Desligando a camada NISAR.'
-        case 'toggle':
-          return 'Alternando NISAR.'
-        case 'opacity-up':
-          return 'Aumentando opacidade da camada NISAR.'
-        case 'opacity-down':
-          return 'Reduzindo opacidade da camada NISAR.'
-      }
-      return ''
-    }
+      return strings['assistant.layer'].replace('{layer}', strings[`layer.${intent.layer}`])
+    case 'nisar':
+      return strings[`assistant.nisar.${intent.action}`]
     case 'explain-sar':
-      return NARRATIVE_EXPLAIN_SAR
+      return strings['assistant.explain']
     case 'about':
-      return NARRATIVE_ABOUT
     case 'help':
-      return NARRATIVE_HELP
     case 'unknown':
-      return NARRATIVE_UNKNOWN
+      return strings[`assistant.${intent.kind}`]
   }
 }
 
 export const SUGGESTIONS = [
-  'mostra o garimpo em Homoxi',
-  'zoom na TI Kayapó',
-  'liga NISAR',
-  'ajuda',
-] as const
+  'assistant.suggest.mining',
+  'assistant.suggest.land',
+  'assistant.suggest.nisar',
+  'assistant.suggest.help',
+] as const satisfies readonly TKey[]
