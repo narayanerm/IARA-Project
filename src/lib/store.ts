@@ -21,6 +21,18 @@ interface AppState {
   nisarPoint: [number, number] | null
   /** Short message for the NISAR control (e.g. click outside the Amazon). */
   nisarNotice: string | null
+  /** Year picked on the case time series; null = latest. */
+  caseYear: number | null
+  /** Risk hotspot highlighted on the map and in the alerts list. */
+  hotspotId: string | null
+  /** True once the camera has finished flying into the active case. */
+  caseArrived: boolean
+  /** Bumped by the home button to put the camera back on the case framing. */
+  homeTs: number
+  requestHome: () => void
+  setCaseArrived: (v: boolean) => void
+  setCaseYear: (y: number | null) => void
+  setHotspot: (id: string | null) => void
   setActiveRegion: (id: RegionId) => void
   setActiveLayer: (l: ProductLayer) => void
   setTimeIndex: (i: number) => void
@@ -49,7 +61,7 @@ export const useApp = create<AppState>((set, get) => ({
   activeLayer: 'change',
   timeIndex: 23,
   selectedPolygon: null,
-  nasaOverlay: true,
+  nasaOverlay: false,
   trueColorOverlay: false,
   focusedTi: null,
   flyTarget: null,
@@ -60,8 +72,19 @@ export const useApp = create<AppState>((set, get) => ({
   nisarOpacity: 0.85,
   nisarPoint: null,
   nisarNotice: null,
+  caseYear: null,
+  hotspotId: null,
+  caseArrived: false,
+  homeTs: 0,
+  requestHome: () => set({ homeTs: Date.now(), hotspotId: null }),
+  setCaseArrived: (v) => set({ caseArrived: v }),
+  setCaseYear: (y) => set({ caseYear: y }),
+  setHotspot: (id) => set({ hotspotId: id }),
   setActiveRegion: (id) => {
     set({
+      caseYear: null,
+      hotspotId: null,
+      caseArrived: false,
       activeRegion: id,
       aoiActive: true,
       focusedTi: null,
@@ -71,7 +94,7 @@ export const useApp = create<AppState>((set, get) => ({
       nisarNotice: null,
     })
   },
-  clearAoi: () => set({ aoiActive: false, focusedTi: null }),
+  clearAoi: () => set({ aoiActive: false, focusedTi: null, caseYear: null, hotspotId: null, caseArrived: false }),
   setActiveLayer: (l) => {
     const changed = nisarProductFor(l) !== nisarProductFor(get().activeLayer)
     set(changed ? { activeLayer: l, nisarTrack: null, nisarSceneId: null } : { activeLayer: l })
@@ -115,6 +138,10 @@ interface UiState {
   rightTab: RightTab
   askQueue: { text: string; ts: number } | null
   popupOpen: boolean
+  satelliteOn: boolean
+  reliefOn: boolean
+  toggleSatellite: () => void
+  toggleRelief: () => void
   setRightOpen: (v: boolean) => void
   openRight: (tab?: RightTab) => void
   ask: (text: string) => void
@@ -127,6 +154,11 @@ export const useUi = create<UiState>((set, get) => ({
   rightTab: 'chat',
   askQueue: null,
   popupOpen: false,
+  // Sentinel-2 mosaic is the default backdrop; the dark vector style stays one click away.
+  satelliteOn: true,
+  reliefOn: false,
+  toggleSatellite: () => set({ satelliteOn: !get().satelliteOn }),
+  toggleRelief: () => set({ reliefOn: !get().reliefOn }),
   setRightOpen: (v) => set({ rightOpen: v }),
   openRight: (tab) => set({ rightOpen: true, rightTab: tab ?? get().rightTab }),
   ask: (text) => set({ askQueue: { text, ts: Date.now() }, rightOpen: true, rightTab: 'chat' }),

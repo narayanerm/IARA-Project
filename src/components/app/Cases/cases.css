@@ -1,0 +1,743 @@
+/*
+ * Case picker: three tall frames side by side on a dark page, the only door into a case.
+ * Pointing at a frame widens it, plays its video or photos and slides up the details;
+ * picking one swallows the strip and dissolves into the map, which is already there.
+ */
+
+.case-picker {
+  --ease: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --bone: #f1eee5;
+  --ink: #0a0c0b;
+  --pad: clamp(16px, 1.6vw, 26px);
+  --gap: 8px;
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--bone);
+  font-family: 'Archivo', ui-sans-serif, sans-serif;
+  transition:
+    opacity 1000ms var(--ease),
+    visibility 0s linear 0s;
+}
+.case-picker.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 1000ms cubic-bezier(0.33, 0, 0.2, 1),
+    visibility 0s linear 1100ms;
+}
+
+.case-row {
+  position: absolute;
+  inset: 44px var(--gap) 28px;
+  display: flex;
+  gap: var(--gap);
+  transition:
+    inset 850ms var(--ease-in-out),
+    gap 850ms var(--ease-in-out);
+}
+.case-picker.is-choosing .case-row {
+  inset: 0;
+  gap: 0;
+}
+
+/* ---- frame ----------------------------------------------------------------------------- */
+
+.case-card {
+  --i: 0;
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container-type: size;
+  color: var(--bone);
+  text-align: left;
+  cursor: pointer;
+  isolation: isolate;
+  background: #121614;
+  clip-path: inset(100% 0 0 0);
+  transition:
+    flex-grow 850ms var(--ease-in-out),
+    clip-path 1100ms var(--ease-in-out),
+    opacity 500ms var(--ease);
+}
+.case-picker.is-ready .case-card {
+  clip-path: inset(0 0 0 0);
+  transition-delay: 0s, calc(60ms + var(--i) * 120ms), 0s;
+}
+.case-card:focus-visible {
+  outline: none;
+}
+@media (hover: hover) and (min-width: 721px) {
+  .case-picker:not(.is-choosing) .case-row:hover .case-card {
+    flex-grow: 0.7;
+  }
+  .case-picker:not(.is-choosing) .case-row .case-card:hover {
+    flex-grow: 1.9;
+  }
+}
+@media (min-width: 721px) {
+  .case-picker:not(.is-choosing) .case-row:has(.case-card:focus-visible) .case-card {
+    flex-grow: 0.7;
+  }
+  .case-picker:not(.is-choosing) .case-row .case-card:focus-visible {
+    flex-grow: 1.9;
+  }
+}
+.case-picker.is-choosing .case-card {
+  flex-grow: 0.0001;
+  opacity: 0;
+}
+.case-picker.is-choosing .case-card.is-chosen {
+  flex-grow: 1;
+  opacity: 1;
+}
+
+.case-card-media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  scale: 1.04;
+  transition:
+    scale 1800ms var(--ease),
+    filter 900ms var(--ease);
+}
+.case-card:is(:hover, :focus-visible) .case-card-media {
+  scale: 1.1;
+}
+.case-card.is-chosen .case-card-media {
+  scale: 1.16;
+}
+@media (hover: hover) {
+  .case-picker:not(.is-choosing) .case-row:hover .case-card:not(:hover) .case-card-media {
+    filter: saturate(0.4) brightness(0.55);
+  }
+}
+.case-card-photo,
+.case-card-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 800ms ease;
+}
+.case-card-photo.is-on,
+.case-card-video.is-on {
+  opacity: 1;
+}
+.sat-cover {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(max(100cqw, 100cqh) * 1.25);
+  aspect-ratio: 1;
+}
+.sat-cover img {
+  position: absolute;
+  display: block;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 700ms ease;
+}
+.sat-cover img.is-loaded {
+  opacity: 1;
+}
+
+/* Radar scene from ASF: cropped in on the case region (object-position comes from the code). */
+.case-card-sar {
+  scale: 1.35;
+  filter: contrast(1.12) brightness(0.95);
+}
+.case-card-tag {
+  position: absolute;
+  top: calc(var(--pad) + 40px);
+  left: var(--pad);
+  max-width: calc(100% - var(--pad) * 2);
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgb(10 12 11 / 0.72);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: case-tag-in 400ms var(--ease) both;
+  transition: opacity 400ms var(--ease);
+}
+.case-card-tag.is-off,
+.case-card.is-chosen .case-card-tag {
+  opacity: 0;
+}
+@keyframes case-tag-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+/* Shade for the text: heavy at the foot, light at the head, deeper while the details show. */
+.case-card-shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to bottom, rgb(10 12 11 / 0.55) 0%, rgb(10 12 11 / 0) 22%),
+    linear-gradient(to top, rgb(10 12 11 / 0.9) 0%, rgb(10 12 11 / 0.55) 26%, rgb(10 12 11 / 0) 55%);
+  transition: opacity 600ms var(--ease);
+}
+.case-card-shade::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgb(10 12 11 / 0.32);
+  opacity: 0;
+  transition: opacity 600ms var(--ease);
+}
+.case-card:is(:hover, :focus-visible) .case-card-shade::after {
+  opacity: 1;
+}
+.case-card.is-chosen .case-card-shade {
+  opacity: 0;
+}
+
+.case-card-top {
+  position: absolute;
+  top: var(--pad);
+  left: var(--pad);
+  right: var(--pad);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: opacity 400ms var(--ease);
+}
+.case-card-num {
+  display: inline-grid;
+  place-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--case);
+  color: var(--ink);
+  font-weight: 500;
+}
+.case-card-kicker {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.case-card-body {
+  position: absolute;
+  left: var(--pad);
+  right: var(--pad);
+  bottom: var(--pad);
+  display: flex;
+  flex-direction: column;
+  transition:
+    opacity 450ms var(--ease),
+    translate 700ms var(--ease);
+}
+.case-card.is-chosen :is(.case-card-body, .case-card-top) {
+  opacity: 0;
+}
+.case-card.is-chosen .case-card-body {
+  translate: 0 20px;
+}
+
+/* The word is the label: always solid, big enough to read from across the room. */
+.case-card-word {
+  font-size: clamp(2.2rem, min(16cqw, 13cqh), 8.5rem);
+  font-weight: 600;
+  font-variation-settings: 'wdth' 100;
+  line-height: 0.86;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin-left: -0.04em;
+  text-shadow: 0 2px 30px rgb(0 0 0 / 0.35);
+}
+.case-card-go {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 9px;
+  margin: -6px -4px -6px auto;
+  border: 1px solid rgb(241 238 229 / 0.55);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition:
+    background-color 250ms ease,
+    color 250ms ease,
+    border-color 250ms ease;
+}
+.case-card-go-label {
+  display: none;
+}
+.case-card:is(:hover, :focus-visible) .case-card-go {
+  background: var(--bone);
+  border-color: var(--bone);
+  color: var(--ink);
+  padding: 0 16px 0 18px;
+}
+.case-card:is(:hover, :focus-visible) .case-card-go-label {
+  display: inline;
+}
+.case-card:active .case-card-go {
+  scale: 0.97;
+}
+
+/* Details slide up above the word, like a caption laid over a photo. */
+.case-card-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 650ms var(--ease-in-out);
+}
+.case-card-reveal-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-width: 30rem;
+}
+.case-card:is(:hover, :focus-visible) .case-card-reveal {
+  grid-template-rows: 1fr;
+}
+.case-card-place,
+.case-card-meta {
+  opacity: 0;
+  translate: 0 14px;
+  transition:
+    opacity 350ms var(--ease),
+    translate 600ms var(--ease);
+}
+.case-card:is(:hover, :focus-visible) :is(.case-card-place, .case-card-meta) {
+  opacity: 1;
+  translate: 0 0;
+}
+.case-card:is(:hover, :focus-visible) .case-card-place {
+  transition-delay: 220ms;
+}
+.case-card:is(:hover, :focus-visible) .case-card-meta {
+  transition-delay: 300ms;
+}
+.case-card-place {
+  font-size: clamp(1.15rem, 1.5vw, 1.5rem);
+  font-weight: 400;
+  font-variation-settings: 'wdth' 108;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+.case-card-meta {
+  display: grid;
+  margin: 14px 0 22px;
+  border-top: 1px solid rgb(241 238 229 / 0.4);
+}
+.case-card-meta-row {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgb(241 238 229 / 0.16);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.case-card-meta-label {
+  color: rgb(241 238 229 / 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---- header line and credit -------------------------------------------------------------- */
+
+.case-hud,
+.case-picker-credit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 calc(var(--gap) + var(--pad));
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+  transition: opacity 500ms var(--ease);
+}
+.case-hud {
+  top: 0;
+  height: 44px;
+  align-items: center;
+  color: rgb(241 238 229 / 0.72);
+}
+.case-picker-credit {
+  bottom: 8px;
+  justify-content: flex-end;
+  font-size: 9.5px;
+  color: rgb(241 238 229 / 0.45);
+}
+.case-picker.is-choosing :is(.case-hud, .case-picker-credit),
+.case-picker:not(.is-ready) .case-hud {
+  opacity: 0;
+}
+
+/* Short laptop screens: keep the place, drop the detail rows. */
+@media (max-height: 700px) and (min-width: 721px) {
+  .case-card-meta {
+    display: none;
+  }
+  .case-card-place {
+    margin-bottom: 16px;
+  }
+}
+
+/* Phones: the frames stack, each a band of picture with its word; a tap goes straight in. */
+@media (max-width: 720px) {
+  .case-row {
+    flex-direction: column;
+  }
+  .case-card {
+    clip-path: inset(0 100% 0 0);
+  }
+  .case-picker.is-ready .case-card {
+    clip-path: inset(0 0 0 0);
+  }
+  .case-card-word {
+    font-size: clamp(2rem, min(13cqw, 30cqh), 4.6rem);
+  }
+  .case-card-reveal,
+  .case-hud-hint,
+  .case-picker-credit {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Case panel: a sheet docked to the left edge, entering after the  */
+/* flight. Its scrollbar and progress line take the case colour.    */
+/* ---------------------------------------------------------------- */
+
+.case-panel {
+  --ease: cubic-bezier(0.19, 1, 0.22, 1);
+  --case: hsl(var(--primary));
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --scroll-thumb-color: color-mix(in srgb, var(--case) 38%, transparent);
+  --scroll-thumb-hover: color-mix(in srgb, var(--case) 70%, transparent);
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: hsl(var(--card));
+  animation: case-panel-in 800ms var(--ease) both;
+}
+@media (min-width: 768px) {
+  .case-panel {
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: clamp(340px, 30vw, 420px);
+    border-right: 1px solid hsl(var(--border));
+    box-shadow: 24px 0 60px -30px rgb(0 0 0 / 0.8);
+  }
+}
+@media (max-width: 767px) {
+  .case-panel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 52%;
+    border-top: 1px solid hsl(var(--border));
+    border-radius: 14px 14px 0 0;
+    animation-name: case-sheet-in;
+  }
+}
+@keyframes case-panel-in {
+  from {
+    opacity: 0;
+    translate: -32px 0;
+  }
+}
+@keyframes case-sheet-in {
+  from {
+    opacity: 0;
+    translate: 0 40px;
+  }
+}
+/* A thin bar of the case colour on the panel's top edge. */
+.case-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--case);
+  transform-origin: left;
+  animation: case-bar-in 900ms var(--ease) 200ms both;
+}
+@keyframes case-bar-in {
+  from {
+    scale: 0 1;
+  }
+}
+
+.case-panel-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  margin-left: -2px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  transition: color 150ms ease;
+}
+.case-panel-back svg {
+  transition: translate 300ms var(--ease);
+}
+.case-panel-back:hover {
+  color: hsl(var(--foreground));
+}
+.case-panel-back:hover svg {
+  translate: -3px 0;
+}
+.case-panel-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: hsl(var(--muted-foreground));
+}
+.case-panel-count b {
+  font-weight: 500;
+  color: hsl(var(--foreground));
+}
+.case-panel-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--case);
+}
+.case-panel-kicker::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--case);
+}
+.case-panel-title {
+  margin-top: 8px;
+  font-size: clamp(1.6rem, 1.2rem + 1vw, 2.1rem);
+  font-weight: 300;
+  font-variation-settings: 'wdth' 112;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.case-tabs {
+  position: relative;
+  display: flex;
+  margin-top: 18px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.case-tab {
+  position: relative;
+  flex: 1 1 0;
+  height: 40px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  transition: color 200ms ease;
+}
+.case-tab:hover,
+.case-tab[aria-selected='true'] {
+  color: hsl(var(--foreground));
+}
+.case-tab:focus-visible {
+  outline: 1px solid var(--case);
+  outline-offset: -4px;
+}
+.case-tabs-indicator {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: calc(100% / 3);
+  height: 2px;
+  background: var(--case);
+  translate: calc(var(--tab, 0) * 100%) 0;
+  transition: translate 450ms var(--ease);
+}
+/* Reading progress through the tab content, as a hairline under the tabs. */
+.case-progress {
+  height: 1px;
+  background: color-mix(in srgb, var(--case) 70%, transparent);
+  transform-origin: left;
+  scale: var(--progress, 0) 1;
+}
+
+.case-scroll {
+  min-height: 0;
+  flex: 1 1 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 28px), transparent);
+  animation: case-tab-in 450ms var(--ease) both;
+}
+@keyframes case-tab-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+/* Editorial details table (label column + value), used inside the panel. */
+.case-details {
+  border-bottom: 1px solid hsl(var(--border));
+}
+.case-details > div {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid hsl(var(--border));
+  font-size: 13px;
+}
+.case-details dt {
+  color: hsl(var(--muted-foreground));
+}
+.case-details dt::first-letter {
+  text-transform: uppercase;
+}
+
+/* Risk hotspot markers on the map. */
+.hotspot {
+  --c: #f59e42;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+}
+.hotspot::before,
+.hotspot::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+}
+.hotspot::before {
+  inset: 5px;
+  background: var(--c);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 6px rgb(0 0 0 / 0.6);
+}
+.hotspot::after {
+  inset: 0;
+  border: 2px solid var(--c);
+  animation: hotspot-ping 2.4s var(--delay, 0s) ease-out infinite;
+}
+.hotspot.is-active::before {
+  inset: 2px;
+}
+.hotspot-label {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  translate: 3px -50%;
+  padding: 1px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #fff;
+  background: rgb(8 14 10 / 0.82);
+  border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
+  pointer-events: none;
+}
+.hotspot.is-left .hotspot-label {
+  left: auto;
+  right: 100%;
+  translate: -3px -50%;
+}
+.hotspot-in {
+  animation: hotspot-in 600ms var(--delay-in, 0s) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes hotspot-in {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+@keyframes hotspot-ping {
+  0% {
+    scale: 0.6;
+    opacity: 0.9;
+  }
+  80%,
+  100% {
+    scale: 2.4;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Cross-fades only: no shutter, no push, no slide. */
+  .case-picker *,
+  .sat-cover {
+    transition-property: opacity !important;
+    transition-delay: 0s !important;
+    transition-duration: 300ms !important;
+  }
+  .case-card {
+    clip-path: none !important;
+  }
+  .case-card-media {
+    scale: 1 !important;
+  }
+  .case-panel,
+  .case-panel::before,
+  .case-scroll,
+  .hotspot-in {
+    animation: none;
+  }
+  .case-tabs-indicator {
+    transition: none;
+  }
+  .hotspot::after {
+    animation: none;
+    opacity: 0.5;
+  }
+}

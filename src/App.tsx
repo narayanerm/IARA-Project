@@ -8,39 +8,18 @@ import { readUrlState } from '@/lib/url-state'
 
 const TUTORIAL_STEPS = [
   {
-    anchor: 'sidebar',
-    title: 'Panorama Amazônia',
+    anchor: 'cases',
+    title: 'Três regiões, três problemas',
     body:
-      'Estatísticas do bioma, 3 fenômenos âncora (garimpo, cheia, seca) e busca de TIs + comunidades ribeirinhas por nome, etnia ou município.',
-    placement: 'right' as const,
+      'Garimpo na Terra Yanomami, enchente em Manaus e seca nas comunidades de Manaquiri. Escolha um cartão e o mapa leva você até lá.',
+    placement: 'top' as const,
   },
   {
     anchor: 'map',
-    title: 'Mapa com camadas oficiais',
+    title: 'Dentro de cada recorte',
     body:
-      'Pins laranjas = Terras Indígenas (FUNAI). Ciano = ribeirinhas (IBGE). Clique num pin pra ver etnias, acessibilidade e links FUNAI/ISA/IBGE originais.',
-    placement: 'left' as const,
-  },
-  {
-    anchor: 'nisar',
-    title: 'NISAR ao vivo',
-    body:
-      'Clique em qualquer ponto do bioma — o painel busca na ASF DAAC todas as imagens NISAR daquele local. Toggle o olho pra ocultar o raster, chevron pra colapsar o painel.',
-    placement: 'right' as const,
-  },
-  {
-    anchor: 'share',
-    title: 'Compartilhar com fonte',
-    body:
-      'Link permanente com a view atual, CSV da série temporal e GeoJSON da AOI. Pra jornalistas, ONGs e pesquisadores verificarem direto nas fontes.',
+      'O mapa fica preso à região escolhida. O painel traz a história do lugar, a linha do tempo com imagens de radar e os alertas. Para ver outro problema, volte aos cartões.',
     placement: 'bottom' as const,
-  },
-  {
-    anchor: 'chat',
-    title: 'Assistente IARA',
-    body:
-      'Pergunte em linguagem natural: "mostra garimpo em Homoxi", "cheia de Manaus 2024", "como SAR funciona". O chat dispara ações no mapa.',
-    placement: 'left' as const,
   },
 ]
 
@@ -77,7 +56,7 @@ export default function App() {
       <main className="h-full bg-background text-foreground">
         {/* the dashboard is mounted underneath from the start; the intro splits open to reveal it */}
         {!ready && <VoxelIntro onDone={() => setReady(true)} />}
-        <AppLayout />
+        <AppLayout introDone={ready} />
         {tutorialOn && (
           <Tutorial steps={TUTORIAL_STEPS} onClose={() => setTutorialOn(false)} />
         )}
