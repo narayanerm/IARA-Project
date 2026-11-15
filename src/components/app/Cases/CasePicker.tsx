@@ -99,6 +99,7 @@ function CaseFrame({
   const [step, setStep] = useState(0)
   const video = useRef<HTMLVideoElement>(null)
   const playing = (live || chosen) && !idle
+  const [ready, setReady] = useState(false)
   const videoOn = playing && !!media.video
   const photo = playing && !media.video && media.images.length ? media.images[step % media.images.length] : null
 
@@ -108,6 +109,14 @@ function CaseFrame({
     const id = window.setTimeout(() => setStep((s) => (s + 1) % n), PHOTO_MS)
     return () => window.clearTimeout(id)
   }, [photo, step, media.images.length, chosen])
+
+  // Warm the videos up in the background once the hub is showing, one after the other, so the
+  // first hover already has frames to play instead of waiting for the download.
+  useEffect(() => {
+    if (idle || armed || !media.video) return
+    const id = window.setTimeout(() => setArmed(true), 300 + index * 700)
+    return () => window.clearTimeout(id)
+  }, [idle, armed, media.video, index])
 
   // The video only runs while the frame is pointed at; it resumes where it stopped next time.
   useEffect(() => {
@@ -158,7 +167,9 @@ function CaseFrame({
         {media.video && (
           <video
             ref={video}
-            className={cn('case-card-video', videoOn && 'is-on')}
+            // Until its first frames arrive the satellite picture stays, instead of a black frame.
+            className={cn('case-card-video', videoOn && ready && 'is-on')}
+            onLoadedData={() => setReady(true)}
             src={media.video}
             muted
             loop
