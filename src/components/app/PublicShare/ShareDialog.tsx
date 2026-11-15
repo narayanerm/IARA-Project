@@ -122,7 +122,7 @@ export function ShareDialog() {
       <Dialog.Trigger asChild>
         <button
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-md border border-sar-amber/40 bg-sar-amber/10 px-2.5 h-8 text-[13px] font-mono text-sar-amber hover:bg-sar-amber/20 transition-colors'
+            'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground active:scale-[0.97]'
           )}
           aria-label={t('share.aria.openShare')}
         >

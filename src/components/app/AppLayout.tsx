@@ -27,7 +27,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
 
   return (
     <section id="app" className="flex h-[100svh] w-full flex-col bg-background">
-      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-card px-3 sm:px-4">
+      <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background px-3 sm:px-5">
         <button
           type="button"
           onClick={clearAoi}
@@ -36,7 +36,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           title={t('case.home')}
         >
           <img src="/marca/iara-simbolo-escuro.svg" alt="" aria-hidden="true" className="h-7 w-7 shrink-0" />
-          <span className="text-sm font-semibold">{t('app.name')}</span>
+          <span className="text-[15px] font-normal tracking-[0.18em] [font-variation-settings:'wdth'_125]">{t('app.name')}</span>
         </button>
 
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
@@ -84,7 +84,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           {!aoiActive && (
             <button
               onClick={() => triggerTutorial()}
-              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-background/40 px-2.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground sm:inline-flex"
               title={t('appLayout.tour')}
             >
               <HelpCircle className="h-3.5 w-3.5" />
@@ -133,14 +133,14 @@ function HeaderToggle({
       aria-label={label}
       title={hint}
       className={cn(
-        'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 text-[13px] transition-colors xl:px-2.5',
+        'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 font-mono text-[11px] uppercase tracking-[0.06em] transition-colors active:scale-[0.97] xl:px-3',
         on
-          ? 'border-primary/40 bg-primary/15 text-primary'
-          : 'border-border bg-background/40 text-muted-foreground hover:text-foreground',
+          ? 'border-foreground/70 bg-foreground text-background'
+          : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground',
         className
       )}
     >
-      <Icon className="h-3.5 w-3.5" />
+      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
       <span className="hidden xl:inline">{label}</span>
     </button>
   )

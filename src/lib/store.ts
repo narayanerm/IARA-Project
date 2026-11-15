@@ -27,6 +27,9 @@ interface AppState {
   hotspotId: string | null
   /** True once the camera has finished flying into the active case. */
   caseArrived: boolean
+  /** Bumped by the home button to put the camera back on the case framing. */
+  homeTs: number
+  requestHome: () => void
   setCaseArrived: (v: boolean) => void
   setCaseYear: (y: number | null) => void
   setHotspot: (id: string | null) => void
@@ -72,6 +75,8 @@ export const useApp = create<AppState>((set, get) => ({
   caseYear: null,
   hotspotId: null,
   caseArrived: false,
+  homeTs: 0,
+  requestHome: () => set({ homeTs: Date.now(), hotspotId: null }),
   setCaseArrived: (v) => set({ caseArrived: v }),
   setCaseYear: (y) => set({ caseYear: y }),
   setHotspot: (id) => set({ hotspotId: id }),

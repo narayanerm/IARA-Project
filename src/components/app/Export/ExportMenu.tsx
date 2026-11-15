@@ -14,8 +14,12 @@ export function ExportMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" size="sm">
-          <Download className="h-3.5 w-3.5" />
+        <Button
+          variant="default"
+          size="sm"
+          className="h-8 rounded-full px-3.5 font-mono text-[11px] font-normal uppercase tracking-[0.06em] shadow-none active:scale-[0.97]"
+        >
+          <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
           {t('export.label')}
         </Button>
       </DropdownMenuTrigger>

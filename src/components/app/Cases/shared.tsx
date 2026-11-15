@@ -57,5 +57,5 @@ export function useMediaQuery(query: string): boolean {
 }
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{children}</h3>
+  return <h3 className="font-mono text-[11px] font-normal uppercase tracking-[0.08em] text-muted-foreground">{children}</h3>
 }

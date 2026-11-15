@@ -29,7 +29,7 @@ export function CaseSar({ c }: { c: CaseStudy }) {
   const point = useCasePoint(c)
 
   return (
-    <div className="space-y-3 p-4">
+    <div className="space-y-3 px-5 py-5">
       <div className="flex items-center gap-2">
         <Radar className="h-4 w-4" style={{ color: c.color }} />
         <SectionTitle>{t('case.sarTitle')}</SectionTitle>
@@ -39,7 +39,7 @@ export function CaseSar({ c }: { c: CaseStudy }) {
       {point.sar ? (
         <Pair key={point.year} c={c} before={point.sar.before} after={point.sar.after} />
       ) : (
-        <div className="grid aspect-[4/3] w-full place-items-center rounded-lg border border-border/70 bg-background/40 p-4 text-center">
+        <div className="grid aspect-[4/3] w-full place-items-center rounded-md border border-border/70 bg-background/40 p-4 text-center">
           <div className="text-[12.5px] text-muted-foreground">
             <ImageOff className="mx-auto mb-2 h-5 w-5" />
             {t('case.sarNoImage', { year: String(point.year) })}
@@ -47,7 +47,7 @@ export function CaseSar({ c }: { c: CaseStudy }) {
         </div>
       )}
 
-      <div className="rounded-lg border border-border/70 bg-background/40 p-2.5">
+      <div className="rounded-md border border-border/70 bg-background/40 p-2.5">
         <div className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: c.color }}>
           {t('case.sarHow')}
         </div>
@@ -64,7 +64,7 @@ function Pair({ c, before, after }: { c: CaseStudy; before: string; after: strin
 
   if (pair.loading) {
     return (
-      <div className="grid aspect-[4/3] w-full place-items-center rounded-lg border border-border/70 bg-background/40">
+      <div className="grid aspect-[4/3] w-full place-items-center rounded-md border border-border/70 bg-background/40">
         <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           {t('case.sarLoading')}

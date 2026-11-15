@@ -17,6 +17,7 @@ import { BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN, TERRAIN_MIN_ZOOM
 import { useBasemapAdapter } from './hooks/useBasemapAdapter'
 import { OVERVIEW_CENTER, OVERVIEW_ZOOM, useMapCamera } from './hooks/useMapCamera'
 import { useFocusedTi } from './hooks/useFocusedTi'
+import { HomeButton } from './overlays/HomeButton'
 
 import { TerrainSource } from './layers/TerrainSource'
 import { SatelliteLayer } from './layers/SatelliteLayer'
@@ -133,7 +134,7 @@ export function SarMap() {
 
         <CaseMarkers />
       </Map>
-
+      <HomeButton />
     </div>
   )
 }
