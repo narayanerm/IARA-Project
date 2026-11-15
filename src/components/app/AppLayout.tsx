@@ -37,8 +37,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           aria-label={`${t('app.name')}: ${t('case.home')}`}
           title={t('case.home')}
         >
-          <img src="/marca/iara-simbolo-escuro.svg" alt="" aria-hidden="true" className="h-7 w-7 shrink-0" />
-          <span className="text-[15px] font-normal tracking-[0.18em] [font-variation-settings:'wdth'_125]">{t('app.name')}</span>
+          <img src="/marca/iara-horizontal-sem-subtitulo-escuro.svg" alt={t('app.name')} className="-ml-2 h-11 w-auto shrink-0" />
         </button>
 
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
