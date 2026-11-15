@@ -97,17 +97,12 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
         <SarMap forecast={aoiActive ? forecastMap : null} />
         <CaseView onForecastMapChange={setForecastMap} />
         <CasePicker introDone={introDone} />
-        {/* Floating ask bar: on the home screen under the case cards, inside a case centred in the
-            map area the case panel leaves free. It steps aside while the assistant panel is open,
-            while the camera flies, and on phones inside a case (the case sheet covers the bottom). */}
-        {introDone && !rightOpen && (!aoiActive || caseArrived) && (
-          <div
-            className={cn(
-              'pointer-events-none absolute inset-x-3 bottom-3 z-30 flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none',
-              aoiActive && 'hidden md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-[256px] md:bottom-6'
-            )}
-          >
-            <AskBar className={cn('pointer-events-auto', !aoiActive && 'max-w-[560px]')} />
+        {/* Floating ask bar, only inside a case once the camera has arrived: centred in the map area the
+            case panel leaves free, clear of the SAR band panel. It unrolls from a tuft of leaves, steps
+            aside while the assistant panel is open, and hides on phones (the case sheet covers the bottom). */}
+        {introDone && !rightOpen && aoiActive && caseArrived && (
+          <div className="pointer-events-none absolute inset-x-3 bottom-3 z-30 hidden justify-center md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-[256px] md:bottom-6">
+            <AskBar reveal className="pointer-events-auto" />
           </div>
         )}
         {/* Assistant and tools open as a floating drawer below the header (also on the home screen, for questions asked in the ask bar). */}
