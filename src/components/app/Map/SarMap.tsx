@@ -14,7 +14,7 @@ import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
 import { FloodProbability } from './FloodProbability'
 
 import { MapFallback } from './MapFallback'
-import { SarChunksLayer } from './layers/SarChunksLayer'
+import { NisarImagery } from './NisarImagery'
 
 import { BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN, TERRAIN_MIN_ZOOM } from './constants'
 import { useBasemapAdapter } from './hooks/useBasemapAdapter'
@@ -167,7 +167,6 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
 
         <AmazonBiomeLayer />
 
-        <SarChunksLayer />
         <CaseOutlineLayer />
         {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
         <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
@@ -175,6 +174,7 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
         <GibsTrueColorLayer on={trueColorOverlay} />
         <GibsOverlayLayer on={nasaOverlay} gibs={gibs} />
 
+        <NisarImagery />
         <FocusedTiMask focused={focused} />
         <DeterLayer focusedTi={focused.name ?? (yanoCase ? 'TI Yanomami' : null)} deter={deter} />
 

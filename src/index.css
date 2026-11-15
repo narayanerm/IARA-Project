@@ -240,13 +240,6 @@
   }
 }
 
-/* SAR button: bottom-right of the map, above the ask bar row and the home/attribution buttons. */
-.sar-button {
-  position: absolute;
-  z-index: 30;
-  right: 16px;
-  bottom: 84px;
-}
 
 /* Floating header: keep text legible over bright map areas without drawing a bar. */
 .hdr-float button,
