@@ -41,6 +41,7 @@ export const SatCover = memo(function SatCover({
           alt=""
           draggable={false}
           decoding="async"
+          onLoad={(e) => e.currentTarget.classList.add('is-loaded')}
           style={{ left: `${(i * 100) / N}%`, top: `${(j * 100) / N}%` }}
         />
       )
