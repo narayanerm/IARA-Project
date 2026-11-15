@@ -127,7 +127,9 @@ export function PlaceDetail({
   }, [deter, place])
 
   const events: PlaceEvent[] = useMemo(() => {
-    const all = [...YANOMAMI_TERRITORY.events, ...place.events]
+    // The place's own entry replaces the territory-wide one for the same year.
+    const own = new Set(place.events.map((e) => e.year))
+    const all = [...YANOMAMI_TERRITORY.events.filter((e) => !own.has(e.year)), ...place.events]
     const seen = new Set<string>()
     return all
       .filter((e) => {

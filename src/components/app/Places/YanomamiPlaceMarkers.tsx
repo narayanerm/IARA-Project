@@ -8,6 +8,8 @@ import { PlaceDetail } from './PlaceDetail'
 import './places.css'
 
 const FLY_MS = 1400
+// Places whose label would sit on a neighbour's: draw it on the left of the pin.
+const LABEL_LEFT = new Set(['haximu'])
 
 type Camera = { center: [number, number]; zoom: number; pitch: number; bearing: number }
 
@@ -97,7 +99,9 @@ export function YanomamiPlaceMarkers() {
     if (!aoiActive || activeRegion !== 'YANO') usePlaces.setState({ yanomamiPlaceId: null, placePhase: 'idle' })
   }, [aoiActive, activeRegion])
 
-  if (!aoiActive || activeRegion !== 'YANO' || !arrived) return null
+  // Single gate for the pins (e.g. hide them while a guided tour runs).
+  const pinsEnabled = aoiActive && activeRegion === 'YANO' && arrived
+  if (!pinsEnabled) return null
   const container = map?.getContainer()
 
   return (
@@ -107,7 +111,7 @@ export function YanomamiPlaceMarkers() {
           <Marker key={p.id} longitude={p.lon} latitude={p.lat} anchor="center">
             <button
               type="button"
-              className="place-pin hotspot-in"
+              className={`place-pin hotspot-in${LABEL_LEFT.has(p.id) ? ' is-left' : ''}`}
               style={{ '--delay-in': `${300 + i * 90}ms` } as React.CSSProperties}
               onClick={(e) => {
                 e.stopPropagation()

@@ -41,6 +41,7 @@
   transition: background 160ms ease-out;
 }
 .place-pin:hover .place-pin-label { background: #f07a45; color: #0d1512; }
+.place-pin.is-left .place-pin-label { left: auto; right: 18px; }
 .place-pin-approx { margin-left: 3px; opacity: 0.6; }
 
 /* Expression lines drawn while the camera flies in. */
