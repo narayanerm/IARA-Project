@@ -1,7 +1,6 @@
 import { SarMap } from './Map/SarMap'
 import { RightPanel } from './RightPanel/RightPanel'
 import { AskBar } from './Chatbot/AskBar'
-import { SarButton } from './Map/overlays/SarButton'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
 import { triggerTutorial } from './Tutorial/Tutorial'
@@ -22,6 +21,8 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const rightOpen = useUi((s) => s.rightOpen)
   const openRight = useUi((s) => s.openRight)
   const setRightOpen = useUi((s) => s.setRightOpen)
+  const nisarVisible = useApp((s) => s.nisarVisible)
+  const setNisarVisible = useApp((s) => s.setNisarVisible)
   const aoiActive = useApp((s) => s.aoiActive)
   const clearAoi = useApp((s) => s.clearAoi)
   const caseArrived = useApp((s) => s.caseArrived)
@@ -58,6 +59,12 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
                 onToggle={toggleRelief}
                 className="hidden sm:inline-flex"
               />
+              <HeaderToggle
+                label={t('map.radar')}
+                hint={t('map.radarHint')}
+                on={nisarVisible}
+                onToggle={() => setNisarVisible(!nisarVisible)}
+              />
               <span className="mx-0.5 hidden h-4 w-px bg-white/25 sm:block" aria-hidden="true" />
               <HeaderToggle
                 label={t('rp.chat')}
@@ -90,7 +97,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
         <SarMap forecast={aoiActive ? forecastMap : null} />
         <CaseView onForecastMapChange={setForecastMap} />
         <CasePicker introDone={introDone} />
-        {aoiActive && <SarButton />}
         {/* Floating ask bar: on the home screen under the case cards, inside a case centred in the
             map area the case panel leaves free. It steps aside while the assistant panel is open,
             while the camera flies, and on phones inside a case (the case sheet covers the bottom). */}
@@ -104,9 +110,9 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
             <AskBar className={cn('pointer-events-auto', !aoiActive && 'max-w-[560px]')} />
           </div>
         )}
-        {/* Assistant and tools open as a drawer over the map (also on the home screen, for questions asked in the ask bar). */}
+        {/* Assistant and tools open as a floating drawer below the header (also on the home screen, for questions asked in the ask bar). */}
         {rightOpen && (
-          <div className="absolute inset-y-0 right-0 z-40 max-w-full shadow-2xl animate-in slide-in-from-right-6 fade-in duration-300 motion-reduce:animate-none">
+          <div className="absolute bottom-3 right-3 top-[68px] z-40 max-w-[calc(100%-24px)] overflow-hidden rounded-[14px] shadow-2xl animate-in slide-in-from-right-6 fade-in duration-300 motion-reduce:animate-none">
             <RightPanel />
           </div>
         )}

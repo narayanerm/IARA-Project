@@ -71,8 +71,7 @@ export const useApp = create<AppState>((set, get) => ({
   focusedTi: null,
   flyTarget: null,
   aoiActive: false,
-  // SAR starts off; the SAR button turns the pre-built chunks on.
-  nisarVisible: false,
+  nisarVisible: true,
   nisarTrack: null,
   nisarSceneId: null,
   nisarOpacity: 0.85,
@@ -120,7 +119,7 @@ export const useApp = create<AppState>((set, get) => ({
   setNisarOpacity: (o) => set({ nisarOpacity: o }),
   setNisarProduct: (p) => get().setActiveLayer(p === 'GUNW' ? 'interferogram' : 'amplitude'),
   setNisarPoint: (pt) =>
-    set({ nisarPoint: pt, nisarTrack: null, nisarSceneId: null, nisarNotice: null }),
+    set({ nisarPoint: pt, nisarTrack: null, nisarSceneId: null, nisarNotice: null, nisarVisible: true }),
   setNisarNotice: (n) => set({ nisarNotice: n }),
 }))
 
