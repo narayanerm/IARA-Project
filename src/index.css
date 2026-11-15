@@ -352,3 +352,62 @@
 .tour-flash { opacity: 0; animation: tour-flash 750ms ease-out 150ms 1 both; }
 @keyframes tour-flash { 0% { opacity: 0; } 30% { opacity: 0.28; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .tour-flash { animation: none; } }
+
+/* Layers panel entrance: fade in, a river runs over the cards, leaves rustle around the edges, one flash. */
+.layers-reveal { animation: layers-in 420ms ease-out both; }
+@keyframes layers-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.layers-fx { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 5; }
+.layers-river {
+  position: absolute;
+  top: 18%;
+  left: 0;
+  height: 64%;
+  width: 300%;
+  opacity: 0;
+  transform: translateX(-100%);
+  animation:
+    layers-river-x 1250ms cubic-bezier(0.45, 0, 0.35, 1) 350ms 1 forwards,
+    layers-river-y 420ms ease-in-out 350ms 3 alternate;
+}
+.layers-river .is-water { opacity: 0.55; }
+.layers-river .is-shimmer { fill: none; stroke: rgb(255 255 255 / 0.75); stroke-width: 2; stroke-dasharray: 26 18; }
+@keyframes layers-river-x {
+  0% { opacity: 1; transform: translateX(-100%); }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(34%); }
+}
+@keyframes layers-river-y { from { margin-top: -4px; } to { margin-top: 4px; } }
+.layers-flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: tour-flash 750ms ease-out 1600ms 1 both; }
+.layers-leaves { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.layers-leaf {
+  position: absolute;
+  opacity: 0;
+  transform: rotate(var(--a)) scale(0);
+  animation:
+    layers-leaf-in 450ms cubic-bezier(0.34, 1.7, 0.64, 1) calc(var(--i) * 45ms) forwards,
+    layers-leaf-rustle 260ms ease-in-out calc(400ms + var(--i) * 30ms) 3 alternate,
+    layers-leaf-out 500ms ease-in 1300ms forwards;
+}
+.layers-leaf svg { display: block; filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.55)); }
+@keyframes layers-leaf-in { to { opacity: 1; transform: rotate(var(--a)) scale(1); } }
+@keyframes layers-leaf-rustle {
+  from { opacity: 1; transform: rotate(calc(var(--a) - 14deg)) scale(1); }
+  to { opacity: 1; transform: rotate(calc(var(--a) + 14deg)) scale(1.06); }
+}
+@keyframes layers-leaf-out {
+  from { opacity: 1; transform: rotate(var(--a)) scale(1); }
+  to { opacity: 0; transform: rotate(var(--a)) scale(0.7); }
+}
+.layers-leaf.is-fly {
+  animation:
+    layers-leaf-in 450ms cubic-bezier(0.34, 1.7, 0.64, 1) calc(var(--i) * 45ms) forwards,
+    layers-leaf-rustle 260ms ease-in-out calc(400ms + var(--i) * 30ms) 2 alternate,
+    layers-leaf-fly 1000ms cubic-bezier(0.3, 0.6, 0.4, 1) calc(800ms + var(--i) * 30ms) forwards;
+}
+@keyframes layers-leaf-fly {
+  0% { opacity: 1; transform: translate(0, 0) rotate(var(--a)); }
+  100% { opacity: 0; transform: translate(calc(var(--i) * 6px + 30px), -70px) rotate(calc(var(--a) + 300deg)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .layers-fx, .layers-leaves { display: none; }
+}

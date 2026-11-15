@@ -15,40 +15,52 @@ import { useI18n } from '@/lib/i18n'
 
 type Band = 'nisar' | 'sband' | 's1c'
 
-const BANDS: Array<{ id: Band; label: string; hint: string; color: string }> = [
-  { id: 'nisar', label: 'L-band', hint: 'NISAR L-band · λ 24 cm · penetra a copa', color: '#F07A45' },
-  { id: 'sband', label: 'S-band', hint: 'NISAR S-band · λ 10 cm · topo do dossel', color: '#B59EF5' },
-  { id: 's1c', label: 'Sentinel-1', hint: 'Sentinel-1 C-band · λ 5,6 cm · superfície', color: '#9ED9FF' },
+const BANDS: Array<{ id: Band; label: string; color: string }> = [
+  { id: 'nisar', label: 'L-band', color: '#F07A45' },
+  { id: 'sband', label: 'S-band', color: '#B59EF5' },
+  { id: 's1c', label: 'Sentinel-1', color: '#9ED9FF' },
 ]
 
 // Balloon over each card: full name, then a plain-language description in the site language.
-const DESC: Record<Band | 'radd' | 'deter', { title: string; pt: string; en: string }> = {
+const DESC: Record<Band | 'radd' | 'deter', { title: { pt: string; en: string }; pt: string; en: string }> = {
   nisar: {
-    title: 'NISAR L-band · λ 24 cm',
+    title: { pt: 'NISAR L-band · λ 24 cm', en: 'NISAR L-band · λ 24 cm' },
     pt: 'Onda longa que atravessa a copa e chega ao chão e aos troncos. Mostra onde a floresta foi aberta, mesmo com nuvens.',
     en: 'A long wave that passes through the canopy to the ground and trunks. Shows where the forest was cleared, even under clouds.',
   },
   sband: {
-    title: 'NISAR S-band · λ 10 cm',
+    title: { pt: 'NISAR S-band · λ 10 cm', en: 'NISAR S-band · λ 10 cm' },
     pt: 'Onda média que reflete no topo do dossel e nos galhos. Mostra mudanças na copa das árvores.',
     en: 'A mid-length wave that bounces off the top of the canopy and branches. Shows changes in the tree crowns.',
   },
   s1c: {
-    title: 'Sentinel-1 C-band · λ 5,6 cm',
+    title: { pt: 'Sentinel-1 banda C · λ 5,6 cm', en: 'Sentinel-1 C-band · λ 5.6 cm' },
     pt: 'Onda curta que vê a superfície: água aberta, solo exposto e cicatrizes de garimpo.',
     en: 'A short wave that sees the surface: open water, bare soil and mining scars.',
   },
   radd: {
-    title: 'Alertas RADD',
+    title: { pt: 'Alertas RADD', en: 'RADD alerts' },
     pt: 'Perda de floresta detectada pelo radar do Sentinel-1, de 2020 até hoje. Cada ponto é um alerta.',
     en: 'Forest loss detected by Sentinel-1 radar, from 2020 to today. Each dot is an alert.',
   },
   deter: {
-    title: 'DETER mineração (INPE)',
+    title: { pt: 'DETER mineração (INPE)', en: 'DETER mining (INPE)' },
     pt: '683 áreas de garimpo mapeadas pelo INPE entre 2019 e 2026.',
     en: '683 mining areas mapped by INPE between 2019 and 2026.',
   },
 }
+
+// Leaves around the row's edges for the entrance; some fly up and away, the rest settle and fade.
+const LAYER_LEAVES: { x: string; y: string; a: number; c: string; fly?: boolean }[] = [
+  { x: '-6px', y: '-6px', a: -140, c: '#3f9a5e' },
+  { x: '18%', y: '-9px', a: -100, c: '#79c97a', fly: true },
+  { x: '42%', y: '-8px', a: -70, c: '#a7dc7c' },
+  { x: '66%', y: '-9px', a: -110, c: '#3f9a5e', fly: true },
+  { x: '92%', y: '-6px', a: -40, c: '#79c97a' },
+  { x: '-8px', y: '70%', a: 160, c: '#2c6b45', fly: true },
+  { x: '30%', y: 'calc(100% - 4px)', a: 120, c: '#a7dc7c' },
+  { x: '78%', y: 'calc(100% - 4px)', a: 60, c: '#3f9a5e', fly: true },
+]
 
 const thumb = (region: string, band: Band) => `/layer-thumbs/${region}-${band}.webp`
 
@@ -117,7 +129,7 @@ function Card({
       >
         {children}
       </span>
-      <span className={cn('text-[11px] font-semibold leading-tight', active ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground')}>
+      <span className={cn('text-[11px] font-bold leading-tight', active ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground')}>
         {label}
       </span>
       {/* Balloon with a plain-language description, rising above the card on hover or keyboard focus. */}
@@ -130,7 +142,7 @@ function Card({
         )}
       >
         <span className="block font-bold text-foreground">{tipTitle}</span>
-        <span className="mt-0.5 block font-normal text-foreground/85">{desc}</span>
+        <span className="mt-0.5 block font-medium text-foreground/85">{desc}</span>
         <span
           aria-hidden="true"
           className={cn(
@@ -156,35 +168,78 @@ export function YanomamiCaseControls() {
   // Open by default (and again on every case change); the tile toggles it.
   const [open, setOpen] = useState(true)
   useEffect(() => setOpen(true), [activeRegion])
+  // Bumped on every open (and case change) so the entrance animation replays.
+  const [openSeq, setOpenSeq] = useState(0)
+  useEffect(() => {
+    if (open) setOpenSeq((n) => n + 1)
+  }, [open, activeRegion])
 
   if (!aoiActive) return null
 
   const showGarimpoOverlays = activeRegion === 'YANO'
   const current = BANDS.find((b) => b.id === band)
   const overlays = (showGarimpoOverlays ? [raddOn && 'RADD', deterOn && 'DETER'] : []).filter(Boolean)
-  const tileLabel = current ? current.label : 'Camadas SAR'
+  const panelName = lang === 'pt' ? 'Camadas SAR' : 'SAR layers'
+  const tileLabel = current ? current.label : panelName
 
   return (
     <div
-      className="pointer-events-auto absolute z-40 flex items-end gap-2"
+      className="pointer-events-auto absolute z-40 flex items-end gap-2 font-[Inter,ui-sans-serif,system-ui,sans-serif]"
       style={{ right: 8, bottom: 44 }}
       onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
     >
       {/* The row of cards opens to the left of the tile. */}
       <div
+        key={open ? `open-${openSeq}` : 'closed'}
         className={cn(
-          'flex items-start gap-0.5 rounded-xl border border-white/10 bg-[rgb(13_21_18/0.95)] p-1.5 shadow-2xl backdrop-blur-md transition-all duration-200 ease-out',
-          open ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-2 opacity-0'
+          'relative flex items-start gap-0.5 rounded-xl border border-white/10 bg-[rgb(13_21_18/0.95)] p-1.5 shadow-2xl backdrop-blur-md transition-all duration-200 ease-out',
+          open ? 'layers-reveal opacity-100' : 'pointer-events-none translate-x-2 opacity-0'
         )}
         role="group"
-        aria-label="Camadas SAR"
+        aria-label={panelName}
         aria-hidden={!open}
       >
+        {/* Entrance: a river runs over the cards (clipped to the row), leaves rustle around the edges, then one flash. */}
+        {open && (
+          <>
+            <span className="layers-fx" aria-hidden="true">
+              <svg className="layers-river" viewBox="0 0 1200 100" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="layers-water" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#9ed9ff" />
+                    <stop offset="1" stopColor="#5fb8ff" />
+                  </linearGradient>
+                </defs>
+                <path
+                  className="is-water"
+                  d="M0 40 C60 22 120 58 200 40 S340 22 400 40 S540 58 600 40 S740 22 800 40 S940 58 1000 40 S1140 22 1200 40 L1200 70 C1140 88 1060 52 1000 70 S860 88 800 70 S660 52 600 70 S460 88 400 70 S260 52 200 70 S60 88 0 70 Z"
+                  fill="url(#layers-water)"
+                />
+                <path className="is-shimmer" d="M0 46 C60 30 120 62 200 46 S340 30 400 46 S540 62 600 46 S740 30 800 46 S940 62 1000 46 S1140 30 1200 46" />
+              </svg>
+              <span className="layers-flash" />
+            </span>
+            <span className="layers-leaves" aria-hidden="true">
+              {LAYER_LEAVES.map((l, i) => (
+                <span
+                  key={i}
+                  className={l.fly ? 'layers-leaf is-fly' : 'layers-leaf'}
+                  style={{ left: l.x, top: l.y, ['--a' as string]: `${l.a}deg`, ['--i' as string]: i }}
+                >
+                  <svg viewBox="-1 -7 18 13" width="18" height="13">
+                    <path d="M0 0C3.2-4.4 9.6-6.2 15.6-4.9C13.9 1.2 8.6 4.9 3.1 4.4C1.8 4.3.8 2.8 0 0Z" fill={l.c} />
+                    <path d="M0.6 0.2C5 -1 9.5 -2.2 14.4 -4.4" stroke="rgb(0 0 0 / 0.28)" strokeWidth="0.6" fill="none" />
+                  </svg>
+                </span>
+              ))}
+            </span>
+          </>
+        )}
         {BANDS.map((b) => (
           <Card
             key={b.id}
             label={b.label}
-            tipTitle={DESC[b.id].title}
+            tipTitle={DESC[b.id].title[lang]}
             desc={DESC[b.id][lang]}
             color={b.color}
             active={band === b.id}
@@ -196,10 +251,10 @@ export function YanomamiCaseControls() {
         {showGarimpoOverlays && (
           <>
             <span className="mx-1 mt-2 h-[44px] w-px shrink-0 bg-white/12" aria-hidden="true" />
-            <Card label="RADD" tipTitle={DESC.radd.title} desc={DESC.radd[lang]} color="#FF4D6D" active={raddOn} onClick={toggleRadd}>
+            <Card label="RADD" tipTitle={DESC.radd.title[lang]} desc={DESC.radd[lang]} color="#FF4D6D" active={raddOn} onClick={toggleRadd}>
               <RaddThumb />
             </Card>
-            <Card label="DETER" tipTitle={DESC.deter.title} desc={DESC.deter[lang]} alignRight color="#ffffff" active={deterOn} onClick={toggleDeter}>
+            <Card label="DETER" tipTitle={DESC.deter.title[lang]} desc={DESC.deter[lang]} alignRight color="#ffffff" active={deterOn} onClick={toggleDeter}>
               <DeterThumb />
             </Card>
           </>
@@ -211,7 +266,7 @@ export function YanomamiCaseControls() {
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        aria-label={`Camadas SAR: ${current ? current.hint : 'nenhuma banda'}`}
+        aria-label={`${panelName}: ${current ? DESC[current.id].title[lang] : lang === 'pt' ? 'nenhuma banda' : 'no band'}`}
         className="relative h-[76px] w-[76px] shrink-0 overflow-hidden rounded-xl bg-[#0d1512] shadow-2xl transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         style={{ boxShadow: `0 0 0 2px ${current ? current.color : 'rgb(255 255 255 / 0.85)'}, 0 8px 24px rgb(0 0 0 / 0.5)` }}
       >
@@ -222,9 +277,9 @@ export function YanomamiCaseControls() {
             <Layers className="mb-3 h-6 w-6 text-white/85" strokeWidth={1.75} />
           </span>
         )}
-        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent px-1 pb-1 pt-4 text-center text-[11px] font-semibold leading-tight text-white">
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent px-1 pb-1 pt-4 text-center text-[11px] font-bold leading-tight text-white">
           {tileLabel}
-          {overlays.length > 0 && <span className="block text-[9.5px] font-medium text-white/75">+ {overlays.join(' + ')}</span>}
+          {overlays.length > 0 && <span className="block text-[9.5px] font-bold text-white/75">+ {overlays.join(' + ')}</span>}
         </span>
       </button>
     </div>
