@@ -7,7 +7,7 @@ import { hasWebGL2 } from '@/lib/webgl-support'
  * straight down, the scene turns into pixels, the river bends into the IARA symbol and the symbol
  * splits along the river to reveal the dashboard, which is already mounted underneath.
  * The scene is a self-contained page (public/intro/lowpoly-intro.html) shown in a transparent iframe;
- * it posts 'iara-intro:done' when it ends or is skipped. Click or any key skips it; reduced motion
+ * it posts 'iara-intro:done' when it ends or is skipped. Only its "Skip intro" button skips it; reduced motion
  * or no WebGL skips it entirely.
  */
 const DONE = 'iara-intro:done'
@@ -36,14 +36,10 @@ export function LowPolyIntro({ onDone }: { onDone: () => void }) {
     const onMsg = (e: MessageEvent) => {
       if (e.origin === window.location.origin && e.data === DONE) end()
     }
-    // keys pressed before the iframe has focus also skip it
-    const onKey = () => end()
     window.addEventListener('message', onMsg)
-    window.addEventListener('keydown', onKey)
     const guard = window.setTimeout(end, MAX_MS)
     return () => {
       window.removeEventListener('message', onMsg)
-      window.removeEventListener('keydown', onKey)
       window.clearTimeout(guard)
     }
   }, [skip])

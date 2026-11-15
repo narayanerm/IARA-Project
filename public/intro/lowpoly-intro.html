@@ -1067,8 +1067,7 @@ function comecar() {
 }
 document.getElementById('pular').addEventListener('click', terminar)
 document.getElementById('rever').addEventListener('click', comecar)
-addEventListener('keydown', () => { if (rodando) terminar() })
-addEventListener('pointerdown', () => { if (rodando) terminar() })
+/* só o botão pula a abertura */
 try { build() } catch (e) { console.error(e) }
 const go = () => (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(comecar)
 go()
