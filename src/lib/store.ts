@@ -162,7 +162,8 @@ export const useUi = create<UiState>((set, get) => ({
   toggleRelief: () => set({ reliefOn: !get().reliefOn }),
   setRightOpen: (v) => set({ rightOpen: v }),
   openRight: (tab) => set({ rightOpen: true, rightTab: tab ?? get().rightTab }),
-  ask: (text) => set({ askQueue: { text, ts: Date.now() }, rightOpen: true, rightTab: 'chat' }),
+  // The floating ask bar dock picks the question up; no side drawer opens.
+  ask: (text) => set({ askQueue: { text, ts: Date.now() } }),
   clearAsk: () => set({ askQueue: null }),
   setPopupOpen: (v) => set({ popupOpen: v }),
 }))

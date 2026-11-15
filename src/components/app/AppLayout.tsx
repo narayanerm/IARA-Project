@@ -1,6 +1,6 @@
-import { HelpCircle, MessageSquare, Mountain, Satellite, type LucideIcon } from 'lucide-react'
+import { HelpCircle, Mountain, Satellite, type LucideIcon } from 'lucide-react'
 import { SarMap } from './Map/SarMap'
-import { RightPanel } from './RightPanel/RightPanel'
+import { MapDock } from './MapDock'
 import { SarButton } from './Map/overlays/SarButton'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
@@ -19,9 +19,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const reliefOn = useUi((s) => s.reliefOn)
   const toggleSatellite = useUi((s) => s.toggleSatellite)
   const toggleRelief = useUi((s) => s.toggleRelief)
-  const rightOpen = useUi((s) => s.rightOpen)
-  const openRight = useUi((s) => s.openRight)
-  const setRightOpen = useUi((s) => s.setRightOpen)
   const aoiActive = useApp((s) => s.aoiActive)
   const clearAoi = useApp((s) => s.clearAoi)
   const [forecastMap, setForecastMap] = useState<ForecastMapProps | null>(null)
@@ -60,13 +57,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
                 className="hidden sm:inline-flex"
               />
               <span className="mx-0.5 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
-              <HeaderToggle
-                icon={MessageSquare}
-                label={t('rp.chat')}
-                hint={t('ask.label')}
-                on={rightOpen}
-                onToggle={() => (rightOpen ? setRightOpen(false) : openRight('chat'))}
-              />
               <span data-tour="share">
                 <ShareDialog />
               </span>
@@ -94,12 +84,8 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
         <CaseView onForecastMapChange={setForecastMap} />
         <CasePicker introDone={introDone} />
         {aoiActive && <SarButton />}
-        {/* Assistant and tools open as a drawer over the map instead of a permanent rail. */}
-        {aoiActive && rightOpen && (
-          <div className="absolute inset-y-0 right-0 z-40 max-w-full shadow-2xl animate-in slide-in-from-right-6 fade-in duration-300 motion-reduce:animate-none">
-            <RightPanel />
-          </div>
-        )}
+        {/* Floating assistant ask bar at the bottom of the map. */}
+        {aoiActive && <MapDock />}
       </div>
     </section>
   )
