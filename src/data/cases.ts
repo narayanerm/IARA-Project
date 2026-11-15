@@ -53,6 +53,10 @@ export interface CaseSeries {
   /** Which direction is worse: floods and mining grow, droughts sink. */
   worse: 'high' | 'low'
   points: SeriesPoint[]
+  /** Year shown first on the timeline (defaults to the latest point). */
+  defaultYear?: number
+  /** Latest reading of the measured quantity, for the alerts tab (drought case). */
+  latest?: StageReading
   thresholds: SeriesThreshold[]
   source: { label: string; url: string }
   footnote: L
@@ -94,6 +98,15 @@ export interface StagePeak {
   approx?: boolean
 }
 
+/** One published reading at a river gauge. */
+export interface StageReading {
+  value: number
+  date: string
+  trend: 'rising' | 'falling' | 'steady'
+  source: string
+  url: string
+}
+
 export interface StageThreshold {
   value: number
   label: string
@@ -117,7 +130,7 @@ export interface RiverStage {
   }
   sources: Array<{ label: string; url: string }>
   /** Latest published reading at the gauge (static: no live feed reaches the app). */
-  latest?: { value: number; date: string; trend: 'rising' | 'falling' | 'steady'; source: string; url: string }
+  latest?: StageReading
 }
 
 export interface CaseStudy {
@@ -249,6 +262,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       digits: 0,
       domain: [0, 6500],
       worse: 'high',
+      // The record year opens the timeline.
+      defaultYear: 2022,
       points: [
         {
           year: 2018,
@@ -356,6 +371,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       en: 'DETER alerts (INPE) show on the map in near real time, in red.',
     },
     sarBbox: [-63.85, 2.3, -63.2, 2.75],
+    // Homoxi and the upper Mucajaí: one Landsat/Sentinel-2 scene and the NISAR frames cover it whole.
+    opticalBbox: [-63.75, 2.35, -63.4, 2.6],
     sarReading: {
       pt: 'Floresta espalha o sinal do radar e aparece clara. Solo exposto e água de cava devolvem pouco sinal: a clareira surge como mancha escura, mesmo sob nuvem.',
       en: 'Forest scatters the radar signal and looks bright. Bare soil and pit water return little signal: the clearing shows up as a dark patch, even under cloud.',
@@ -496,6 +513,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       digits: 2,
       domain: [26, 30.5],
       worse: 'high',
+      // The record flood opens the timeline: the clearest before/after for both the visible and the radar images.
+      defaultYear: 2021,
       points: [
         {
           year: 2009,
@@ -517,17 +536,6 @@ export const CASES: Record<RegionId, CaseStudy> = {
           optical: {
             before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20131023_02_T1', date: '2013-10-23', platform: 'Landsat 8' },
             after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20140706_02_T1', date: '2014-07-06', platform: 'Landsat 8' },
-          },
-        },
-        {
-          year: 2016,
-          value: 27.19,
-          date: '2016-06-15',
-          note: { pt: 'Ano sem inundação: o rio ficou abaixo de 27,50 m.', en: 'No flooding: the river stayed below 27.50 m.' },
-          sar: { before: '2015-09-11', after: '2016-06-15' },
-          optical: {
-            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20150911_02_T1', date: '2015-09-11', platform: 'Landsat 8' },
-            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20160711_02_T1', date: '2016-07-11', platform: 'Landsat 8' },
           },
         },
         {
@@ -647,8 +655,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       ],
       source: OLIVEIRA_2025,
       footnote: {
-        pt: 'Máximas de 2023 e 2024 calculadas a partir da amplitude anual do estudo; 2016–2020 segundo o Porto de Manaus.',
-        en: '2023 and 2024 peaks derived from the annual range in the study; 2016–2020 from the Porto de Manaus.',
+        pt: 'Máximas de 2023 e 2024 calculadas a partir da amplitude anual do estudo; 2017–2020 segundo o Porto de Manaus.',
+        en: '2023 and 2024 peaks derived from the annual range in the study; 2017–2020 from the Porto de Manaus.',
       },
     },
     risk: {
@@ -788,7 +796,6 @@ export const CASES: Record<RegionId, CaseStudy> = {
         { year: 1953, value: 29.69, date: '1953-06-09' },
         { year: 2009, value: 29.77, date: '2009-07-01' },
         { year: 2014, value: 29.5, date: '2014-07-03' },
-        { year: 2016, value: 27.19, date: '2016-06' },
         { year: 2017, value: 29.0, date: '2017-06' },
         { year: 2018, value: 28.38, date: '2018-06' },
         { year: 2019, value: 29.42, date: '2019-06-24' },
@@ -912,6 +919,15 @@ export const CASES: Record<RegionId, CaseStudy> = {
       digits: 2,
       domain: [11, 18.5],
       worse: 'low',
+      // The record drought opens the timeline.
+      defaultYear: 2024,
+      latest: {
+        value: 16.59,
+        date: '2026-10-27',
+        trend: 'falling',
+        source: 'Porto de Manaus, via NC News',
+        url: 'https://ncnews.com.br/2026/10/27/rio-negro-baixa-2-metros-fica-abaixo/',
+      },
       points: [
         {
           year: 1963,
@@ -920,11 +936,25 @@ export const CASES: Record<RegionId, CaseStudy> = {
           note: { pt: 'A maior seca do século XX. Sem imagem de satélite nessa época.', en: 'The worst drought of the 20th century. No satellite imagery back then.' },
         },
         {
+          year: 1997,
+          value: 14.34,
+          note: { pt: 'Abaixo de 15 m, uma das quatro vezes em 50 anos.', en: 'Below 15 m, one of four times in 50 years.' },
+          sar: { before: '1997-06-21', after: '1997-10-27' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_19970621_02_T1', date: '1997-06-21', platform: 'Landsat 5' },
+            after: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_19971027_02_T1', date: '1997-10-27', platform: 'Landsat 5' },
+          },
+        },
+        {
           year: 2010,
           value: 13.63,
           date: '2010-10-24',
           note: { pt: 'Primeiro recorde em 47 anos, por um centímetro.', en: 'First record in 47 years, by one centimetre.' },
           sar: { before: '2010-06-20', after: '2010-10-24' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_20100727_02_T1', date: '2010-07-27', platform: 'Landsat 5' },
+            after: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_20101031_02_T1', date: '2010-10-31', platform: 'Landsat 5' },
+          },
         },
         {
           year: 2023,
@@ -935,6 +965,10 @@ export const CASES: Record<RegionId, CaseStudy> = {
             en: 'The river drops below 13 m for the first time. 40 days of extreme drought.',
           },
           sar: { before: '2023-06-20', after: '2023-10-26' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20230629_02_T1', date: '2023-06-29', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20231027_02_T1', date: '2023-10-27', platform: 'Landsat 9' },
+          },
         },
         {
           year: 2024,
@@ -945,6 +979,10 @@ export const CASES: Record<RegionId, CaseStudy> = {
             en: 'A new record one year later. 50 days of extreme drought.',
           },
           sar: { before: '2024-06-20', after: '2024-10-09' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20240818_02_T1', date: '2024-08-18', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20241021_02_T1', date: '2024-10-21', platform: 'Landsat 8' },
+          },
         },
       ],
       thresholds: [
@@ -954,8 +992,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       ],
       source: OLIVEIRA_2025,
       footnote: {
-        pt: 'As quatro secas extremas da série histórica (cota igual ou abaixo de 13,64 m).',
-        en: 'The four extreme droughts in the record (level at or below 13.64 m).',
+        pt: 'As quatro secas extremas da série histórica (cota igual ou abaixo de 13,64 m), mais 1997, entre as dez menores cotas já medidas (SGB).',
+        en: 'The four extreme droughts in the record (level at or below 13.64 m), plus 1997, among the ten lowest levels ever measured (SGB).',
       },
     },
     risk: {
@@ -1004,6 +1042,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       en: 'Communities from the IBGE register, ranked by distance to town and reliance on a lake.',
     },
     sarBbox: [-60.65, -3.65, -60.1, -3.25],
+    // The lakes of Andiroba, Jutaí, Barro Alto and Janauacá in one Landsat scene.
+    opticalBbox: [-60.55, -3.6, -60.15, -3.3],
     sarReading: {
       pt: 'Água aparece preta no radar. Na seca, o preto dos lagos encolhe e dá lugar ao cinza do leito exposto: dá para medir quantos km² de espelho d’água sumiram.',
       en: 'Water looks black on radar. In a drought the black of the lakes shrinks into the grey of the exposed bed: you can measure how many km² of open water are gone.',

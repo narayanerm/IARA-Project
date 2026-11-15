@@ -4,7 +4,7 @@ import { RightPanel } from './RightPanel/RightPanel'
 import { AskBar } from './Chatbot/AskBar'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
-import { triggerTutorial } from './Tutorial/Tutorial'
+import { triggerCaseTour, triggerTutorial } from './Tutorial/Tutorial'
 import { CasePicker } from './Cases/CasePicker'
 import { CaseView } from './Cases/CaseView'
 import { cn } from '@/lib/utils'
@@ -85,9 +85,10 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
               </span>
             </>
           )}
-          {!aoiActive && (
+          {/* Same button on the home screen and inside a case: each opens the tour of what is on screen. */}
+          {(!aoiActive || caseArrived) && (
             <button
-              onClick={() => triggerTutorial()}
+              onClick={() => (aoiActive ? triggerCaseTour() : triggerTutorial())}
               className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground sm:inline-flex"
               title={t('appLayout.tour')}
             >
@@ -113,7 +114,9 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
               aoiActive && 'hidden md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-6 md:bottom-6'
             )}
           >
-            <AskBar className={cn('pointer-events-auto', !aoiActive && 'max-w-[560px]')} />
+            <div data-tour="ask" className={cn('pointer-events-auto flex w-full max-w-[640px] justify-center', !aoiActive && 'max-w-[560px]')}>
+              <AskBar className="pointer-events-auto" />
+            </div>
           </div>
         )}
         {/* Assistant and tools open as a drawer over the map (also on the home screen, for questions asked in the ask bar). */}
