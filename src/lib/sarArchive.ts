@@ -26,6 +26,8 @@ export interface ArchiveScene {
   band: 'C' | 'L'
   url: string
   ring?: LonLat[]
+  /** NISAR: every frame of that date over the box, drawn on top of each other as a mosaic. */
+  parts?: Array<{ id: string; url: string; ring: LonLat[] }>
   sourceUrl: string
 }
 
@@ -120,30 +122,63 @@ async function fetchSentinel1(bbox: Bbox): Promise<ArchiveScene[]> {
   return out
 }
 
+/** NISAR scenes left out after visual review over Manaus (they do not line up with the other dates). */
+const NISAR_EXCLUDED_DATES = new Set(['2026-06-23', '2026-11-02'])
+
+/** Share of the box covered by any of the rings, sampled on a 9×7 grid. */
+function coverage(rings: number[][][], [w, s, e, n]: Bbox): number {
+  let hit = 0
+  let total = 0
+  for (let i = 0; i < 9; i++) {
+    for (let j = 0; j < 7; j++) {
+      const x = w + ((e - w) * (i + 0.5)) / 9
+      const y = s + ((n - s) * (j + 0.5)) / 7
+      total++
+      if (rings.some((r) => pointInRing(x, y, r))) hit++
+    }
+  }
+  return hit / total
+}
+
+/** Dates kept when their frames cover at least this share of the box (the rest is drawn dark). */
+const NISAR_MIN_COVERAGE = 0.3
+
 async function fetchNisar(bbox: Bbox): Promise<ArchiveScene[]> {
   const list = await searchGranules({
     platform: 'NISAR',
     processingLevel: 'GCOV',
     bbox,
-    maxResults: 500,
+    maxResults: 2000,
   })
-  return list
-    .filter((g) => coversBbox(g.footprint.coordinates[0], bbox))
-    .map((g) => {
-      const url = g.browseUrl ?? g.thumbUrl
-      return url
-        ? {
-            id: g.id,
-            date: g.startTime.slice(0, 10),
-            mission: 'NISAR' as const,
-            band: 'L' as const,
-            url,
-            ring: g.footprint.coordinates[0] as LonLat[],
-            sourceUrl: g.vertexUrl,
-          }
-        : null
+  // One scene per date: frames that only cover part of the box are combined with the others of the same day.
+  const byDate = new Map<string, typeof list>()
+  for (const g of list) {
+    const day = g.startTime.slice(0, 10)
+    if (NISAR_EXCLUDED_DATES.has(day) || !(g.browseUrl ?? g.thumbUrl)) continue
+    byDate.set(day, [...(byDate.get(day) ?? []), g])
+  }
+  const out: ArchiveScene[] = []
+  for (const [day, frames] of byDate) {
+    const rings = frames.map((g) => g.footprint.coordinates[0] as LonLat[])
+    if (coverage(rings, bbox) < NISAR_MIN_COVERAGE) continue
+    // Frames that cover the whole box go last so they end up on top.
+    const parts = frames
+      .map((g, i) => ({ id: g.id, url: (g.browseUrl ?? g.thumbUrl)!, ring: rings[i], full: coversBbox(rings[i], bbox) }))
+      .sort((x, y) => Number(x.full) - Number(y.full))
+      .map(({ id, url, ring }) => ({ id, url, ring }))
+    const top = parts[parts.length - 1]
+    out.push({
+      id: `NISAR_${day}`,
+      date: day,
+      mission: 'NISAR',
+      band: 'L',
+      url: top.url,
+      ring: top.ring,
+      parts,
+      sourceUrl: frames[frames.length - 1].vertexUrl,
     })
-    .filter((x): x is NonNullable<typeof x> => !!x)
+  }
+  return out.sort((x, y) => x.date.localeCompare(y.date))
 }
 
 export interface ArchiveState {
@@ -296,9 +331,14 @@ export async function drawScene(canvas: HTMLCanvasElement, scene: ArchiveScene, 
   if (scene.mission === 'Sentinel-1') {
     ctx.drawImage(bmp, 0, 0, W, H)
   } else {
-    const g = nisarGeoref(scene, bmp)
     const [w, s, e, n] = bbox
-    ctx.drawImage(bmp, (w - g.w) / g.dx, (g.n - n) / g.dy, (e - w) / g.dx, (n - s) / g.dy, 0, 0, W, H)
+    const parts = scene.parts ?? [{ id: scene.id, url: scene.url, ring: scene.ring ?? [] }]
+    for (const part of parts) {
+      const img = part.url === scene.url ? bmp : await loadBitmap(part.url).catch(() => null)
+      if (!img) continue
+      const g = nisarGeoref({ ...scene, id: part.id, url: part.url, ring: part.ring }, img)
+      ctx.drawImage(img, (w - g.w) / g.dx, (g.n - n) / g.dy, (e - w) / g.dx, (n - s) / g.dy, 0, 0, W, H)
+    }
   }
   if (scene.mission === 'Sentinel-1') return { coverage: 1 }
   const d = ctx.getImageData(0, 0, W, H).data

@@ -4,7 +4,8 @@ import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
 import { useApp, type CaseTab } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
 import { CaseAlerts } from './CaseAlerts'
-import { CaseSar, useCasePoint } from './CaseSar'
+import { CaseFloodAlerts } from './CaseFloodAlerts'
+import { CaseSar } from './CaseSar'
 import { CaseSeries } from './CaseSeries'
 import { CaseFlowOutlook } from './CaseFlowOutlook'
 import { CaseStory } from './CaseStory'
@@ -39,7 +40,6 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
   // The tab lives in the store so the assistant can open it too; reset the scroll bar when it changes.
   const tab = useApp((s) => s.caseTab)
   const setTab = useApp((s) => s.setCaseTab)
-  const timelinePoint = useCasePoint(c)
   const bounds = REGIONS.find((region) => region.id === c.id)!.bbox
   const panelRef = useRef<HTMLElement>(null)
   const index = CASE_ORDER.indexOf(c.id) + 1
@@ -99,14 +99,21 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
         {tab === 'overview' && <CaseStory c={c} />}
         {tab === 'timeline' && (
           <>
-            <CaseSeries c={c} />
-            {c.id !== 'YANO' && <CaseFlowOutlook kind={c.id === 'ENCH' ? 'flood' : 'drought'} bounds={bounds} />}
-            <div className="mx-5 border-t border-border" />
-            {c.id === 'ENCH' && <CaseForecasts kind="observed" bounds={bounds} initialDate={timelinePoint.sar?.after} onMapChange={onForecastMapChange} />}
-            <CaseSar c={c} />
+            {/* Flood case: gauge history → before/after of the picked flood → full SAR archive. */}
+            {c.id !== 'ENCH' && (
+              <>
+                <CaseSeries c={c} />
+                {c.id !== 'YANO' && <CaseFlowOutlook kind="drought" bounds={bounds} />}
+                <div className="mx-5 border-t border-border" />
+              </>
+            )}
+            <CaseSar c={c} yearPicker={c.id === 'ENCH'} />
           </>
         )}
-        {tab === 'alerts' && (
+        {tab === 'alerts' && c.id === 'ENCH' && c.riverStage && (
+          <CaseFloodAlerts c={c} />
+        )}
+        {tab === 'alerts' && !(c.id === 'ENCH' && c.riverStage) && (
           <CaseAlerts c={c} forecast={
             c.id !== 'YANO' && <CaseForecasts kind={c.id === 'ENCH' ? 'flood' : 'drought'} bounds={bounds} onMapChange={onForecastMapChange} />
           } />
