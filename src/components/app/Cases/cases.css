@@ -316,6 +316,7 @@
   letter-spacing: -0.015em;
 }
 .case-card-meta {
+  --mono: 'Bricolage Grotesque', ui-sans-serif, sans-serif;
   display: grid;
   margin: 14px 0 22px;
   border-top: 1px solid rgb(241 238 229 / 0.4);
