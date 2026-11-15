@@ -7,15 +7,14 @@ import { REGIONS } from '@/lib/regions'
 import { useApp, useUi } from '@/lib/store'
 import { useDeterAlerts } from '@/lib/useDeterAlerts'
 import { GIBS_BY_REGION } from '@/lib/gibs'
-import { useI18n, useT } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
-import { inAmazon } from '@/lib/amazon'
 import { FLOOD_ATTRIBUTION, waterTileTemplate, isObservedFlood, SEASONAL_BASINS, NASA_FLOOD_ATTRIBUTION, gwisMapUrl, GWIS_ATTRIBUTION, type WaterLayer, type ForecastMapProps } from '@/lib/predictive-models'
 import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
 import { FloodProbability } from './FloodProbability'
 
 import { MapFallback } from './MapFallback'
-import { NisarImagery } from './NisarImagery'
+import { SarChunksLayer } from './layers/SarChunksLayer'
 
 import { BASEMAP_URL, BEARING, MAP_ATTRIBUTION, PITCH, TERRAIN, TERRAIN_MIN_ZOOM } from './constants'
 import { useBasemapAdapter } from './hooks/useBasemapAdapter'
@@ -69,9 +68,6 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
   const aoiActive = useApp((s) => s.aoiActive)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
-  const setNisarPoint = useApp((s) => s.setNisarPoint)
-  const setNisarNotice = useApp((s) => s.setNisarNotice)
-  const t = useT()
 
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const gibs = GIBS_BY_REGION[activeRegion]
@@ -109,12 +105,9 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
     }
   }, [reliefOn, mapLoaded])
 
-  // A click on the map points the live NISAR catalogue at that spot.
+  // SAR no longer loads on map clicks (it has its own button); clicks only pick river forecast points.
   const onClick = (e: MapLayerMouseEvent) => {
-    const { lng, lat } = e.lngLat
-    if (onRiverSelect) { onRiverSelect([lng, lat]); return }
-    if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
-    else setNisarNotice(t('nisar.outsideAmazon'))
+    if (onRiverSelect) onRiverSelect([e.lngLat.lng, e.lngLat.lat])
   }
 
   if (!hasWebGL2()) {
@@ -160,6 +153,7 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
 
         <AmazonBiomeLayer />
 
+        <SarChunksLayer />
         <CaseOutlineLayer />
         {/* Invisible anchor: async overlays insert below it so community pins stay on top. */}
         <Layer id="community-points-anchor" type="background" paint={{ 'background-opacity': 0 }} />
@@ -167,7 +161,6 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
         <GibsTrueColorLayer on={trueColorOverlay} />
         <GibsOverlayLayer on={nasaOverlay} gibs={gibs} />
 
-        <NisarImagery />
         <FocusedTiMask focused={focused} />
         <DeterLayer focusedTi={focused.name ?? (yanoCase ? 'TI Yanomami' : null)} deter={deter} />
 

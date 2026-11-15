@@ -46,7 +46,7 @@ export function AskBar({ className }: { className?: string }) {
           e.preventDefault()
           submit(text)
         }}
-        className="flex h-11 items-center gap-2 rounded-lg border border-border bg-card/70 pl-3 pr-1.5 backdrop-blur-sm focus-within:border-foreground/30"
+        className="flex h-11 items-center gap-2 rounded-full border border-border bg-card/85 pl-4 pr-1.5 shadow-lg backdrop-blur-md focus-within:border-foreground/30"
       >
         <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <label htmlFor="ask-bar-input" className="sr-only">
@@ -67,7 +67,7 @@ export function AskBar({ className }: { className?: string }) {
           disabled={!text.trim()}
           aria-label={t('ask.send')}
           title={t('ask.send')}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:bg-secondary disabled:text-muted-foreground"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:bg-secondary disabled:text-muted-foreground"
         >
           <ArrowUp className="h-4 w-4" />
         </button>

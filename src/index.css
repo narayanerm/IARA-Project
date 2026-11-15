@@ -239,3 +239,23 @@
     @apply bg-card/90 border border-border/60 shadow-lg shadow-black/20;
   }
 }
+
+/* Bottom dock (SAR button + ask bar): centred on the map area beside the case panel. */
+.map-dock {
+  left: 0;
+}
+@media (min-width: 768px) {
+  .map-dock {
+    left: clamp(340px, 30vw, 420px);
+  }
+}
+/* Chatbot inside the dock: the ask bar replaces its own header, chips and input. */
+.dock-chat > div {
+  background: transparent;
+  backdrop-filter: none;
+}
+.dock-chat > div > div:first-child,
+.dock-chat > div > div:nth-child(3),
+.dock-chat > div > form {
+  display: none;
+}
