@@ -4,10 +4,12 @@ import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
 import { useApp } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
 import { CaseAlerts } from './CaseAlerts'
-import { CaseSar } from './CaseSar'
+import { CaseSar, useCasePoint } from './CaseSar'
 import { CaseSeries } from './CaseSeries'
 import { CaseStory } from './CaseStory'
 import { useTr } from './shared'
+import { CaseForecasts, type SetCaseForecastMap } from './CaseForecasts'
+import { REGIONS } from '@/lib/regions'
 
 type Tab = 'overview' | 'timeline' | 'alerts'
 
@@ -21,19 +23,21 @@ const TABS: Array<{ id: Tab; label: TKey }> = [
  * The single surface of a case. It waits for the camera to land, then slides in as a sheet docked
  * to the left edge (or up from the bottom on phones). The way out is always back to the cases.
  */
-export function CaseView() {
+export function CaseView({ onForecastMapChange }: { onForecastMapChange: SetCaseForecastMap }) {
   const aoiActive = useApp((s) => s.aoiActive)
   const arrived = useApp((s) => s.caseArrived)
   const activeRegion = useApp((s) => s.activeRegion)
   if (!aoiActive || !arrived) return null
-  return <CasePanel key={activeRegion} c={CASES[activeRegion]} />
+  return <CasePanel key={activeRegion} c={CASES[activeRegion]} onForecastMapChange={onForecastMapChange} />
 }
 
-function CasePanel({ c }: { c: CaseStudy }) {
+function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChange: SetCaseForecastMap }) {
   const t = useT()
   const tr = useTr()
   const clearAoi = useApp((s) => s.clearAoi)
   const [tab, setTab] = useState<Tab>('overview')
+  const timelinePoint = useCasePoint(c)
+  const bounds = REGIONS.find((region) => region.id === c.id)!.bbox
   const panelRef = useRef<HTMLElement>(null)
   const index = CASE_ORDER.indexOf(c.id) + 1
   const tabIndex = TABS.findIndex((x) => x.id === tab)
@@ -94,10 +98,15 @@ function CasePanel({ c }: { c: CaseStudy }) {
           <>
             <CaseSeries c={c} />
             <div className="mx-5 border-t border-border" />
+            {c.id === 'ENCH' && <CaseForecasts kind="observed" bounds={bounds} initialDate={timelinePoint.sar?.after} onMapChange={onForecastMapChange} />}
             <CaseSar c={c} />
           </>
         )}
-        {tab === 'alerts' && <CaseAlerts c={c} />}
+        {tab === 'alerts' && (
+          <CaseAlerts c={c} forecast={
+            c.id !== 'YANO' && <CaseForecasts kind={c.id === 'ENCH' ? 'flood' : 'drought'} bounds={bounds} onMapChange={onForecastMapChange} />
+          } />
+        )}
       </div>
     </aside>
   )

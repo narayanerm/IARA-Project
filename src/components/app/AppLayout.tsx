@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useApp, useUi } from '@/lib/store'
 import { useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
+import type { ForecastMapProps } from '@/lib/predictive-models'
 
 export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const t = useT()
@@ -24,6 +25,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const setNisarVisible = useApp((s) => s.setNisarVisible)
   const aoiActive = useApp((s) => s.aoiActive)
   const clearAoi = useApp((s) => s.clearAoi)
+  const [forecastMap, setForecastMap] = useState<ForecastMapProps | null>(null)
 
   return (
     <section id="app" className="flex h-[100svh] w-full flex-col bg-background">
@@ -96,8 +98,8 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
       </div>
 
       <div data-tour="map" className="relative min-h-0 flex-1 overflow-hidden">
-        <SarMap />
-        <CaseView />
+        <SarMap forecast={aoiActive ? forecastMap : null} />
+        <CaseView onForecastMapChange={setForecastMap} />
         <CasePicker introDone={introDone} />
         {/* Assistant and tools open as a drawer over the map instead of a permanent rail. */}
         {aoiActive && rightOpen && (
@@ -145,3 +147,4 @@ function HeaderToggle({
     </button>
   )
 }
+import { useState } from 'react'
