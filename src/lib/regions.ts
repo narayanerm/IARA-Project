@@ -18,14 +18,14 @@ export const REGIONS: Region[] = [
   },
   {
     id: 'ENCH',
-    name: 'Manaus urbana',
+    name: 'Manaus',
     phenomenon: 'flood',
     phenomenonLabel: 'Enchente',
     anchorCity: 'Manaus · AM',
-    // Urban Manaus on the Rio Negro, record flood in 2021
-    bbox: [-60.3, -3.3, -59.75, -2.95],
-    center: [-60.0, -3.1],
-    zoom: 11,
+    // Manaus municipio (IBGE 1302603) — Rio Negro + Solimões + Encontro das Águas.
+    bbox: [-60.9, -3.3, -59.1, -1.85],
+    center: [-60.0, -2.6],
+    zoom: 9,
     tagline:
       'Água sob nuvem perene. Especular em SAR = pixel preto, delimitação robusta.',
     isAnchor: false,

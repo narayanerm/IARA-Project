@@ -402,8 +402,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
     place: { pt: 'Manaus urbana e região', en: 'Urban Manaus and surroundings' },
     placeShort: 'Manaus',
     color: '#4DA3F7',
-    camera: { center: [-60.0, -3.1], zoom: 11 },
-    cover: { center: [-60.0, -3.11], zoom: 12 },
+    camera: { center: [-60.0, -2.6], zoom: 9 },
+    cover: { center: [-60.0, -2.6], zoom: 9.5 },
     outline: { kind: 'ibge', code: 1302603 },
     ibgeCode: 1302603,
     meta: [
@@ -597,7 +597,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
       pt: 'Pontos de atenção marcados a partir de registros das cheias de 2021 e 2022.',
       en: 'Watch points placed from records of the 2021 and 2022 floods.',
     },
-    sarBbox: [-60.3, -3.3, -59.75, -2.95],
+    sarBbox: [-60.9, -3.3, -59.1, -1.85],
     sarReading: {
       pt: 'Água lisa funciona como espelho e não devolve sinal ao radar: aparece preta. Comparando a seca com a cheia, a área preta que cresce é a área alagada.',
       en: 'Smooth water acts like a mirror and returns no signal to the radar: it looks black. Comparing low and high water, the black area that grows is the flooded area.',

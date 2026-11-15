@@ -1,5 +1,4 @@
 import { Layer, Source } from 'react-map-gl/maplibre'
-import type { Feature, Polygon } from 'geojson'
 import { CASES } from '@/data/cases'
 import { cropSize, type Bbox } from '@/lib/sarArchive'
 import type { RegionId } from '@/lib/types'
@@ -60,13 +59,7 @@ export function CaseImageryLayer({ activeRegion, visible, beforeId }: CaseImager
 
   if (!visible || !bbox) return null
 
-  const [w, s, e, n] = bbox
   const images = satelliteTiles(bbox)
-  const outline: Feature<Polygon> = {
-    type: 'Feature',
-    properties: {},
-    geometry: { type: 'Polygon', coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] },
-  }
 
   return (
     <>
@@ -86,14 +79,6 @@ export function CaseImageryLayer({ activeRegion, visible, beforeId }: CaseImager
           />
         </Source>
       ))}
-      <Source id={`case-imagery-${activeRegion}-outline`} type="geojson" data={outline}>
-        <Layer
-          id={`case-imagery-${activeRegion}-outline-line`}
-          type="line"
-          beforeId={beforeId}
-          paint={{ 'line-color': '#5AA7C9', 'line-width': 1.5, 'line-opacity': 0.9 }}
-        />
-      </Source>
     </>
   )
 }

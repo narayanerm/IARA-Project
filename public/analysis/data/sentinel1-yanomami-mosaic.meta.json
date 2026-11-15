@@ -1,0 +1,16 @@
+{
+  "bbox": [
+    -66.5,
+    -0.5,
+    -61,
+    4.5
+  ],
+  "width": 2000,
+  "height": 1819,
+  "scenesComposited": 360,
+  "dateRange": [
+    "2025-11-08",
+    "2026-11-13"
+  ],
+  "source": "Sentinel-1 RTC · Microsoft Planetary Computer (10 m/px σ⁰ in dB)"
+}

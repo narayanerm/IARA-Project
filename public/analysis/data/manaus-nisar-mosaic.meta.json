@@ -1,18 +1,19 @@
 {
   "bbox": [
-    -60.4,
-    -3.4,
-    -59.5,
-    -2.8
+    -60.9,
+    -3.3,
+    -59.1,
+    -1.85
   ],
-  "width": 2560,
-  "height": 1707,
-  "scenesComposited": 31,
+  "width": 2340,
+  "height": 1885,
+  "scenesComposited": 70,
   "perCell": 999,
   "dateRange": [
     "2026-06-18",
     "2026-11-02"
   ],
-  "buildDate": "2026-11-15T16:55:14+00:00",
-  "source": "NISAR L2 GCOV \u00b7 NASA/ISRO \u00b7 ASF DAAC"
+  "buildDate": "2026-11-15T22:58:52+00:00",
+  "source": "NISAR L2 GCOV \u00b7 NASA/ISRO \u00b7 ASF DAAC",
+  "pipeline": "opencv.detail (GAIN_BLOCKS + MultiBandBlender)"
 }

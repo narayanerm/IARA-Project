@@ -29,14 +29,14 @@ const MOSAICS: Record<RegionId, Record<'nisar' | 'sband' | 's1c', BandSpec>> = {
     s1c: { url: '/analysis/data/sentinel1-yanomami-mosaic.png', bbox: [-66.5, -0.5, -61.0, 4.5] },
   },
   ENCH: {
-    nisar: { url: '/analysis/data/manaus-nisar-mosaic.png', bbox: [-60.4, -3.4, -59.5, -2.8] },
-    sband: { url: '/analysis/data/manaus-nisar-sband-mosaic.png', bbox: [-60.4, -3.4, -59.5, -2.8] },
-    s1c: { url: '/analysis/data/sentinel1-manaus-mosaic.png', bbox: [-60.4, -3.4, -59.5, -2.8] },
+    nisar: { url: '/analysis/data/manaus-nisar-mosaic.png', bbox: [-60.9, -3.3, -59.1, -1.85] },
+    sband: { url: '/analysis/data/manaus-nisar-sband-mosaic.png', bbox: [-60.9, -3.3, -59.1, -1.85] },
+    s1c: { url: '/analysis/data/sentinel1-manaus-mosaic.png', bbox: [-60.9, -3.3, -59.1, -1.85] },
   },
   SECA: {
-    nisar: { url: '/analysis/data/manaquiri-nisar-mosaic.png', bbox: [-60.7, -3.7, -60.1, -3.2] },
-    sband: { url: '/analysis/data/manaquiri-nisar-sband-mosaic.png', bbox: [-60.7, -3.7, -60.1, -3.2] },
-    s1c: { url: '/analysis/data/sentinel1-manaquiri-mosaic.png', bbox: [-60.7, -3.7, -60.1, -3.2] },
+    nisar: { url: '/analysis/data/manaquiri-nisar-mosaic.png', bbox: [-61.2, -4.2, -60.2, -3.3] },
+    sband: { url: '/analysis/data/manaquiri-nisar-sband-mosaic.png', bbox: [-61.2, -4.2, -60.2, -3.3] },
+    s1c: { url: '/analysis/data/sentinel1-manaquiri-mosaic.png', bbox: [-61.2, -4.2, -60.2, -3.3] },
   },
 }
 

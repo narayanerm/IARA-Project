@@ -11,8 +11,8 @@ import { Readable } from 'node:stream'
 const CASE = (process.env.CASE || 'YANO').toUpperCase()
 const CASES = {
   YANO: { bbox: '-66.5,-0.5,-61.0,4.5', browseDir: 'sentinel1-browse', catalog: 'sentinel1-catalog.json' },
-  ENCH: { bbox: '-60.6,-3.5,-59.4,-2.7', browseDir: 'sentinel1-browse-manaus', catalog: 'sentinel1-manaus-catalog.json' },
-  SECA: { bbox: '-60.9,-3.8,-60.0,-3.0', browseDir: 'sentinel1-browse-manaquiri', catalog: 'sentinel1-manaquiri-catalog.json' },
+  ENCH: { bbox: '-60.5,-3.4,-59.6,-2.8', browseDir: 'sentinel1-browse-manaus', catalog: 'sentinel1-manaus-catalog.json' },
+  SECA: { bbox: '-61.3,-4.3,-60.1,-3.2', browseDir: 'sentinel1-browse-manaquiri', catalog: 'sentinel1-manaquiri-catalog.json' },
 }
 if (!CASES[CASE]) { console.error(`unknown CASE=${CASE}`); process.exit(2) }
 const _CFG = CASES[CASE]

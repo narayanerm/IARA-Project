@@ -17,6 +17,7 @@ Usage: python3 scripts/analysis/build-nisar-sband-mosaic.py
 """
 
 import json
+import netrc
 import os
 import re
 import sys
@@ -31,6 +32,43 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
+def _load_edl_token():
+    tok = os.environ.get("EDL_TOKEN", "").strip()
+    if tok:
+        return tok
+    p = Path.home() / ".edl_token"
+    if p.exists():
+        return p.read_text().strip()
+    return None
+
+def _build_earthdata_session():
+    if requests is None:
+        return None
+    sess = requests.Session()
+    sess.headers.update({"User-Agent": "IARA-mosaic-build/1.0"})
+    token = _load_edl_token()
+    if token:
+        sess.headers["Authorization"] = f"Bearer {token}"
+        print("[auth] Earthdata Login enabled via Bearer token")
+        return sess
+    try:
+        creds = netrc.netrc().authenticators("urs.earthdata.nasa.gov")
+    except (FileNotFoundError, netrc.NetrcParseError):
+        return None
+    if not creds:
+        return None
+    user, _, pwd = creds
+    sess.auth = (user, pwd)
+    print(f"[auth] Earthdata Login enabled for {user}")
+    return sess
+
+EARTHDATA_SESSION = _build_earthdata_session()
+
 # ---------- Case config ----------
 CASE = os.environ.get("CASE", "YANO").upper()
 CASES = {
@@ -41,15 +79,15 @@ CASES = {
         "out_stem": "yanomami-nisar-sband-mosaic",
     },
     "ENCH": {
-        "search_bbox": (-60.6, -3.5, -59.4, -2.7),
+        "search_bbox": (-61.0, -3.4, -59.0, -1.75),
         "polygon_file": None,
-        "render_bbox": (-60.4, -3.4, -59.5, -2.8),
+        "render_bbox": (-60.9, -3.3, -59.1, -1.85),
         "out_stem": "manaus-nisar-sband-mosaic",
     },
     "SECA": {
-        "search_bbox": (-60.9, -3.8, -60.0, -3.0),
+        "search_bbox": (-61.3, -4.3, -60.1, -3.2),
         "polygon_file": None,
-        "render_bbox": (-60.7, -3.7, -60.1, -3.2),
+        "render_bbox": (-61.2, -4.2, -60.2, -3.3),
         "out_stem": "manaquiri-nisar-sband-mosaic",
     },
 }
@@ -66,6 +104,12 @@ PER_CELL = 999
 POL_FILTER = "DHDH"
 DARK_RGB_SUM = 36
 EDGE_ERODE_PX = 1
+CROP_EDGE_PX = 96                                 # trim px off each side of every scene
+                                                  # before composite — kills NISAR swath
+                                                  # dark fringe without threshold heuristics.
+                                                  # Aggressive: prefers older neighbor's
+                                                  # interior over newer scene's noisy edges.
+NORM_PCT = (2.0, 98.0)                            # robust color-normalization percentiles
 LATLON_BUFFER = 0.12
 
 HTTP_HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) IARA-mosaic-build/1.0"}
@@ -74,7 +118,10 @@ DOWNLOAD_PARALLEL = 6
 DOWNLOAD_MAX_RETRIES = 4
 
 TI_BBOX = None  # set at main()
-OUTPUT_WIDTH = 2560
+# NISAR S-band browse is ~1392 px over ~3° (~460 px/° source).  Cap canvas
+# at ~1000 px/° (2× source Nyquist) so we don't upsample for small bboxes.
+OUTPUT_WIDTH_MAX = 2560
+OUTPUT_WIDTH_PER_DEG = 1000
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 POLYGON_PATH = (
@@ -158,10 +205,17 @@ def pick_scenes(scenes):
             (u for u in all_urls if isinstance(u, str) and u.endswith("_NATIVE_B_HHHH.png")),
             None,
         )
+        # S-band PNG uses NATIVE_B grid, but it's lat/lon axis-aligned too (verified).
+        # Use the simpler _LATLON.kml for the exact bbox (identical to within ~10 m).
+        kml = next(
+            (u for u in all_urls if isinstance(u, str) and u.endswith("_LATLON.kml")),
+            None,
+        )
         bbox = parse_wkt_bbox(s.get("wkt"))
         if not png or not bbox:
             continue
         s["_png"] = png
+        s["_kml"] = kml
         s["_bbox"] = bbox
         key = (s.get("path"), s.get("frame"))
         by_cell.setdefault(key, []).append(s)
@@ -214,6 +268,76 @@ def download_one(scene):
     return (out, cached)
 
 
+def _parse_latlon_kml_bbox(text):
+    """_LATLON.kml always has an axis-aligned LatLonQuad. Return (W,S,E,N)."""
+    m = re.search(r"LatLonQuad[^>]*>\s*<coordinates>\s*([^<]+?)\s*</coordinates>", text, re.DOTALL)
+    if not m:
+        return None
+    pts = [p.strip().split(",") for p in m.group(1).split()]
+    try:
+        coords = [(float(p[0]), float(p[1])) for p in pts if len(p) >= 2]
+    except (ValueError, IndexError):
+        return None
+    if not coords:
+        return None
+    lons = [c[0] for c in coords]
+    lats = [c[1] for c in coords]
+    return (min(lons), min(lats), max(lons), max(lats))
+
+
+def fetch_kml_bboxes(scenes):
+    """Pre-fetch each scene's _LATLON.kml and replace the WKT-buffered fallback with
+    the exact axis-aligned bbox. Avoids the ~13 km systematic offset of the fallback.
+    Validates content so Earthdata login HTML is not cached as .kml."""
+    print(f"[2b/6] Fetching exact bbox from LATLON.kml (one per scene)…")
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+    def fetch_one(scene):
+        name = scene["granuleName"]
+        kml_path = CACHE_DIR / f"{name}_LATLON.kml"
+        text = None
+        if kml_path.exists() and kml_path.stat().st_size > 100:
+            cached = kml_path.read_text()
+            if cached.lstrip().startswith("<kml") or "LatLonQuad" in cached:
+                text = cached
+            else:
+                kml_path.unlink(missing_ok=True)
+        if text is None and scene.get("_kml"):
+            try:
+                if EARTHDATA_SESSION is not None:
+                    r = EARTHDATA_SESSION.get(scene["_kml"], timeout=HTTP_TIMEOUT_S, allow_redirects=True)
+                    r.raise_for_status()
+                    data = r.content.decode()
+                else:
+                    req = urllib.request.Request(scene["_kml"], headers=HTTP_HEADERS)
+                    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_S) as resp:
+                        data = resp.read().decode()
+                if "<kml" not in data[:200] and "LatLonQuad" not in data:
+                    return False
+                text = data
+                kml_path.write_text(text)
+            except Exception:
+                return False
+        if not text:
+            return False
+        bbox = _parse_latlon_kml_bbox(text)
+        if bbox:
+            scene["_bbox"] = bbox
+            return True
+        return False
+
+    done = 0
+    got = 0
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        for ok in ex.map(fetch_one, scenes):
+            done += 1
+            if ok:
+                got += 1
+            if done % 25 == 0 or done == len(scenes):
+                print(f"      {done}/{len(scenes)}  (exact: {got}, fallback: {done - got})")
+    print(f"      → exact LATLON bbox for {got}/{len(scenes)} scenes")
+
+
 def download_all(scenes):
     print(f"[3/6] Downloading {len(scenes)} browse PNGs (cache in {CACHE_DIR})")
     paths = [None] * len(scenes)
@@ -250,6 +374,20 @@ def erode_alpha(alpha, k):
     return a
 
 
+def crop_edges(arr, bbox, k):
+    """Trim k px off each side and shrink bbox proportionally so geo-alignment stays correct.
+    Deterministic alternative to luminance thresholds for NISAR swath dark fringe."""
+    if k <= 0:
+        return arr, bbox
+    h, w = arr.shape[:2]
+    if h <= 2 * k or w <= 2 * k:
+        return arr, bbox
+    sw, ss, se, sn = bbox
+    px_lon = (se - sw) / w
+    px_lat = (sn - ss) / h
+    return arr[k:-k, k:-k], (sw + k * px_lon, ss + k * px_lat, se - k * px_lon, sn - k * px_lat)
+
+
 def clean_scene(arr):
     rgb_sum = arr[:, :, :3].astype(np.int32).sum(axis=2)
     dark = (arr[:, :, 3] > 0) & (rgb_sum < DARK_RGB_SUM)
@@ -259,49 +397,58 @@ def clean_scene(arr):
     return arr
 
 
-def scene_rgb_stats(arr):
+def scene_rgb_percentiles(arr):
+    """Per-channel (p_lo, p_hi) over valid opaque pixels. Robust to outliers."""
     valid = arr[:, :, 3] == 255
     if valid.sum() < 2000:
         return None
     rgb = arr[:, :, :3][valid].astype(np.float32)
-    return rgb.mean(axis=0), rgb.std(axis=0) + 1e-3
+    lo = np.percentile(rgb, NORM_PCT[0], axis=0)
+    hi = np.percentile(rgb, NORM_PCT[1], axis=0)
+    return lo, hi
 
 
-def compute_target_stats(paths):
-    print(f"      Scanning {len(paths)} scenes for global color reference…")
-    stats = []
+def compute_target_percentiles(paths):
+    """Scan every scene to get a global (p_lo, p_hi) reference per channel.
+    Each scene is stretched to this range so every scene occupies the same
+    dynamic range — kills radiometric seams that Reinhard alone leaves."""
+    print(f"      Scanning {len(paths)} scenes for global percentile reference…")
+    pairs = []
     for i, path in enumerate(paths):
         if path is None:
             continue
         try:
             arr = np.array(Image.open(path).convert("RGBA"))
             arr = clean_scene(arr)
-            st = scene_rgb_stats(arr)
-            if st is not None:
-                stats.append(st)
+            p = scene_rgb_percentiles(arr)
+            if p is not None:
+                pairs.append(p)
         except Exception:
             pass
         if (i + 1) % 50 == 0:
             print(f"        scanned {i+1}/{len(paths)}")
-    if not stats:
+    if not pairs:
         return None, None
-    means = np.array([s[0] for s in stats])
-    stds = np.array([s[1] for s in stats])
-    target_mean = np.median(means, axis=0)
-    target_std = np.median(stds, axis=0)
-    print(f"      Target RGB mean: {target_mean.round(1).tolist()}, std: {target_std.round(1).tolist()}")
-    return target_mean, target_std
+    los = np.array([p[0] for p in pairs])
+    his = np.array([p[1] for p in pairs])
+    target_lo = np.median(los, axis=0)
+    target_hi = np.median(his, axis=0)
+    print(f"      Target RGB p{NORM_PCT[0]:.0f}: {target_lo.round(1).tolist()}, p{NORM_PCT[1]:.0f}: {target_hi.round(1).tolist()}")
+    return target_lo, target_hi
 
 
-def rebalance(arr, target_mean, target_std):
-    if target_mean is None or target_std is None:
+def rebalance(arr, target_lo, target_hi):
+    """Linearly stretch scene's (p_lo, p_hi) to global (target_lo, target_hi)."""
+    if target_lo is None or target_hi is None:
         return arr
-    st = scene_rgb_stats(arr)
-    if st is None:
+    p = scene_rgb_percentiles(arr)
+    if p is None:
         return arr
-    src_mean, src_std = st
+    src_lo, src_hi = p
+    src_range = np.maximum(src_hi - src_lo, 1e-3)
+    tgt_range = target_hi - target_lo
     rgb = arr[:, :, :3].astype(np.float32)
-    rebalanced = (rgb - src_mean) * (target_std / src_std) + target_mean
+    rebalanced = (rgb - src_lo) * (tgt_range / src_range) + target_lo
     rebalanced = np.clip(rebalanced, 0, 255)
     arr[:, :, :3] = rebalanced.astype(np.uint8)
     return arr
@@ -309,18 +456,20 @@ def rebalance(arr, target_mean, target_std):
 
 def composite(scenes, paths):
     print(f"[4/6] Compositing mosaic")
-    target_mean, target_std = compute_target_stats(paths)
+    target_lo, target_hi = compute_target_percentiles(paths)
     w, s, e, n = TI_BBOX
     lng_span = e - w
     lat_span = n - s
     aspect = lng_span / lat_span
+    long_side_deg = max(lng_span, lat_span)
+    long_side_px = min(OUTPUT_WIDTH_MAX, int(round(long_side_deg * OUTPUT_WIDTH_PER_DEG)))
     if aspect >= 1:
-        out_w = OUTPUT_WIDTH
-        out_h = int(round(OUTPUT_WIDTH / aspect))
+        out_w = long_side_px
+        out_h = int(round(long_side_px / aspect))
     else:
-        out_h = OUTPUT_WIDTH
-        out_w = int(round(OUTPUT_WIDTH * aspect))
-    print(f"      Canvas: {out_w}×{out_h}  (TI bbox {tuple(round(x, 3) for x in TI_BBOX)})")
+        out_h = long_side_px
+        out_w = int(round(long_side_px * aspect))
+    print(f"      Canvas: {out_w}×{out_h}  ({long_side_deg:.2f}° long side)")
 
     out = np.zeros((out_h, out_w, 4), dtype=np.uint8)
     date_min = None
@@ -333,8 +482,9 @@ def composite(scenes, paths):
         try:
             img = Image.open(path).convert("RGBA")
             arr = np.array(img)
+            arr, scene["_bbox"] = crop_edges(arr, scene["_bbox"], CROP_EDGE_PX)
             arr = clean_scene(arr)
-            arr = rebalance(arr, target_mean, target_std)
+            arr = rebalance(arr, target_lo, target_hi)
             arr = clean_scene(arr)  # post-rebalance kill
 
             sw, ss, se, sn = scene["_bbox"]
@@ -461,6 +611,7 @@ def main():
 
     scenes = search_nisar()
     picked = pick_scenes(scenes)
+    fetch_kml_bboxes(picked)
     if not picked:
         print("No scenes to process.", file=sys.stderr)
         sys.exit(1)

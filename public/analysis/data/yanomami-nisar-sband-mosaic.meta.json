@@ -7,13 +7,13 @@
   ],
   "width": 2560,
   "height": 2304,
-  "scenesComposited": 199,
+  "scenesComposited": 203,
   "perCell": 999,
   "dateRange": [
     "2026-06-18",
     "2026-11-06"
   ],
-  "buildDate": "2026-11-15T03:27:52+00:00",
+  "buildDate": "2026-11-15T19:41:57+00:00",
   "source": "NISAR L2 GCOV side-band (S) NATIVE_B_HHHH \u00b7 NASA/ISRO \u00b7 ASF DAAC",
   "band": "S",
   "polarization": "HH",
