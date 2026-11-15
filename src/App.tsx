@@ -5,23 +5,7 @@ import { VoxelIntro } from '@/components/app/LoadingScreen/VoxelIntro'
 import { Tutorial, hasSeenTutorial, TUTORIAL_OPEN_EVENT } from '@/components/app/Tutorial/Tutorial'
 import { useApp } from '@/lib/store'
 import { readUrlState } from '@/lib/url-state'
-
-const TUTORIAL_STEPS = [
-  {
-    anchor: 'cases',
-    title: 'Três regiões, três problemas',
-    body:
-      'Garimpo na Terra Yanomami, enchente em Manaus e seca nas comunidades de Manaquiri. Escolha um cartão e o mapa leva você até lá.',
-    placement: 'top' as const,
-  },
-  {
-    anchor: 'map',
-    title: 'Dentro de cada recorte',
-    body:
-      'O mapa fica preso à região escolhida. O painel traz a história do lugar, a linha do tempo com imagens de radar e os alertas. Para ver outro problema, volte aos cartões.',
-    placement: 'bottom' as const,
-  },
-]
+import { useT } from '@/lib/i18n'
 
 function useHydrateUrlState() {
   useEffect(() => {
@@ -34,6 +18,7 @@ function useHydrateUrlState() {
 }
 
 export default function App() {
+  const t = useT()
   const [ready, setReady] = useState(false)
   const [tutorialOn, setTutorialOn] = useState(false)
   useHydrateUrlState()
@@ -58,7 +43,13 @@ export default function App() {
         {!ready && <VoxelIntro onDone={() => setReady(true)} />}
         <AppLayout introDone={ready} />
         {tutorialOn && (
-          <Tutorial steps={TUTORIAL_STEPS} onClose={() => setTutorialOn(false)} />
+          <Tutorial
+            steps={[
+              { anchor: 'cases', title: t('tutorial.cases.title'), body: t('tutorial.cases.body'), placement: 'top' },
+              { anchor: 'map', title: t('tutorial.map.title'), body: t('tutorial.map.body'), placement: 'bottom' },
+            ]}
+            onClose={() => setTutorialOn(false)}
+          />
         )}
       </main>
     </TooltipProvider>

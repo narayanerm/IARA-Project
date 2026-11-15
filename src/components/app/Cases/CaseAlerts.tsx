@@ -1,4 +1,4 @@
-import { Loader2, Siren, Sparkles } from 'lucide-react'
+import { Loader2, Siren } from 'lucide-react'
 import { RISK_COLOR, type CaseStudy, type RiskLevel } from '@/data/cases'
 import { useApp } from '@/lib/store'
 import { useDeterAlerts } from '@/lib/useDeterAlerts'
@@ -6,6 +6,7 @@ import { useT, type TKey } from '@/lib/i18n'
 import type { Bbox } from '@/lib/polygon-bbox'
 import { cn } from '@/lib/utils'
 import { SectionTitle, useTr } from './shared'
+import type { ReactNode } from 'react'
 
 const LEVELS: RiskLevel[] = ['watch', 'high', 'critical']
 const LEVEL_KEY: Record<RiskLevel, TKey> = {
@@ -18,10 +19,11 @@ const LEVEL_KEY: Record<RiskLevel, TKey> = {
 export const YANO_DETER_BBOX: Bbox = [-64.2, 2.1, -62.6, 3.7]
 
 /** Current risk, the watch zones on the map and the slot reserved for the forecast model. */
-export function CaseAlerts({ c }: { c: CaseStudy }) {
+export function CaseAlerts({ c, forecast }: { c: CaseStudy; forecast: ReactNode }) {
   return (
     <>
       <CaseRisk c={c} />
+      {forecast}
       <CaseHotspots c={c} />
     </>
   )
@@ -138,18 +140,6 @@ export function CaseHotspots({ c }: { c: CaseStudy }) {
         <p className="text-[11.5px] leading-snug text-muted-foreground">{tr(c.hotspotsNote)}</p>
       </section>
 
-      <section className="rounded-md border border-dashed border-border p-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4" style={{ color: c.color }} />
-          <span className="text-[13.5px] font-semibold">{t('case.forecast')}</span>
-          <span className="ml-auto rounded-full border border-border px-2 py-px text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {t('case.forecastSoon')}
-          </span>
-        </div>
-        <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground">
-          {t('case.forecastBody', { what: tr(c.series.forecast).toLowerCase() })}
-        </p>
-      </section>
     </div>
   )
 }

@@ -1,15 +1,18 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import {
   MapContainer,
   TileLayer,
   GeoJSON,
   CircleMarker,
+  Tooltip,
   Popup,
   ImageOverlay,
   LayersControl,
   useMap,
+  useMapEvents,
 } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+import { GridLayer, latLngBounds, type Coords, type DoneCallback } from 'leaflet'
 import { AlertTriangle, MapPin } from 'lucide-react'
 import {
   AMAZON_BIOME,
@@ -25,6 +28,9 @@ import {
 import type { Region } from '@/lib/types'
 import { REGIONS } from '@/lib/regions'
 import { useApp } from '@/lib/store'
+import { FLOOD_ATTRIBUTION, waterTileTemplate, isObservedFlood, SEASONAL_BASINS, NASA_FLOOD_ATTRIBUTION, gwisMapUrl, GWIS_ATTRIBUTION, type ForecastMapProps, type ForecastPoint } from '@/lib/predictive-models'
+import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
+import { FloodProbability } from './FloodProbability'
 import { useAsfGranules } from '@/lib/useAsfGranules'
 import { worldWithHoleFC } from '@/lib/polygon-bbox'
 import { useFunaiTi } from '@/lib/useFunaiTi'
@@ -42,7 +48,68 @@ import {
 } from '@/lib/links'
 import { DICT, useI18n, useT, type Lang, type TKey } from '@/lib/i18n'
 
-export function MapFallback({ region }: { region: Region }) {
+function RiverSelection({ onSelect }: { onSelect: (point: ForecastPoint) => void }) {
+  useMapEvents({ click: ({ latlng }) => onSelect([latlng.lng, latlng.lat]) })
+  return null
+}
+
+function AmazonForecastLayer({ url, attribution, maxZoom, opacity, onError, hideInsufficientData = false }: {
+  url: string; attribution: string; maxZoom: number; opacity: number; onError: () => void; hideInsufficientData?: boolean
+}) {
+  const map = useMap()
+  const onErrorRef = useRef(onError)
+  useEffect(() => { onErrorRef.current = onError }, [onError])
+
+  useEffect(() => {
+    const requests = new WeakMap<HTMLElement, AbortController>()
+    const layer = new class extends GridLayer {
+      createTile(coords: Coords, done: DoneCallback) {
+        const tile = document.createElement('canvas')
+        const controller = new AbortController()
+        requests.set(tile, controller)
+        drawAmazonForecastTile(tile, url, coords, controller.signal, hideInsufficientData)
+          .then(() => { if (!controller.signal.aborted) done(undefined, tile) })
+          .catch((error: Error) => { if (!controller.signal.aborted) done(error, tile) })
+        return tile
+      }
+    }({ attribution, maxNativeZoom: maxZoom, opacity, zIndex: 450 })
+    layer.on('tileerror', () => onErrorRef.current())
+    layer.on('tileunload', ({ tile }) => requests.get(tile)?.abort())
+    layer.addTo(map)
+    return () => { layer.remove() }
+  }, [map, url, attribution, maxZoom, opacity, hideInsufficientData])
+  return null
+}
+
+function FloodFocus({ point }: { point: ForecastPoint }) {
+  const map = useMap()
+  useEffect(() => { map.panTo([point[1], point[0]]) }, [map, point])
+  return null
+}
+
+function CaseCamera({ region }: { region: Region }) {
+  const map = useMap()
+  const aoiActive = useApp((s) => s.aoiActive)
+  const setCaseArrived = useApp((s) => s.setCaseArrived)
+  useEffect(() => {
+    map.setMinZoom(3)
+    map.setMaxBounds(latLngBounds([-85, -180], [85, 180]))
+    if (!aoiActive) {
+      map.setView([-6, -58], 4)
+      return
+    }
+    const [west, south, east, north] = region.bbox
+    const bounds = latLngBounds([south, west], [north, east])
+    map.fitBounds(bounds, { padding: [32, 32], animate: false })
+    map.setMaxBounds(bounds.pad(1))
+    map.setMinZoom(Math.max(3, map.getZoom() - 1))
+    setCaseArrived(true)
+  }, [aoiActive, map, region, setCaseArrived])
+  return null
+}
+
+export function MapFallback({ region, fireDate, floodLayer, observedDate, outlookRunDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
+  const selectedForecastPoint = riverPoint ?? floodFocus
   const t = useT()
   const lang = useI18n((s) => s.lang)
   const locale = lang === 'en' ? 'en-US' : 'pt-BR'
@@ -104,6 +171,20 @@ export function MapFallback({ region }: { region: Region }) {
         attributionControl
       >
         <TiFocusController />
+        <CaseCamera region={region} />
+        {floodFocus && <FloodFocus point={floodFocus} />}
+        {onRiverSelect && <RiverSelection onSelect={onRiverSelect} />}
+        {fireDate && <AmazonForecastLayer url={gwisMapUrl(fireDate, '{bbox}')} attribution={GWIS_ATTRIBUTION} maxZoom={8} opacity={0.7} onError={onFireTileError} />}
+        {floodLayer && (
+          <AmazonForecastLayer
+            url={waterTileTemplate(floodLayer, isObservedFlood(floodLayer) ? observedDate : outlookRunDate ?? observedDate)}
+            attribution={isObservedFlood(floodLayer) ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}
+            maxZoom={isObservedFlood(floodLayer) ? 9 : 11}
+            opacity={floodLayer === SEASONAL_BASINS ? 0.65 : 1}
+            hideInsufficientData={isObservedFlood(floodLayer)}
+            onError={onFloodTileError}
+          />
+        )}
         <LayersControl position="bottomright">
           <LayersControl.BaseLayer checked name={t('fallback.gibsSatellite')}>
             <TileLayer
@@ -246,6 +327,21 @@ export function MapFallback({ region }: { region: Region }) {
             </Popup>
           </CircleMarker>
         ))}
+        {floodSignals.map(({ point, color }) => (
+          <CircleMarker key={point.join(',')} center={[point[1], point[0]]} radius={6} bubblingMouseEvents={false}
+            pathOptions={{ color: '#fff', weight: 2, fillColor: color, fillOpacity: 1 }}
+            eventHandlers={{ click: () => onRiverSelect?.(point) }}
+          />
+        ))}
+        {selectedForecastPoint && (
+          <CircleMarker center={[selectedForecastPoint[1], selectedForecastPoint[0]]} radius={13}
+            interactive={false} pathOptions={{ stroke: false, fill: false }}
+          >
+            <Tooltip permanent direction="center" className="!border-0 !bg-transparent !p-0 !shadow-none before:!hidden">
+              <FloodProbability chance={riverChance} />
+            </Tooltip>
+          </CircleMarker>
+        )}
       </MapContainer>
 
       {focusedTi && (

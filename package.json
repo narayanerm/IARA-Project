@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "data:flood-forecasts": "node --experimental-strip-types scripts/build-flood-forecasts.mjs",
     "data:communities": "node scripts/build-community-data.mjs ../dados_comunidades_amazonia/dados_comunidades_amazonia",
     "data:official": "node scripts/build-official-records.mjs"
   },
@@ -34,7 +35,7 @@
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.7.0",
     "tailwindcss-animate": "^1.0.7",
-    "three": "^0.187.0",
+    "three": "0.182.0",
     "tslib": "^2.9.1",
     "zustand": "^5.1.0"
   },
@@ -42,7 +43,7 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@types/three": "^0.187.0",
+    "@types/three": "0.182.0",
     "@vitejs/plugin-react": "^6.1.2",
     "autoprefixer": "^10.6.2",
     "oxlint": "^1.90.0",
