@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Map, { Layer, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/maplibre'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { REGIONS } from '@/lib/regions'
 import { YANO_MINING } from '@/data/mocks/yanomami-mining'
 import { useApp } from '@/lib/store'
@@ -37,6 +38,9 @@ import { IbgeMunicipiosLayer } from './layers/IbgeMunicipiosLayer'
 
 import { OverlayLegend } from './overlays/OverlayLegend'
 import { FocusedTiBadge } from './overlays/FocusedTiBadge'
+
+// Bundling drops MapLibre's sibling worker file, so point it at the emitted asset.
+maplibregl.setWorkerUrl(maplibreWorkerUrl)
 
 export function SarMap() {
   const mapRef = useRef<MapRef | null>(null)
