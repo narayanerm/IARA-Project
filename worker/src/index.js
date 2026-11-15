@@ -66,6 +66,22 @@ function json(status, body, headers = {}) {
   })
 }
 
+// Gemini 3 models reject earlier tool calls in the history that lack a thought_signature.
+// The site does not keep the signature, so fill in Google's documented placeholder.
+function withThoughtSignatures(messages) {
+  return messages.map((m) => {
+    if (!m || m.role !== 'assistant' || !Array.isArray(m.tool_calls)) return m
+    return {
+      ...m,
+      tool_calls: m.tool_calls.map((tc) =>
+        tc?.extra_content?.google?.thought_signature
+          ? tc
+          : { ...tc, extra_content: { google: { thought_signature: 'skip_thought_signature_validator' } } },
+      ),
+    }
+  })
+}
+
 function rateLimited(ip) {
   const now = Date.now()
   const rec = hits.get(ip)
@@ -123,7 +139,11 @@ export default {
             authorization: `Bearer ${key}`,
             ...(p.name === 'openrouter' ? { 'http-referer': 'https://iara.earth', 'x-title': 'IARA' } : {}),
           },
-          body: JSON.stringify({ ...payload, model: p.model(env) }),
+          body: JSON.stringify({
+            ...payload,
+            messages: p.name === 'gemini' ? withThoughtSignatures(payload.messages) : payload.messages,
+            model: p.model(env),
+          }),
         })
         if (res.status === 429 || res.status >= 500) {
           errors.push(`${p.name} ${res.status}`)
