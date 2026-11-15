@@ -240,51 +240,55 @@
   margin-left: -0.04em;
   text-shadow: 0 2px 30px rgb(0 0 0 / 0.35);
 }
+/* Explore: plain bold label on a tight square pad in the brand orange (no pill, no arrow).
+   On hover the pad wipes out to the right and back in from the left. */
 .case-card-go {
   flex: none;
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  height: 44px;
-  padding: 0 12px;
-  margin: -8px -4px -8px auto;
-  border: 1.5px solid rgb(241 238 229 / 0.6);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--bone);
+  margin: -2px 4px -2px auto;
+  color: var(--ink);
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   font-size: 15px;
   font-weight: 700;
+  line-height: 1;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  text-shadow: 0 1px 8px rgb(0 0 0 / 0.55);
-  transition:
-    background-color 250ms ease,
-    border-color 250ms ease,
-    padding 350ms var(--ease);
+  white-space: nowrap;
+}
+.case-card-go::before {
+  content: '';
+  position: absolute;
+  inset: -6px -9px;
+  z-index: -1;
+  background: hsl(var(--primary));
 }
 .case-card-go svg {
-  width: 20px;
-  height: 20px;
-  stroke-width: 2.25;
-  filter: drop-shadow(0 1px 6px rgb(0 0 0 / 0.5));
-}
-.case-card-go-label {
   display: none;
 }
-/* No white fill on hover: the outline turns solid and a dark glass sits behind the label. */
 .case-card:is(:hover, :focus-visible) .case-card-go {
-  border-color: var(--bone);
-  background: rgb(0 0 0 / 0.32);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 0 18px 0 22px;
+  animation: case-go-text 600ms cubic-bezier(0.6, 0, 0.2, 1);
 }
-.case-card:is(:hover, :focus-visible) .case-card-go-label {
-  display: inline;
+.case-card:is(:hover, :focus-visible) .case-card-go::before {
+  animation: case-go-pad 600ms cubic-bezier(0.6, 0, 0.2, 1);
+}
+@keyframes case-go-pad {
+  0% { transform-origin: 100% 50%; transform: scaleX(1); }
+  45% { transform-origin: 100% 50%; transform: scaleX(0); }
+  55% { transform-origin: 0 50%; transform: scaleX(0); }
+  100% { transform-origin: 0 50%; transform: scaleX(1); }
+}
+@keyframes case-go-text {
+  40%, 55% { color: hsl(var(--primary)); }
 }
 .case-card:active .case-card-go {
   scale: 0.97;
+}
+@media (prefers-reduced-motion: reduce) {
+  .case-card:is(:hover, :focus-visible) .case-card-go,
+  .case-card:is(:hover, :focus-visible) .case-card-go::before { animation: none; }
 }
 
 /* Details slide up above the word, like a caption laid over a photo. */
