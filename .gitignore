@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Analysis pipeline: raw browse JPGs e GeoTIFFs grandes (regenerados via npm run data:*)
+public/analysis/data/alos-browse/
+public/analysis/data/sentinel1-browse/
+public/analysis/data/sentinel1-browse-manaus/
+public/analysis/data/sentinel1-browse-manaquiri/
+public/analysis/data/.hansen-*.tif

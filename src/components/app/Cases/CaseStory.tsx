@@ -4,6 +4,7 @@ import { useUi } from '@/lib/store'
 import { useI18n, useT } from '@/lib/i18n'
 import { useIbgePopulation } from '@/lib/useCaseOutline'
 import { PAIN_ICON, SectionTitle, useTr } from './shared'
+import { CaseNews } from '../Briefing/CaseNews'
 
 /** Who lives here, what happened and what hurts: the human side of the case. */
 export function CaseStory({ c }: { c: CaseStudy }) {
@@ -98,6 +99,13 @@ export function CaseStory({ c }: { c: CaseStudy }) {
           ))}
         </div>
       </section>
+
+      {c.news && c.news.length > 0 && (
+        <section className="space-y-2">
+          <SectionTitle>{locale === 'en-US' ? 'In the press' : 'Na imprensa'}</SectionTitle>
+          <CaseNews items={c.news} />
+        </section>
+      )}
 
       <section className="space-y-2">
         <SectionTitle>{t('case.sources')}</SectionTitle>

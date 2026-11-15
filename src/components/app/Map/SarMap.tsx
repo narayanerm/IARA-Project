@@ -24,6 +24,9 @@ import { HomeButton } from './overlays/HomeButton'
 
 import { TerrainSource } from './layers/TerrainSource'
 import { SatelliteLayer } from './layers/SatelliteLayer'
+import { CaseImageryLayer } from './layers/CaseImageryLayer'
+import { YanomamiCaseLayers } from './layers/YanomamiCaseLayers'
+import { YanomamiCaseControls } from './overlays/YanomamiCaseControls'
 import { AmazonBiomeLayer } from './layers/AmazonBiomeLayer'
 import { GibsTrueColorLayer, GibsOverlayLayer } from './layers/GibsLayers'
 import { FocusedTiMask } from './layers/FocusedTiMask'
@@ -105,9 +108,12 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
     }
   }, [reliefOn, mapLoaded])
 
-  // SAR no longer loads on map clicks (it has its own button); clicks only pick river forecast points.
+  // A click on the map forwards to the river-select mode when active. The live
+  // NISAR "click-to-fetch scene" behaviour was removed per user request.
   const onClick = (e: MapLayerMouseEvent) => {
-    if (onRiverSelect) onRiverSelect([e.lngLat.lng, e.lngLat.lat])
+    if (!onRiverSelect) return
+    const { lng, lat } = e.lngLat
+    onRiverSelect([lng, lat])
   }
 
   if (!hasWebGL2()) {
@@ -150,6 +156,14 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
       >
         <TerrainSource on={reliefOn} beforeId={labelLayerId} />
         <SatelliteLayer on={satelliteOn} beforeId={labelLayerId} />
+        {/* High-res EOX Sentinel-2 2025 mosaic focused on the active case (ported from manaus-flood-case). */}
+        <CaseImageryLayer
+          activeRegion={activeRegion}
+          visible={satelliteOn && aoiActive}
+          beforeId={labelLayerId}
+        />
+        {/* YANO case: NISAR mosaic + DETER mineração overlays (ported from yanomami-deforestation). */}
+        <YanomamiCaseLayers beforeId={labelLayerId} />
 
         <AmazonBiomeLayer />
 
@@ -203,6 +217,7 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
         <CaseMarkers />
       </Map>
       <HomeButton />
+      <YanomamiCaseControls />
     </div>
   )
 }
