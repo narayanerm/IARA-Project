@@ -1,7 +1,8 @@
-import { HelpCircle, MessageSquare, Mountain, Radar, Satellite, type LucideIcon } from 'lucide-react'
+import { HelpCircle, MessageSquare, Mountain, Satellite, type LucideIcon } from 'lucide-react'
 import { SarMap } from './Map/SarMap'
 import { RightPanel } from './RightPanel/RightPanel'
 import { AskBar } from './Chatbot/AskBar'
+import { SarButton } from './Map/overlays/SarButton'
 import { ExportMenu } from './Export/ExportMenu'
 import { ShareDialog } from './PublicShare/ShareDialog'
 import { triggerTutorial } from './Tutorial/Tutorial'
@@ -22,8 +23,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const rightOpen = useUi((s) => s.rightOpen)
   const openRight = useUi((s) => s.openRight)
   const setRightOpen = useUi((s) => s.setRightOpen)
-  const nisarVisible = useApp((s) => s.nisarVisible)
-  const setNisarVisible = useApp((s) => s.setNisarVisible)
   const aoiActive = useApp((s) => s.aoiActive)
   const clearAoi = useApp((s) => s.clearAoi)
   const caseArrived = useApp((s) => s.caseArrived)
@@ -62,13 +61,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
                 onToggle={toggleRelief}
                 className="hidden sm:inline-flex"
               />
-              <HeaderToggle
-                icon={Radar}
-                label={t('map.radar')}
-                hint={t('map.radarHint')}
-                on={nisarVisible}
-                onToggle={() => setNisarVisible(!nisarVisible)}
-              />
               <span className="mx-0.5 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
               <HeaderToggle
                 icon={MessageSquare}
@@ -103,6 +95,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
         <SarMap forecast={aoiActive ? forecastMap : null} />
         <CaseView onForecastMapChange={setForecastMap} />
         <CasePicker introDone={introDone} />
+        {aoiActive && <SarButton />}
         {/* Floating ask bar: on the home screen under the case cards, inside a case centred in the
             map area the case panel leaves free. It steps aside while the assistant panel is open,
             while the camera flies, and on phones inside a case (the case sheet covers the bottom). */}
