@@ -91,6 +91,7 @@ function CaseFrame({
   idle: boolean
   onChoose: () => void
 }) {
+  const t = useT()
   const tr = useTr()
   const [media] = useState(() => caseMedia(c.id))
   const [live, setLive] = useState(false)
@@ -181,6 +182,9 @@ function CaseFrame({
 
       <span className="case-card-top" aria-hidden="true">
         <span className="case-card-kicker">{tr(c.analysis)}</span>
+        <span className="case-card-go">
+          {t('case.explore')}
+        </span>
       </span>
 
       <span className="case-card-body" aria-hidden="true">
