@@ -4,13 +4,14 @@ import { useUi } from '@/lib/store'
 import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { SUGGESTIONS } from './intents'
+import { AskBarLeaves } from './AskBarLeaves'
 
 /**
  * Floating ask bar at the bottom of the map. Enter (or the send button) opens the
  * Assistant tab on the right and hands it the question; suggestion chips show only
  * while the field is focused and empty.
  */
-export function AskBar({ className }: { className?: string }) {
+export function AskBar({ className, reveal = false }: { className?: string; reveal?: boolean }) {
   const t = useT()
   const ask = useUi((s) => s.ask)
   const [text, setText] = useState('')
@@ -24,7 +25,7 @@ export function AskBar({ className }: { className?: string }) {
   }
 
   return (
-    <div className={cn('flex w-full max-w-[640px] flex-col items-stretch gap-2', className)}>
+    <div className={cn('flex w-full max-w-[640px] flex-col items-stretch gap-2', reveal && 'ask-reveal', className)}>
       {focused && !text && (
         <div className="flex flex-wrap justify-center gap-1.5" role="group" aria-label={t('ask.suggestions')}>
           {SUGGESTIONS.slice(0, 3).map((s) => (
@@ -41,12 +42,13 @@ export function AskBar({ className }: { className?: string }) {
           ))}
         </div>
       )}
+      {reveal && <AskBarLeaves />}
       <form
         onSubmit={(e) => {
           e.preventDefault()
           submit(text)
         }}
-        className="flex h-11 items-center gap-2 rounded-lg border border-border bg-card/70 pl-3 pr-1.5 backdrop-blur-sm focus-within:border-foreground/30"
+        className={cn('flex h-11 items-center gap-2 rounded-lg border border-border bg-card/70 pl-3 pr-1.5 backdrop-blur-sm focus-within:border-foreground/30', reveal && 'ask-unroll')}
       >
         <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <label htmlFor="ask-bar-input" className="sr-only">

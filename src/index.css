@@ -246,3 +246,70 @@
 .hdr-float a {
   text-shadow: 0 1px 8px rgb(0 0 0 / 0.65);
 }
+
+/* Ask bar entrance: the bar unrolls left to right out of a tuft of rustling leaves. */
+.ask-reveal {
+  --leaf-1: #3f8f5a;
+  --leaf-2: #6cb46f;
+  --leaf-3: #2c6b45;
+  position: relative;
+}
+.ask-reveal .ask-unroll {
+  clip-path: inset(0 100% 0 0 round 8px);
+  animation: ask-unroll 1100ms cubic-bezier(0.22, 1, 0.36, 1) 520ms forwards;
+}
+@keyframes ask-unroll {
+  to { clip-path: inset(0 0 0 0 round 8px); }
+}
+.ask-leaves {
+  position: absolute;
+  left: -6px;
+  bottom: 22px; /* centre of the 44px bar */
+  width: 0;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.ask-leaf {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 50%;
+  margin-top: -9.5px;
+  opacity: 0;
+  transform: rotate(calc(var(--a) + 180deg)) scale(0);
+  animation:
+    ask-leaf-in 520ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--i) * 45ms) forwards,
+    ask-leaf-rustle 900ms ease-in-out calc(400ms + var(--i) * 70ms) 3 alternate,
+    ask-leaf-settle 700ms ease-out 2600ms forwards;
+}
+.ask-leaf svg { display: block; filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5)); }
+@keyframes ask-leaf-in {
+  to { opacity: 1; transform: rotate(calc(var(--a) + 180deg)) scale(var(--s)); }
+}
+@keyframes ask-leaf-rustle {
+  from { transform: rotate(calc(var(--a) + 180deg - 9deg)) scale(var(--s)); opacity: 1; }
+  to { transform: rotate(calc(var(--a) + 180deg + 9deg)) scale(var(--s)); opacity: 1; }
+}
+/* Leaves that stay shrink into a small tuft at the bar's edge. */
+@keyframes ask-leaf-settle {
+  from { opacity: 1; transform: rotate(calc(var(--a) + 180deg)) scale(var(--s)); }
+  to { opacity: 0.85; transform: rotate(calc(var(--a) + 180deg)) scale(calc(var(--s) * 0.62)); }
+}
+/* A few leaves get blown along the bar as it unrolls. */
+.ask-leaf.is-fly {
+  animation:
+    ask-leaf-in 520ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--i) * 45ms) forwards,
+    ask-leaf-fly 1500ms cubic-bezier(0.3, 0.6, 0.4, 1) calc(560ms + var(--i) * 40ms) forwards;
+}
+@keyframes ask-leaf-fly {
+  0% { opacity: 1; transform: translate(0, 0) rotate(calc(var(--a) + 180deg)) scale(var(--s)); }
+  35% { transform: translate(calc(var(--i) * 18px + 90px), -14px) rotate(calc(var(--a) + 420deg)) scale(var(--s)); }
+  70% { opacity: 0.8; transform: translate(calc(var(--i) * 34px + 230px), 6px) rotate(calc(var(--a) + 640deg)) scale(calc(var(--s) * 0.9)); }
+  100% { opacity: 0; transform: translate(calc(var(--i) * 46px + 380px), -10px) rotate(calc(var(--a) + 820deg)) scale(calc(var(--s) * 0.7)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ask-reveal .ask-unroll { animation: none; clip-path: none; }
+  .ask-leaf { animation: none; opacity: 0.85; transform: rotate(calc(var(--a) + 180deg)) scale(calc(var(--s) * 0.62)); }
+  .ask-leaf.is-fly { display: none; }
+}
