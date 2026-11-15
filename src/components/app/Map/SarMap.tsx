@@ -7,9 +7,8 @@ import { REGIONS } from '@/lib/regions'
 import { useApp, useUi } from '@/lib/store'
 import { useDeterAlerts } from '@/lib/useDeterAlerts'
 import { GIBS_BY_REGION } from '@/lib/gibs'
-import { useI18n, useT } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
-import { inAmazon } from '@/lib/amazon'
 import { FLOOD_ATTRIBUTION, waterTileTemplate, isObservedFlood, SEASONAL_BASINS, NASA_FLOOD_ATTRIBUTION, gwisMapUrl, GWIS_ATTRIBUTION, type WaterLayer, type ForecastMapProps } from '@/lib/predictive-models'
 import { drawAmazonForecastTile } from '@/lib/amazon-forecast-tiles'
 import { FloodProbability } from './FloodProbability'
@@ -25,6 +24,9 @@ import { HomeButton } from './overlays/HomeButton'
 
 import { TerrainSource } from './layers/TerrainSource'
 import { SatelliteLayer } from './layers/SatelliteLayer'
+import { CaseImageryLayer } from './layers/CaseImageryLayer'
+import { YanomamiCaseLayers } from './layers/YanomamiCaseLayers'
+import { YanomamiCaseControls } from './overlays/YanomamiCaseControls'
 import { AmazonBiomeLayer } from './layers/AmazonBiomeLayer'
 import { GibsTrueColorLayer, GibsOverlayLayer } from './layers/GibsLayers'
 import { FocusedTiMask } from './layers/FocusedTiMask'
@@ -69,9 +71,6 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
   const aoiActive = useApp((s) => s.aoiActive)
   const nasaOverlay = useApp((s) => s.nasaOverlay)
   const trueColorOverlay = useApp((s) => s.trueColorOverlay)
-  const setNisarPoint = useApp((s) => s.setNisarPoint)
-  const setNisarNotice = useApp((s) => s.setNisarNotice)
-  const t = useT()
 
   const region = useMemo(() => REGIONS.find((r) => r.id === activeRegion)!, [activeRegion])
   const gibs = GIBS_BY_REGION[activeRegion]
@@ -109,12 +108,12 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
     }
   }, [reliefOn, mapLoaded])
 
-  // A click on the map points the live NISAR catalogue at that spot.
+  // A click on the map forwards to the river-select mode when active. The live
+  // NISAR "click-to-fetch scene" behaviour was removed per user request.
   const onClick = (e: MapLayerMouseEvent) => {
+    if (!onRiverSelect) return
     const { lng, lat } = e.lngLat
-    if (onRiverSelect) { onRiverSelect([lng, lat]); return }
-    if (inAmazon(lng, lat)) setNisarPoint([lng, lat])
-    else setNisarNotice(t('nisar.outsideAmazon'))
+    onRiverSelect([lng, lat])
   }
 
   if (!hasWebGL2()) {
@@ -157,6 +156,14 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
       >
         <TerrainSource on={reliefOn} beforeId={labelLayerId} />
         <SatelliteLayer on={satelliteOn} beforeId={labelLayerId} />
+        {/* High-res EOX Sentinel-2 2025 mosaic focused on the active case (ported from manaus-flood-case). */}
+        <CaseImageryLayer
+          activeRegion={activeRegion}
+          visible={satelliteOn && aoiActive}
+          beforeId={labelLayerId}
+        />
+        {/* YANO case: NISAR mosaic + DETER mineração overlays (ported from yanomami-deforestation). */}
+        <YanomamiCaseLayers beforeId={labelLayerId} />
 
         <AmazonBiomeLayer />
 
@@ -210,6 +217,7 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
         <CaseMarkers />
       </Map>
       <HomeButton />
+      <YanomamiCaseControls />
     </div>
   )
 }

@@ -148,6 +148,14 @@ interface UiState {
   popupOpen: boolean
   satelliteOn: boolean
   reliefOn: boolean
+  /** Archive scene id picked in the case panel to drive the SAR map overlay. */
+  sarMapPickId: string | null
+  /** YANO case: active SAR band mosaic on the map (null = none). */
+  yanomamiBand: 'nisar' | 'sband' | 's1c' | null
+  /** YANO case: show RADD alerts as a map overlay (can stack with any SAR band). */
+  yanomamiRaddOn: boolean
+  /** YANO case: show DETER mineração polygons as a map overlay. */
+  yanomamiDeterOn: boolean
   toggleSatellite: () => void
   toggleRelief: () => void
   setRightOpen: (v: boolean) => void
@@ -155,6 +163,10 @@ interface UiState {
   ask: (text: string) => void
   clearAsk: () => void
   setPopupOpen: (v: boolean) => void
+  setSarMapPickId: (id: string | null) => void
+  setYanomamiBand: (b: 'nisar' | 'sband' | 's1c' | null) => void
+  toggleYanomamiRadd: () => void
+  toggleYanomamiDeter: () => void
 }
 
 export const useUi = create<UiState>((set, get) => ({
@@ -165,6 +177,10 @@ export const useUi = create<UiState>((set, get) => ({
   // Sentinel-2 mosaic is the default backdrop; the dark vector style stays one click away.
   satelliteOn: true,
   reliefOn: false,
+  sarMapPickId: null,
+  yanomamiBand: null,
+  yanomamiRaddOn: false,
+  yanomamiDeterOn: false,
   toggleSatellite: () => set({ satelliteOn: !get().satelliteOn }),
   toggleRelief: () => set({ reliefOn: !get().reliefOn }),
   setRightOpen: (v) => set({ rightOpen: v }),
@@ -172,4 +188,8 @@ export const useUi = create<UiState>((set, get) => ({
   ask: (text) => set({ askQueue: { text, ts: Date.now() }, rightOpen: true, rightTab: 'chat' }),
   clearAsk: () => set({ askQueue: null }),
   setPopupOpen: (v) => set({ popupOpen: v }),
+  setSarMapPickId: (id) => set({ sarMapPickId: id }),
+  setYanomamiBand: (b) => set({ yanomamiBand: b }),
+  toggleYanomamiRadd: () => set({ yanomamiRaddOn: !get().yanomamiRaddOn }),
+  toggleYanomamiDeter: () => set({ yanomamiDeterOn: !get().yanomamiDeterOn }),
 }))

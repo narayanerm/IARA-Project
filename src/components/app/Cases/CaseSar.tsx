@@ -8,6 +8,8 @@ import { bandFor, type AsfGranule } from '@/lib/asf'
 import { polygonBbox } from '@/lib/polygon-bbox'
 import { useT } from '@/lib/i18n'
 import { BeforeAfter } from '../Briefing/BeforeAfter'
+import { RiverStageChart } from '../Briefing/RiverStageChart'
+import { SarArchive } from '../Briefing/SarArchive'
 import { SectionTitle, useTr } from './shared'
 
 /** The point picked on the time series, defaulting to the latest year. */
@@ -53,6 +55,14 @@ export function CaseSar({ c }: { c: CaseStudy }) {
         </div>
         <p className="mt-1 text-[12.5px] leading-snug text-foreground/90">{tr(c.sarReading)}</p>
       </div>
+
+      {c.riverStage && <RiverStageChart stage={c.riverStage} activeYear={point.year} />}
+
+      <SarArchive
+        bbox={c.sarBbox}
+        beforeDate={point.sar?.before ?? c.series.points[0].date ?? '2024-01-01'}
+        afterDate={point.sar?.after ?? c.series.points[c.series.points.length - 1].date ?? '2026-11-01'}
+      />
     </div>
   )
 }
