@@ -2,6 +2,7 @@ import { Radar } from 'lucide-react'
 import { useApp, useUi } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { CASES } from '@/data/cases'
+import { useT, type TKey } from '@/lib/i18n'
 
 /**
  * Floating SAR band selector shown in every case. Three bands (NISAR L, NISAR S,
@@ -13,13 +14,14 @@ import { CASES } from '@/data/cases'
 
 type Band = 'nisar' | 'sband' | 's1c'
 
-const BANDS: Array<{ id: Band; label: string; sub: string; color: string }> = [
-  { id: 'nisar', label: 'NISAR L-band', sub: 'λ 24 cm · penetra copa', color: '#F07A45' },
-  { id: 'sband', label: 'NISAR S-band', sub: 'λ 10 cm · topo do dossel', color: '#B59EF5' },
-  { id: 's1c', label: 'Sentinel-1 C', sub: 'λ 5,6 cm · superfície', color: '#9ED9FF' },
+const BANDS: Array<{ id: Band; label: string; sub: TKey; color: string }> = [
+  { id: 'nisar', label: 'NISAR L-band', sub: 'bands.lSub', color: '#F07A45' },
+  { id: 'sband', label: 'NISAR S-band', sub: 'bands.sSub', color: '#B59EF5' },
+  { id: 's1c', label: 'Sentinel-1 C', sub: 'bands.cSub', color: '#9ED9FF' },
 ]
 
 export function YanomamiCaseControls() {
+  const t = useT()
   const activeRegion = useApp((s) => s.activeRegion)
   const aoiActive = useApp((s) => s.aoiActive)
   const band = useUi((s) => s.yanomamiBand)
@@ -41,7 +43,7 @@ export function YanomamiCaseControls() {
     >
       <div className="flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-wider text-muted-foreground mb-0.5">
         <Radar className="h-3 w-3" style={{ color: '#F07A45' }} />
-        {caseName} · banda SAR
+        {t('bands.title', { place: caseName })}
       </div>
 
       {BANDS.map((b) => {
@@ -68,7 +70,7 @@ export function YanomamiCaseControls() {
             />
             <span className="flex flex-col gap-0 leading-tight">
               <span className="font-semibold">{b.label}</span>
-              <span className="text-[9.5px] text-muted-foreground">{b.sub}</span>
+              <span className="text-[9.5px] text-muted-foreground">{t(b.sub)}</span>
             </span>
           </button>
         )
@@ -77,7 +79,7 @@ export function YanomamiCaseControls() {
       {showGarimpoOverlays && (
         <div className="border-t border-border/60 pt-1.5 mt-0.5 flex flex-col gap-1.5">
           <div className="text-[10.5px] font-mono uppercase tracking-wider text-muted-foreground">
-            Sobreposições
+            {t('bands.overlays')}
           </div>
           <button
             type="button"
@@ -98,8 +100,8 @@ export function YanomamiCaseControls() {
               }}
             />
             <span className="flex flex-col gap-0 leading-tight">
-              <span className="font-semibold">RADD alertas</span>
-              <span className="text-[9.5px] text-muted-foreground">S1-derivado · 2020→hoje</span>
+              <span className="font-semibold">{t('bands.radd')}</span>
+              <span className="text-[9.5px] text-muted-foreground">{t('bands.raddSub')}</span>
             </span>
           </button>
           <button
@@ -117,8 +119,8 @@ export function YanomamiCaseControls() {
               style={{ background: deterOn ? '#ffffff' : 'transparent', boxShadow: 'inset 0 0 0 1px #ffffff' }}
             />
             <span className="flex flex-col gap-0 leading-tight">
-              <span className="font-semibold">DETER mineração</span>
-              <span className="text-[9.5px] text-muted-foreground">683 polígonos INPE · 2019-2026</span>
+              <span className="font-semibold">{t('bands.deter')}</span>
+              <span className="text-[9.5px] text-muted-foreground">{t('bands.deterSub')}</span>
             </span>
           </button>
         </div>

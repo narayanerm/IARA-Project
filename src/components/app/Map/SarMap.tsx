@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Map, { Layer, Marker, Source, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/maplibre'
+import Map, { AttributionControl, Layer, Marker, Source, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/maplibre'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
@@ -59,6 +59,7 @@ const EMPTY_FORECAST: ForecastMapProps = {
 export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
   const config = forecast ?? EMPTY_FORECAST
   const { fireDate, floodLayer, observedDate, outlookRunDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError } = config
+  const lang = useI18n((s) => s.lang)
   const signalLabel = useI18n((s) => s.lang === 'pt' ? 'Ver previsão de vazão neste ponto' : 'View river forecast at this point')
   const observedFlood = floodLayer !== null && isObservedFlood(floodLayer)
   const waterSourceId = observedFlood ? 'nasa-observed-flood' : 'glofas-flood'
@@ -152,8 +153,9 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
           )
           setMapLoaded(true)
         }}
-        attributionControl={{ compact: true, customAttribution: MAP_ATTRIBUTION }}
+        attributionControl={false}
       >
+        <AttributionControl key={lang} compact customAttribution={MAP_ATTRIBUTION[lang]} />
         <TerrainSource on={reliefOn} beforeId={labelLayerId} />
         <SatelliteLayer on={satelliteOn} beforeId={labelLayerId} />
         {/* High-res EOX Sentinel-2 2025 mosaic focused on the active case (ported from manaus-flood-case). */}

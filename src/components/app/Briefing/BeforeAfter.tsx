@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { Feature, FeatureCollection, Polygon } from 'geojson'
 import type { AffectedAreaProps } from '@/data/layers/affected-areas'
+import { useT } from '@/lib/i18n'
 
 type Bbox = [number, number, number, number]
 
@@ -25,6 +26,7 @@ export function BeforeAfter({
   afterBbox,
   affected,
 }: Props) {
+  const t = useT()
   const [pos, setPos] = useState(50)
   const [dragging, setDragging] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -55,10 +57,10 @@ export function BeforeAfter({
       </div>
 
       <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] font-mono backdrop-blur-sm z-10">
-        ANTES · {beforeLabel}
+        {t('sar.before').toUpperCase()} · {beforeLabel}
       </span>
       <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] font-mono backdrop-blur-sm z-10">
-        DEPOIS · {afterLabel}
+        {t('sar.after').toUpperCase()} · {afterLabel}
       </span>
 
       <div
@@ -70,7 +72,7 @@ export function BeforeAfter({
         onTouchStart={() => setDragging(true)}
         className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 grid place-items-center h-10 w-10 rounded-full bg-white shadow-lg cursor-ew-resize hover:scale-110 transition-transform z-10"
         style={{ left: `${pos}%` }}
-        aria-label="Arrastar comparador"
+        aria-label={t('sar.dragAria')}
       >
         <svg viewBox="0 0 24 24" className="w-5 h-5 text-black" fill="none">
           <path d="M8 6L4 12L8 18M16 6L20 12L16 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -78,7 +80,7 @@ export function BeforeAfter({
       </button>
 
       <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-mono text-white/80 bg-black/60 backdrop-blur-sm rounded-full px-2 py-0.5 z-10">
-        arraste ↔
+        {t('sar.drag')}
       </div>
     </div>
   )

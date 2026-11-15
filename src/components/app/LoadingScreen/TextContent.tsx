@@ -1,15 +1,15 @@
 import { useT } from '@/lib/i18n'
-import { TITULO } from './constants'
 
 export function TextContent({ webgl }: { webgl: boolean }) {
   const t = useT()
+  const words = t('loadingScreen.title').split(' ')
   return (
     <div>
       <h1 id="iara-capa-titulo">
-        {TITULO.map((p, i) => (
+        {words.map((p, i) => (
           <span key={i} className="iara-entra" style={{ ['--i' as string]: i }}>
-            {p === 'radar' ? <em>{p}</em> : p}
-            {i < TITULO.length - 1 ? ' ' : ''}
+            {/^radar$/i.test(p) ? <em>{p}</em> : p}
+            {i < words.length - 1 ? ' ' : ''}
           </span>
         ))}
       </h1>

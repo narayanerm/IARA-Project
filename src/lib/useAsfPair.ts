@@ -8,6 +8,8 @@ export interface PairResult {
   loading: boolean
   error: string | null
   diagnostic: string | null
+  /** Whether the pair shares one track (pixel-aligned) or comes from two different orbits. */
+  orbit: 'same' | 'mixed' | null
 }
 
 // Prefer platforms with longest Amazon history: Sentinel-1 is daily since 2014.
@@ -50,12 +52,13 @@ export function useAsfPair(
     loading: true,
     error: null,
     diagnostic: null,
+    orbit: null,
   })
 
   useEffect(() => {
     const ctrl = new AbortController()
     let cancelled = false
-    setState((s) => ({ ...s, loading: true, error: null, diagnostic: null }))
+    setState((s) => ({ ...s, loading: true, error: null, diagnostic: null, orbit: null }))
 
     const run = async () => {
       const bw = windowFor(beforeDate, windowDays)
@@ -106,6 +109,7 @@ export function useAsfPair(
               loading: false,
               error: null,
               diagnostic: `${platform} · path ${bestBefore.path} · frame ${bestBefore.frame} (same orbit)`,
+              orbit: 'same',
             })
             return
           }
@@ -121,6 +125,7 @@ export function useAsfPair(
               loading: false,
               error: null,
               diagnostic: `${platform} · orbits distintas (geografia pode variar)`,
+              orbit: 'mixed',
             })
             return
           }
@@ -134,6 +139,7 @@ export function useAsfPair(
               loading: false,
               error: (err as Error).message,
               diagnostic: null,
+              orbit: null,
             })
             return
           }
@@ -147,6 +153,7 @@ export function useAsfPair(
           loading: false,
           error: null,
           diagnostic: 'Sem cobertura SAR nessa janela.',
+          orbit: null,
         })
       }
     }

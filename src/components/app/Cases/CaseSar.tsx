@@ -3,7 +3,7 @@ import type { Polygon } from 'geojson'
 import type { CaseStudy, SeriesPoint } from '@/data/cases'
 import { worldviewSnapshot } from '@/data/phenomena-briefing'
 import { useApp } from '@/lib/store'
-import { useAsfPair } from '@/lib/useAsfPair'
+import { useAsfPair, type PairResult } from '@/lib/useAsfPair'
 import { bandFor, type AsfGranule } from '@/lib/asf'
 import { polygonBbox } from '@/lib/polygon-bbox'
 import { useT } from '@/lib/i18n'
@@ -67,6 +67,17 @@ export function CaseSar({ c }: { c: CaseStudy }) {
   )
 }
 
+// Sensor, band and how the two scenes line up, in the active language.
+function sarCaption(pair: PairResult, t: ReturnType<typeof useT>): string {
+  const platform = pair.platform!
+  const band = t('case.band', { band: bandFor(platform) })
+  if (pair.orbit === 'same' && pair.before) {
+    return t('sar.sameOrbit', { platform, band, path: String(pair.before.path), frame: String(pair.before.frame) })
+  }
+  if (pair.orbit === 'mixed') return t('sar.mixedOrbit', { platform, band })
+  return `${platform} (${band})`
+}
+
 function Pair({ c, before, after }: { c: CaseStudy; before: string; after: string }) {
   const t = useT()
   const pair = useAsfPair(c.sarBbox, before, after, 45)
@@ -94,12 +105,7 @@ function Pair({ c, before, after }: { c: CaseStudy; before: string; after: strin
         afterBbox={hasSar ? polygonBbox(pair.after!.footprint as Polygon) : c.sarBbox}
       />
       <p className="text-[11.5px] leading-snug text-muted-foreground">
-        {hasSar && pair.platform
-          ? (pair.diagnostic ?? pair.platform).replace(
-              pair.platform,
-              `${pair.platform} (${t('case.band', { band: bandFor(pair.platform) })})`
-            )
-          : t('case.sarOptical')}
+        {hasSar && pair.platform ? sarCaption(pair, t) : t('case.sarOptical')}
       </p>
     </>
   )

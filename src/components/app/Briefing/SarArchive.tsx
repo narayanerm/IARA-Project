@@ -11,7 +11,7 @@ import {
   type Bbox,
 } from '@/lib/sarArchive'
 import { useUi } from '@/lib/store'
-import { useI18n } from '@/lib/i18n'
+import { useI18n, useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 /**
@@ -377,6 +377,7 @@ function CropCompare({
   after: ArchiveScene | null
   copy: (typeof COPY)[keyof typeof COPY]
 }) {
+  const dragAria = useT()('sar.dragAria')
   const { width, height } = cropSize(bbox)
   const [pos, setPos] = useState(50)
   const [dragging, setDragging] = useState(false)
@@ -435,7 +436,7 @@ function CropCompare({
         onMouseDown={() => setDragging(true)}
         onTouchStart={() => setDragging(true)}
         className="absolute top-1/2 z-10 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize place-items-center rounded-full bg-white shadow-lg"
-        aria-label="drag"
+        aria-label={dragAria}
         style={{ left: `${pos}%` }}
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5 text-black" fill="none">
