@@ -56,7 +56,7 @@ const EMPTY_FORECAST: ForecastMapProps = {
 
 export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
   const config = forecast ?? EMPTY_FORECAST
-  const { fireDate, floodLayer, observedDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError } = config
+  const { fireDate, floodLayer, observedDate, outlookRunDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError } = config
   const signalLabel = useI18n((s) => s.lang === 'pt' ? 'Ver previsão de vazão neste ponto' : 'View river forecast at this point')
   const observedFlood = floodLayer !== null && isObservedFlood(floodLayer)
   const waterSourceId = observedFlood ? 'nasa-observed-flood' : 'glofas-flood'
@@ -184,12 +184,12 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
           </Source>
         )}
         {floodLayer && (
-          <Source key={waterSourceId} id={waterSourceId} type="raster" tiles={[`amazon-forecast://flood/${floodLayer}/${observedDate}/{z}/{x}/{y}`]} tileSize={256}
+          <Source key={waterSourceId} id={waterSourceId} type="raster" tiles={[`amazon-forecast://flood/${floodLayer}/${observedFlood ? observedDate : outlookRunDate ?? observedDate}/{z}/{x}/{y}`]} tileSize={256}
             maxzoom={observedFlood ? 9 : 11} attribution={observedFlood ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}>
             <Layer id={`${waterSourceId}-overlay`} type="raster" paint={{ 'raster-fade-duration': 0, 'raster-opacity': floodLayer === SEASONAL_BASINS ? 0.65 : 1 }} />
           </Source>
         )}
-        {floodLayer && floodSignals.map(({ point, color }) => (
+        {floodSignals.map(({ point, color }) => (
           <Marker key={point.join(',')} longitude={point[0]} latitude={point[1]}>
             <button
               type="button"
@@ -202,7 +202,7 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
             </button>
           </Marker>
         ))}
-        {floodLayer && riverPoint && (
+        {riverPoint && (
           <Marker longitude={riverPoint[0]} latitude={riverPoint[1]} className="pointer-events-none z-10">
             <FloodProbability chance={riverChance} />
           </Marker>

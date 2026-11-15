@@ -1,4 +1,5 @@
 import { AMAZON_BIOME } from '@/data/layers/indigenous-lands'
+import { SUBSEASONAL_RIVERS } from '@/lib/predictive-models'
 
 const SIZE = 256
 const HALF_WORLD = 20037508.342789244
@@ -54,6 +55,15 @@ export async function drawAmazonForecastTile(
   const bitmap = await createImageBitmap(await response.blob())
   try {
     signal.throwIfAborted()
+    if (url.includes(`layers=${SUBSEASONAL_RIVERS}&`)) {
+      // GloFAS sometimes returns a PNG with a full-width white error banner and HTTP 200.
+      context.drawImage(bitmap, 0, 0, SIZE, SIZE)
+      const bannerRow = context.getImageData(0, 150, SIZE, 1).data
+      const hasErrorBanner = bannerRow.every((channel) => channel === 255)
+        && context.getImageData(0, 0, 1, 1).data[3] === 0
+      context.clearRect(0, 0, SIZE, SIZE)
+      if (hasErrorBanner) throw new Error('GloFAS river outlook unavailable')
+    }
     context.clip(path, 'evenodd')
     context.drawImage(bitmap, 0, 0, SIZE, SIZE)
     if (hideInsufficientData) {

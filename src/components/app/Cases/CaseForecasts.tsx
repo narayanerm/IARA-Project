@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react'
 import { CloudSun, Satellite } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import {
-  FLOOD_LAYER, FLOOD_EXTENT_LAYER, MODIS_FLOOD, VIIRS_FLOOD, SUBSEASONAL_RIVERS, SEASONAL_BASINS,
-  gwisDates, isFloodLayer, observedFloodStart, pointInForecastBounds,
+  RIVER_FLOW, AMAZON_RIVER_PREVIEWS, FLOOD_LAYER, FLOOD_EXTENT_LAYER, MODIS_FLOOD, VIIRS_FLOOD, SUBSEASONAL_RIVERS, SEASONAL_BASINS,
+  fetchSubseasonalRunDate, gwisDates, isFloodLayer, observedFloodStart, pointInForecastBounds,
   type FloodChance, type FloodSignal, type ForecastBounds, type ForecastMapProps,
-  type ForecastPoint, type WaterLayer,
+  type ForecastPoint, type WaterOption,
 } from '@/lib/predictive-models'
 import { PredictiveModels } from '../Map/PredictiveModels'
 
 const LAYERS = {
-  flood: [FLOOD_LAYER, FLOOD_EXTENT_LAYER],
+  flood: [RIVER_FLOW, FLOOD_LAYER, FLOOD_EXTENT_LAYER],
   drought: [SUBSEASONAL_RIVERS, SEASONAL_BASINS],
   observed: [MODIS_FLOOD, VIIRS_FLOOD],
   fire: [],
@@ -26,7 +26,8 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
 }) {
   const pt = useI18n((s) => s.lang === 'pt')
   const [enabled, setEnabled] = useState(kind === 'flood' || kind === 'drought')
-  const [waterLayer, setWaterLayer] = useState<WaterLayer>(LAYERS[kind][0] ?? FLOOD_LAYER)
+  const [waterLayer, setWaterLayer] = useState<WaterOption>(LAYERS[kind][0] ?? FLOOD_LAYER)
+  const referencePoint = AMAZON_RIVER_PREVIEWS.find((candidate) => pointInForecastBounds(candidate, bounds)) ?? null
   const [observationDate, setObservationDate] = useState(() => new Date(Date.now() - 86_400_000).toISOString().slice(0, 10))
   const [useCaseDate, setUseCaseDate] = useState(true)
   const date = useCaseDate && initialDate && initialDate >= observedFloodStart(waterLayer) ? initialDate : observationDate
@@ -34,7 +35,10 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
   const [fireDate, setFireDate] = useState(fireDates[0])
   const [fireError, setFireError] = useState(false)
   const [floodError, setFloodError] = useState(false)
-  const [point, setPoint] = useState<ForecastPoint | null>(null)
+  const [outlookRunDate, setOutlookRunDate] = useState<string | null>(null)
+  const [outlookError, setOutlookError] = useState(false)
+  const [outlookAttempt, setOutlookAttempt] = useState(0)
+  const [point, setPoint] = useState<ForecastPoint | null>(kind === 'flood' ? referencePoint : null)
   const [focus, setFocus] = useState<ForecastPoint | null>(null)
   const [signals, setSignals] = useState<FloodSignal[]>([])
   const [chance, setChance] = useState<{ point: ForecastPoint; chance: FloodChance } | null>(null)
@@ -42,7 +46,7 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
     ? signals.find((signal) => signal.glofas && signal.point[0] === point[0] && signal.point[1] === point[1])?.glofas
     : undefined
   const riverChance = point ? (selectedGlofas ?? (chance?.point === point ? chance.chance : 'loading')) : null
-  const canSelectRiver = kind === 'flood' && isFloodLayer(waterLayer)
+  const canSelectRiver = kind === 'flood' && (waterLayer === RIVER_FLOW || isFloodLayer(waterLayer))
   const Icon = kind === 'observed' ? Satellite : CloudSun
   const title = {
     flood: pt ? 'Previsão de cheia' : 'Flood forecast',
@@ -54,10 +58,20 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
   useEffect(() => () => onMapChange(null), [onMapChange])
 
   useEffect(() => {
+    if (!enabled || waterLayer !== SUBSEASONAL_RIVERS) return
+    const controller = new AbortController()
+    fetchSubseasonalRunDate(AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
+      .then((runDate) => { if (!controller.signal.aborted) setOutlookRunDate(runDate) })
+      .catch(() => { if (!controller.signal.aborted) setOutlookError(true) })
+    return () => controller.abort()
+  }, [enabled, waterLayer, outlookAttempt])
+
+  useEffect(() => {
     onMapChange(enabled ? {
       fireDate: kind === 'fire' ? fireDate : null,
-      floodLayer: kind === 'fire' ? null : waterLayer,
+      floodLayer: kind === 'fire' || waterLayer === RIVER_FLOW || (waterLayer === SUBSEASONAL_RIVERS && !outlookRunDate) ? null : waterLayer,
       observedDate: date,
+      outlookRunDate: outlookRunDate ?? undefined,
       floodFocus: focus,
       floodSignals: signals,
       riverPoint: point,
@@ -68,7 +82,7 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
       onFireTileError: () => setFireError(true),
       onFloodTileError: () => setFloodError(true),
     } : null)
-  }, [enabled, kind, fireDate, waterLayer, date, focus, signals, point, riverChance, canSelectRiver, bounds, onMapChange])
+  }, [enabled, kind, fireDate, waterLayer, date, outlookRunDate, focus, signals, point, riverChance, canSelectRiver, bounds, onMapChange])
 
   return (
     <section className="mx-5 my-4 space-y-3 rounded-md border border-border/70 bg-background/40 p-3">
@@ -95,11 +109,19 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
           fireError={fireError}
           floodError={floodError}
           floodLayer={waterLayer}
+          outlookRunDate={outlookRunDate}
+          outlookError={outlookError}
+          onOutlookRetry={() => {
+            setOutlookRunDate(null)
+            setOutlookError(false)
+            setFloodError(false)
+            setOutlookAttempt((attempt) => attempt + 1)
+          }}
           onFloodLayer={(layer) => {
             setFloodError(false)
             setSignals([])
             setFocus(null)
-            setPoint(null)
+            setPoint(layer === RIVER_FLOW ? referencePoint : null)
             setWaterLayer(layer)
           }}
           observedDate={date}

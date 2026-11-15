@@ -108,7 +108,7 @@ function CaseCamera({ region }: { region: Region }) {
   return null
 }
 
-export function MapFallback({ region, fireDate, floodLayer, observedDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
+export function MapFallback({ region, fireDate, floodLayer, observedDate, outlookRunDate, floodFocus, floodSignals, riverPoint, riverChance, onRiverSelect, onFireTileError, onFloodTileError }: { region: Region } & ForecastMapProps) {
   const selectedForecastPoint = riverPoint ?? floodFocus
   const t = useT()
   const lang = useI18n((s) => s.lang)
@@ -177,7 +177,7 @@ export function MapFallback({ region, fireDate, floodLayer, observedDate, floodF
         {fireDate && <AmazonForecastLayer url={gwisMapUrl(fireDate, '{bbox}')} attribution={GWIS_ATTRIBUTION} maxZoom={8} opacity={0.7} onError={onFireTileError} />}
         {floodLayer && (
           <AmazonForecastLayer
-            url={waterTileTemplate(floodLayer, observedDate)}
+            url={waterTileTemplate(floodLayer, isObservedFlood(floodLayer) ? observedDate : outlookRunDate ?? observedDate)}
             attribution={isObservedFlood(floodLayer) ? NASA_FLOOD_ATTRIBUTION : FLOOD_ATTRIBUTION}
             maxZoom={isObservedFlood(floodLayer) ? 9 : 11}
             opacity={floodLayer === SEASONAL_BASINS ? 0.65 : 1}
@@ -327,13 +327,13 @@ export function MapFallback({ region, fireDate, floodLayer, observedDate, floodF
             </Popup>
           </CircleMarker>
         ))}
-        {floodLayer && floodSignals.map(({ point, color }) => (
+        {floodSignals.map(({ point, color }) => (
           <CircleMarker key={point.join(',')} center={[point[1], point[0]]} radius={6} bubblingMouseEvents={false}
             pathOptions={{ color: '#fff', weight: 2, fillColor: color, fillOpacity: 1 }}
             eventHandlers={{ click: () => onRiverSelect?.(point) }}
           />
         ))}
-        {floodLayer && selectedForecastPoint && (
+        {selectedForecastPoint && (
           <CircleMarker center={[selectedForecastPoint[1], selectedForecastPoint[0]]} radius={13}
             interactive={false} pathOptions={{ stroke: false, fill: false }}
           >

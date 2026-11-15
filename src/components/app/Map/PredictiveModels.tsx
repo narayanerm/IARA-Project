@@ -10,6 +10,7 @@ import {
   FLOOD_ATTRIBUTION,
   FLOOD_EXTENT_LAYER,
   FLOOD_LAYER,
+  RIVER_FLOW,
   SUBSEASONAL_RIVERS,
   SEASONAL_BASINS,
   MODIS_FLOOD,
@@ -28,6 +29,7 @@ import {
   type FlowForecast,
   type FloodLayer,
   type WaterLayer,
+  type WaterOption,
   type FloodSignal,
   type FloodChance,
   type ForecastPoint,
@@ -37,7 +39,8 @@ import {
 
 type FlowResult = { point: ForecastPoint; data: FlowForecast | null } | { point: ForecastPoint; error: true }
 
-const WATER_LABELS: Record<WaterLayer, [string, string]> = {
+const WATER_LABELS: Record<WaterOption, [string, string]> = {
+  [RIVER_FLOW]: ['Previsão de vazão · GEOGLOWS', 'River flow forecast · GEOGLOWS'],
   [FLOOD_LAYER]: ['Trechos em risco', 'River reaches at risk'],
   [FLOOD_EXTENT_LAYER]: ['Inundação estimada', 'Estimated inundation'],
   [SUBSEASONAL_RIVERS]: ['Vazão subsazonal · rios', 'Subseasonal flow · rivers'],
@@ -46,9 +49,9 @@ const WATER_LABELS: Record<WaterLayer, [string, string]> = {
   [MODIS_FLOOD]: ['Inundação observada · MODIS', 'Observed flooding · MODIS'],
 }
 
-export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance, selectedGlofas, observedDate, onObservedDate }: {
+export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDates, onFireDate, fireError, floodError, floodLayer, onFloodLayer, onFloodFocus, onFloodSignals, onFloodChance, selectedGlofas, observedDate, onObservedDate, outlookRunDate, outlookError, onOutlookRetry }: {
   mode: 'river' | 'fire'
-  layers: readonly WaterLayer[]
+  layers: readonly WaterOption[]
   bounds: ForecastBounds
   point: ForecastPoint | null
   fireDate: string
@@ -56,10 +59,13 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
   onFireDate: (date: string) => void
   fireError: boolean
   floodError: boolean
-  floodLayer: WaterLayer
-  onFloodLayer: (layer: WaterLayer) => void
+  floodLayer: WaterOption
+  onFloodLayer: (layer: WaterOption) => void
   observedDate: string
   onObservedDate: (date: string) => void
+  outlookRunDate: string | null
+  outlookError: boolean
+  onOutlookRetry: () => void
   onFloodFocus: (point: ForecastPoint) => void
   onFloodSignals: (signals: FloodSignal[]) => void
   onFloodChance: (result: { point: ForecastPoint; chance: FloodChance }) => void
@@ -71,16 +77,17 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
   const [attempt, setAttempt] = useState(0)
   const [chanceResult, setChanceResult] = useState<{ point: ForecastPoint; chance: FloodChance } | null>(null)
   const [regionalSignal, setRegionalSignal] = useState<{ layer: FloodLayer; point: ForecastPoint | null | 'error' } | null>(null)
-  const selected = mode === 'river' && isFloodLayer(floodLayer) ? point : null
+  const selected = mode === 'river' && (floodLayer === RIVER_FLOW || isFloodLayer(floodLayer)) ? point : null
   const referencePoint = AMAZON_RIVER_PREVIEWS.find((candidate) => pointInForecastBounds(candidate, bounds))
 
   useEffect(() => {
-    if (mode !== 'river' || !isFloodLayer(floodLayer)) return
+    if (mode !== 'river' || !(floodLayer === RIVER_FLOW || isFloodLayer(floodLayer))) return
     const controller = new AbortController()
-    const referencePoints = floodLayer === FLOOD_LAYER
+    const referencePoints = floodLayer === FLOOD_LAYER || floodLayer === RIVER_FLOW
       ? AMAZON_RIVER_PREVIEWS.filter((point) => pointInForecastBounds(point, bounds)).map((point) => ({ point, color: '#94a3b8' }))
       : []
     onFloodSignals(referencePoints)
+    if (floodLayer === RIVER_FLOW) return
     findRegionalFloodSignals(floodLayer, bounds, AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]))
       .then((signals) => {
         if (controller.signal.aborted) return
@@ -142,9 +149,25 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
               {layers.map((layer) => <option key={layer} value={layer}>{WATER_LABELS[layer][pt ? 0 : 1]}</option>)}
             </select>
           </label>
-          {!isFloodLayer(floodLayer) ? (
-            <WaterOutlook layer={floodLayer} date={observedDate} onDate={onObservedDate} pt={pt} error={floodError} />
+          {floodLayer !== RIVER_FLOW && !isFloodLayer(floodLayer) ? (
+            <>
+              <WaterOutlook layer={floodLayer} date={observedDate} onDate={onObservedDate} pt={pt} error={floodError} />
+              {floodLayer === SUBSEASONAL_RIVERS && (
+                <p role="status" className="mt-2 text-xs">
+                  {outlookRunDate
+                    ? `${pt ? 'Previsão emitida em' : 'Forecast issued'} ${formatDate(outlookRunDate)} (UTC)`
+                    : outlookError
+                      ? (pt ? 'Previsão subsazonal indisponível.' : 'Subseasonal outlook unavailable.')
+                      : (pt ? 'Buscando a previsão mais recente…' : 'Finding the latest outlook…')}
+                  {(outlookError || floodError) && (
+                    <button type="button" onClick={onOutlookRetry} className="ml-1 underline">{pt ? 'Tentar novamente' : 'Retry'}</button>
+                  )}
+                </p>
+              )}
+            </>
           ) : (
+          <>
+          {floodLayer !== RIVER_FLOW && (
           <>
           <p className="text-xs">{floodLayer === FLOOD_LAYER
             ? (pt ? 'Trechos com sinal de cheia nos próximos 15 dias. As cores comparam a vazão prevista com o histórico.' : 'River reaches with a flood signal over the next 15 days. Colors compare forecast discharge with historical flows.')
@@ -172,6 +195,8 @@ export function PredictiveModels({ mode, layers, bounds, point, fireDate, fireDa
           </div>
           {floodError && <p role="status" className="mt-2">{pt ? 'Parte do mapa de cheias não pôde ser carregada.' : 'Some flood forecast tiles could not be loaded.'}</p>}
           <a href={FLOOD_VIEWER} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">{FLOOD_ATTRIBUTION}</a>
+          </>
+          )}
           <p className="mt-3 border-t border-border pt-2 text-xs">{pt ? 'Clique perto de um rio no recorte para ver a previsão do trecho mais próximo.' : 'Click near a river in the case area to see the forecast for the closest modeled reach.'}</p>
           {referencePoint && (
             <button type="button" className="mt-2 rounded border border-border px-2 py-1 text-xs hover:bg-secondary" onClick={() => onFloodFocus(referencePoint)}>

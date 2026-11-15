@@ -55,6 +55,7 @@ export type ForecastMapProps = {
   fireDate: string | null
   floodLayer: WaterLayer | null
   observedDate: string
+  outlookRunDate?: string
   floodFocus: ForecastPoint | null
   floodSignals: FloodSignal[]
   riverPoint: ForecastPoint | null
@@ -66,6 +67,7 @@ export type ForecastMapProps = {
 
 export const FLOOD_WMS = 'https://ows.globalfloods.eu/glofas-ows/ows.py'
 export const FLOOD_LAYER = 'FloodSummary1_30'
+export const RIVER_FLOW = 'river-flow'
 export const FLOOD_EXTENT_LAYER = 'RapidFloodMapping'
 export type FloodLayer = typeof FLOOD_LAYER | typeof FLOOD_EXTENT_LAYER
 export const SUBSEASONAL_RIVERS = 'SubSeasonalOutlookRivers'
@@ -75,19 +77,35 @@ export const VIIRS_FLOOD = 'VIIRS_Combined_Flood_3-Day'
 export type ObservedFloodLayer = typeof MODIS_FLOOD | typeof VIIRS_FLOOD
 export type OutlookLayer = typeof SUBSEASONAL_RIVERS | typeof SEASONAL_BASINS
 export type WaterLayer = FloodLayer | OutlookLayer | ObservedFloodLayer
+export type WaterOption = WaterLayer | typeof RIVER_FLOW
 export const NASA_FLOOD_ATTRIBUTION = 'NASA EOSDIS · GIBS'
 export const NASA_FLOOD_VIEWER = 'https://worldview.earthdata.nasa.gov/?tr=flood-product'
-export const isFloodLayer = (layer: WaterLayer): layer is FloodLayer => layer === FLOOD_LAYER || layer === FLOOD_EXTENT_LAYER
+export const isFloodLayer = (layer: WaterOption): layer is FloodLayer => layer === FLOOD_LAYER || layer === FLOOD_EXTENT_LAYER
 export const isObservedFlood = (layer: WaterLayer): layer is ObservedFloodLayer => layer === MODIS_FLOOD || layer === VIIRS_FLOOD
-export const observedFloodStart = (layer: WaterLayer) => layer === VIIRS_FLOOD ? '2025-06-01' : '2021-01-01'
+export const observedFloodStart = (layer: WaterOption) => layer === VIIRS_FLOOD ? '2025-06-01' : '2021-01-01'
 export const FLOOD_ATTRIBUTION = '© European Union · Copernicus EMS / GloFAS'
 export const FLOOD_VIEWER = 'https://global-flood.emergency.copernicus.eu/'
 export const floodTiles = (layer: FloodLayer | OutlookLayer, bbox = '{bbox}') => `${FLOOD_WMS}?service=WMS&version=1.3.0&request=GetMap&layers=${layer}&styles=&crs=EPSG:3857&bbox=${bbox}&width=256&height=256&format=image/png&transparent=true&exceptions=XML`
 
 export function waterTileTemplate(layer: WaterLayer, date: string) {
-  return isObservedFlood(layer)
-    ? `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png`
-    : floodTiles(layer)
+  if (isObservedFlood(layer)) {
+    return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png`
+  }
+  return layer === SUBSEASONAL_RIVERS ? `${floodTiles(layer)}&time=${encodeURIComponent(date)}` : floodTiles(layer)
+}
+
+export async function fetchSubseasonalRunDate(signal: AbortSignal): Promise<string> {
+  const response = await fetch(`${FLOOD_WMS}?service=WMS&request=GetCapabilities&version=1.3.0`, { signal })
+  if (!response.ok) throw new Error('GloFAS run date unavailable')
+  const doc = new DOMParser().parseFromString(await response.text(), 'application/xml')
+  // The parent group advertises the daily run. The river child advertises a monthly default.
+  for (const layer of doc.getElementsByTagNameNS('*', 'Layer')) {
+    const children = [...layer.children]
+    if (children.find((child) => child.localName === 'Name')?.textContent !== 'SubSeasonalUserAliasLayer') continue
+    const date = children.find((child) => child.localName === 'Dimension' && child.getAttribute('name') === 'time')?.getAttribute('default')
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) return date
+  }
+  throw new Error('GloFAS run date missing')
 }
 
 export async function findRegionalFloodSignals(layer: FloodLayer, bounds: ForecastBounds, signal: AbortSignal): Promise<FloodSignal[]> {
