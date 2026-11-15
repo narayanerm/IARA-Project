@@ -5,6 +5,7 @@ import {
   Copy,
   Download,
   FileJson,
+  Share2,
   Link as LinkIcon,
   TableProperties,
   X,
@@ -125,6 +126,7 @@ export function ShareDialog() {
           )}
           aria-label={t('share.aria.openShare')}
         >
+          <Share2 className="h-3.5 w-3.5" strokeWidth={2.25} />
           <span>{t('share.trigger')}</span>
         </button>
       </Dialog.Trigger>
