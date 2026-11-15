@@ -26,6 +26,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # URL of the Cloudflare Worker that holds the AI key (repo Settings → Variables → Actions).
+          # Empty = the assistant keeps working with the offline keyword rules.
+          VITE_IARA_AGENT_URL: ${{ vars.IARA_AGENT_URL }}
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5

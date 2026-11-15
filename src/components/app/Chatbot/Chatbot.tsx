@@ -1,125 +1,38 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Sparkles, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useApp, useUi } from '@/lib/store'
-import { useI18n, useT } from '@/lib/i18n'
+import { useI18n, useT, type Lang } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { routeIntent, narrativeFor, SUGGESTIONS, type Intent } from './intents'
+import { narrativeFor, SUGGESTIONS } from './intents'
+import { useAssistant, type AssistantMessage } from '@/lib/agent/useAssistant'
+import { actionLabel, agentText } from '@/lib/agent/labels'
+import type { AgentAction } from '@/lib/agent/agent'
 
-type Message =
-  | { id: string; role: 'user'; text: string }
-  | { id: string; role: 'assistant'; intent: Intent }
+type Message = AssistantMessage
 
+/**
+ * Chat view of the assistant. The conversation and the AI agent live in `useAssistant`, so this
+ * component only renders it and forwards what the person types.
+ */
 export function Chatbot() {
   const t = useT()
   const lang = useI18n((s) => s.lang)
-  const [messages, setMessages] = useState<Message[]>([])
+  const messages = useAssistant((s) => s.messages)
+  const thinking = useAssistant((s) => s.thinking)
+  const liveActions = useAssistant((s) => s.liveActions)
+  const sendToAssistant = useAssistant((s) => s.send)
   const [input, setInput] = useState('')
-  const [thinking, setThinking] = useState(false)
   const scrollRef = useRef<HTMLDivElement | null>(null)
-  const setActiveRegion = useApp((s) => s.setActiveRegion)
-  const setTimeIndex = useApp((s) => s.setTimeIndex)
-  const toggleNasaOverlay = useApp((s) => s.toggleNasaOverlay)
-  const toggleTrueColorOverlay = useApp((s) => s.toggleTrueColorOverlay)
-  const setFocusedTi = useApp((s) => s.setFocusedTi)
-  const requestFlyTo = useApp((s) => s.requestFlyTo)
-  const setActiveLayer = useApp((s) => s.setActiveLayer)
-  const setNisarVisible = useApp((s) => s.setNisarVisible)
-  const setNisarOpacity = useApp((s) => s.setNisarOpacity)
 
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messages, thinking, lang])
+  }, [messages, thinking, liveActions, lang])
 
   const send = (raw: string) => {
-    const text = raw.trim()
-    if (!text) return
-    const userMsg: Message = { id: `u-${Date.now()}`, role: 'user', text }
-    const intent = routeIntent(text)
-    setMessages((m) => [...m, userMsg])
+    if (!raw.trim() || thinking) return
+    sendToAssistant(raw)
     setInput('')
-    setThinking(true)
-
-    window.setTimeout(() => {
-      applyIntentSideEffects(intent)
-      const reply: Message = {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        intent,
-      }
-      setMessages((m) => [...m, reply])
-      setThinking(false)
-    }, 600)
-  }
-
-  // A question typed in the floating ask bar arrives through the UI store.
-  const askQueue = useUi((s) => s.askQueue)
-  const clearAsk = useUi((s) => s.clearAsk)
-  const sendRef = useRef(send)
-  useEffect(() => {
-    sendRef.current = send
-  })
-  const takenRef = useRef(0)
-  useEffect(() => {
-    if (!askQueue || askQueue.ts === takenRef.current) return
-    takenRef.current = askQueue.ts
-    clearAsk()
-    sendRef.current(askQueue.text)
-  }, [askQueue, clearAsk])
-
-  const applyIntentSideEffects = (intent: Intent) => {
-    switch (intent.kind) {
-      case 'focus':
-        setActiveRegion(intent.region)
-        break
-      case 'focus-ti':
-        setFocusedTi(intent.tiName)
-        requestFlyTo(intent.center, intent.zoom)
-        break
-      case 'timeline':
-        if (intent.action === 'start') setTimeIndex(0)
-        if (intent.action === 'end') setTimeIndex(23)
-        if (intent.action === 'play') {
-          let i = 0
-          const int = window.setInterval(() => {
-            setTimeIndex(i)
-            i += 1
-            if (i > 23) window.clearInterval(int)
-          }, 180)
-        }
-        break
-      case 'layer':
-        if (intent.action === 'toggle-nasa') toggleNasaOverlay()
-        if (intent.action === 'toggle-truecolor') toggleTrueColorOverlay()
-        break
-      case 'layer-set':
-        setActiveLayer(intent.layer)
-        break
-      case 'nisar': {
-        const current = useApp.getState()
-        switch (intent.action) {
-          case 'show':
-            setNisarVisible(true)
-            break
-          case 'hide':
-            setNisarVisible(false)
-            break
-          case 'toggle':
-            setNisarVisible(!current.nisarVisible)
-            break
-          case 'opacity-up':
-            setNisarOpacity(Math.min(1, current.nisarOpacity + 0.15))
-            break
-          case 'opacity-down':
-            setNisarOpacity(Math.max(0.1, current.nisarOpacity - 0.15))
-            break
-        }
-        break
-      }
-      default:
-        break
-    }
   }
 
   return (
@@ -138,13 +51,16 @@ export function Chatbot() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
         <MessageBubble role="assistant" text={t('assistant.welcome')} />
         {messages.map((m) => (
-          <MessageBubble
-            key={m.id}
-            role={m.role}
-            text={m.role === 'user' ? m.text : narrativeFor(m.intent, lang)}
-          />
+          <div key={m.id}>
+            <MessageBubble
+              role={m.role}
+              text={m.role === 'user' ? m.text : 'intent' in m ? narrativeFor(m.intent, lang) : m.text}
+            />
+            {'actions' in m && m.actions.length > 0 && <ActionTrail actions={m.actions} lang={lang} />}
+          </div>
         ))}
         {thinking && <ThinkingBubble />}
+        {thinking && liveActions.length > 0 && <ActionTrail actions={liveActions} lang={lang} />}
       </div>
 
       {/* suggestions */}
@@ -209,6 +125,25 @@ function MessageBubble({ role, text }: { role: Message['role']; text: string }) 
         {renderMarkdownLite(text)}
       </div>
     </div>
+  )
+}
+
+/** What the assistant changed on the site, shown under its reply. */
+function ActionTrail({ actions, lang }: { actions: AgentAction[]; lang: Lang }) {
+  return (
+    <ul className="ml-8 mt-1 flex flex-wrap gap-1" aria-label={agentText('actions', lang)}>
+      {actions.map((a, i) => (
+        <li
+          key={i}
+          className={cn(
+            'rounded border px-1.5 py-0.5 font-mono text-[10.5px]',
+            a.ok ? 'border-border/60 text-muted-foreground' : 'border-destructive/40 text-destructive/80 line-through'
+          )}
+        >
+          {actionLabel(a, lang)}
+        </li>
+      ))}
+    </ul>
   )
 }
 

@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
-import { useApp } from '@/lib/store'
+import { useApp, type CaseTab } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
 import { CaseAlerts } from './CaseAlerts'
 import { CaseSar, useCasePoint } from './CaseSar'
@@ -12,7 +12,7 @@ import { useTr } from './shared'
 import { CaseForecasts, type SetCaseForecastMap } from './CaseForecasts'
 import { REGIONS } from '@/lib/regions'
 
-type Tab = 'overview' | 'timeline' | 'alerts'
+type Tab = CaseTab
 
 const TABS: Array<{ id: Tab; label: TKey }> = [
   { id: 'overview', label: 'case.tab.overview' },
@@ -36,7 +36,9 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
   const t = useT()
   const tr = useTr()
   const clearAoi = useApp((s) => s.clearAoi)
-  const [tab, setTab] = useState<Tab>('overview')
+  // The tab lives in the store so the assistant can open it too; reset the scroll bar when it changes.
+  const tab = useApp((s) => s.caseTab)
+  const setTab = useApp((s) => s.setCaseTab)
   const timelinePoint = useCasePoint(c)
   const bounds = REGIONS.find((region) => region.id === c.id)!.bbox
   const panelRef = useRef<HTMLElement>(null)
@@ -49,10 +51,10 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
     const max = el.scrollHeight - el.clientHeight
     panelRef.current?.style.setProperty('--progress', max > 0 ? String(el.scrollTop / max) : '0')
   }
-  const pick = (id: Tab) => {
-    setTab(id)
+  const pick = (id: Tab) => setTab(id)
+  useEffect(() => {
     panelRef.current?.style.setProperty('--progress', '0')
-  }
+  }, [tab])
 
   return (
     <aside
