@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>TI Yanomami · Análise de desmatamento</title>
+    <link rel="icon" type="image/svg+xml" href="/marca/iara-simbolo-escuro.svg" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      :root {
+        --ink: #0a1103;
+        --surface: #13201a;
+        --accent: #f07a45;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+        background: var(--ink);
+        color: #ffffff;
+      }
+      #map {
+        position: absolute;
+        inset: 0;
+        background: var(--ink);
+      }
+      .panel {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        z-index: 1000;
+        max-width: 340px;
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: var(--surface);
+        border: 1px solid rgba(240, 122, 69, 0.4);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+      }
+      .panel h1 {
+        margin: 0 0 6px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--accent);
+      }
+      .panel p {
+        margin: 0 0 8px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .panel strong { color: var(--accent); font-weight: 600; }
+      .panel .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .panel .meta span {
+        padding: 2px 7px;
+        border: 1px solid rgba(240, 122, 69, 0.4);
+        border-radius: 999px;
+      }
+
+      /* Leaflet overrides to match palette */
+      .leaflet-control-layers {
+        background: var(--surface) !important;
+        border: 1px solid rgba(240, 122, 69, 0.4) !important;
+        border-radius: 8px !important;
+        color: #ffffff !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45) !important;
+      }
+      .leaflet-control-layers-expanded {
+        padding: 10px 12px !important;
+      }
+      .leaflet-control-layers-expanded label {
+        font-size: 12px;
+        color: #ffffff;
+        line-height: 1.8;
+      }
+      .leaflet-control-layers-separator {
+        border-top: 1px solid rgba(240, 122, 69, 0.3) !important;
+      }
+      .leaflet-control-layers-selector {
+        accent-color: var(--accent);
+      }
+      .leaflet-control-zoom a {
+        background: var(--surface) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(240, 122, 69, 0.4) !important;
+      }
+      .leaflet-control-zoom a:hover {
+        background: var(--ink) !important;
+        color: var(--accent) !important;
+      }
+      .leaflet-control-attribution {
+        background: var(--surface) !important;
+        color: #ffffff !important;
+        font-size: 10px !important;
+        border: 1px solid rgba(240, 122, 69, 0.3) !important;
+        border-radius: 6px !important;
+      }
+      .leaflet-control-attribution a {
+        color: var(--accent) !important;
+      }
+      .leaflet-popup-content-wrapper {
+        background: var(--surface) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(240, 122, 69, 0.4) !important;
+        border-radius: 8px !important;
+      }
+      .leaflet-popup-tip {
+        background: var(--surface) !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <aside class="panel">
+      <h1>TI Yanomami · Desmatamento 2016-2023</h1>
+      <p>
+        Três camadas INPE no <strong>mesmo período 2016-2023</strong>, pré-baixadas e
+        clipadas pelo bbox da TI. A diferença de área entre elas reflete a definição de
+        cada produto, não inconsistência. Carregamento instantâneo (dados estáticos).
+      </p>
+      <p>
+        <strong>PRODES</strong>: corte-raso oficial Brasil, Landsat, MMU >6.25 ha —
+        pouco signal dentro da TI porque garimpo não é corte-raso.<br/>
+        <strong>DETER-Amz alertas</strong>: todas as classes de alerta (desmatamento,
+        degradação, mineração, queimada), MMU >3 ha — sempre maior cobertura que PRODES
+        porque é mais inclusivo.<br/>
+        <strong>DETER-Amz garimpo</strong>: subconjunto só da classe
+        <code>MINERACAO</code> — este é o sinal específico pro Yanomami.<br/>
+        <strong>Hansen GFC</strong>: perda de dossel global 30 m (UMD, Landsat), filtrada
+        pixel-a-pixel para o intervalo 2016-2023 no GeoTIFF original. Mais sensível que
+        PRODES (qualquer perda &gt;30 m²).<br/>
+        <strong>Demais TIs</strong>: contexto territorial.
+      </p>
+      <div class="meta">
+        <span>build v5 · 4 fontes · 2016-2023</span>
+        <span>área 96.650 km²</span>
+        <span>homologada 1992</span>
+        <span>RR + AM</span>
+        <span>29.139 moradores (Censo 2022)</span>
+      </div>
+    </aside>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const map = L.map('map', {
+        zoomControl: true,
+        attributionControl: true,
+        preferCanvas: true,
+      }).setView([2.3, -63.3], 7);
+
+      // ───── Basemaps ─────
+      const satellite = L.tileLayer(
+        'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg',
+        {
+          attribution: 'Sentinel-2 cloudless 2024 (EOX)',
+          maxZoom: 14,
+        }
+      ).addTo(map);
+
+      const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19,
+      });
+
+      const dark = L.tileLayer('https://tiles.openfreemap.org/styles/dark-matter/{z}/{x}/{y}.png', {
+        attribution: 'OpenFreeMap · OpenMapTiles · © OpenStreetMap',
+        maxZoom: 14,
+      });
+
+      // ───── Static GeoJSONs: pre-fetched + clipped by scripts/analysis/download-yanomami-data.mjs ─────
+      // Loading time went from 40s of WMS tile requests to a single ~13 MB fetch over cached static files.
+
+      const WINDOW_START = 2016;
+      const WINDOW_END = 2023;
+
+      // TI Yanomami polygon (official FUNAI geometry, pre-fetched)
+      const yanomami = L.geoJSON(null, {
+        style: {
+          color: '#F07A45',
+          weight: 2.5,
+          fillColor: '#F07A45',
+          fillOpacity: 0.07,
+        },
+      }).addTo(map);
+
+      fetch('data/yanomami-polygon.geojson')
+        .then((r) => r.json())
+        .then((fc) => {
+          const feat = fc.features?.[0];
+          if (!feat) throw new Error('polygon not found');
+          yanomami.addData(feat);
+          const p = feat.properties || {};
+          yanomami.bindPopup(
+            '<strong>' + (p.terrai_nom || 'TI Yanomami') + '</strong><br/>' +
+            (p.etnia_nome ? 'Etnia: ' + p.etnia_nome + '<br/>' : '') +
+            (p.fase_ti ? 'Fase: ' + p.fase_ti + '<br/>' : '') +
+            'CÓD FUNAI ' + (p.terrai_cod ?? '—') + '<br/>' +
+            '<em>Geometria oficial · FUNAI via TerraBrasilis/INPE</em>'
+          );
+          map.fitBounds(yanomami.getBounds(), { padding: [40, 40] });
+        })
+        .catch((e) => console.error('[yanomami] failed:', e));
+
+      // Styles — monochrome orange gradient so the eye reads the time dimension, not categorical.
+      const PRODES_COLOR_BY_YEAR = {
+        2016: '#F7D1B4', 2017: '#F5BE98', 2018: '#F3AB7C',
+        2019: '#F19762', 2020: '#EF8349', 2021: '#EC6E31',
+        2022: '#E85A1A', 2023: '#D04A0B',
+      };
+      const DETER_CLASS_COLOR = {
+        DESMATAMENTO: '#F07A45',
+        DESMATAMENTO_CR: '#F07A45',
+        DESMATAMENTO_VEG: '#E85A1A',
+        DEGRADACAO: '#F7D1B4',
+        MINERACAO: '#FFFFFF',
+        CICATRIZ_DE_QUEIMADA: '#F5BE98',
+        CS_DESORDENADO: '#F3AB7C',
+      };
+
+      // PRODES desmatamento oficial 2016-2023 (static, pre-clipped to the TI bbox)
+      const prodesLayer = L.geoJSON(null, {
+        style: (f) => ({
+          color: '#D04A0B',
+          weight: 0.3,
+          fillColor: PRODES_COLOR_BY_YEAR[f.properties.year] || '#F07A45',
+          fillOpacity: 0.85,
+        }),
+        onEachFeature: (f, layer) => {
+          const p = f.properties;
+          layer.bindPopup(
+            '<strong>PRODES · ' + p.year + '</strong><br/>' +
+            (p.class_name ? 'Classe: ' + p.class_name + '<br/>' : '') +
+            'Área: ' + (p.area_km != null ? p.area_km.toFixed(3) + ' km²' : '—')
+          );
+        },
+      });
+
+      // DETER-Amz alertas (todas as classes) 2016-2023
+      const deterLayer = L.geoJSON(null, {
+        style: (f) => ({
+          color: '#13201A',
+          weight: 0.2,
+          fillColor: DETER_CLASS_COLOR[f.properties.classname] || '#F07A45',
+          fillOpacity: 0.8,
+        }),
+        onEachFeature: (f, layer) => {
+          const p = f.properties;
+          layer.bindPopup(
+            '<strong>DETER-Amz · ' + (p.classname || '—') + '</strong><br/>' +
+            'Data: ' + (p.view_date || '—') + '<br/>' +
+            'Município: ' + (p.municipality || '—')
+          );
+        },
+      });
+
+      // DETER-Amz só classe MINERACAO — filtered client-side from the same source file
+      const deterMiningLayer = L.geoJSON(null, {
+        filter: (f) => f.properties.classname === 'MINERACAO',
+        style: {
+          color: '#FFFFFF',
+          weight: 0.8,
+          fillColor: '#F07A45',
+          fillOpacity: 0.95,
+        },
+        onEachFeature: (f, layer) => {
+          const p = f.properties;
+          layer.bindPopup(
+            '<strong>Garimpo detectado</strong><br/>' +
+            'Data: ' + (p.view_date || '—') + '<br/>' +
+            'Município: ' + (p.municipality || '—') + '<br/>' +
+            '<em>DETER-Amz classe MINERACAO</em>'
+          );
+        },
+      });
+
+      // Load both PRODES and DETER files in parallel; the DETER file feeds two overlays.
+      Promise.all([
+        fetch('data/prodes-yanomami-2016-2023.geojson').then((r) => r.json()),
+        fetch('data/deter-yanomami-2016-2023.geojson').then((r) => r.json()),
+      ])
+        .then(([prodes, deter]) => {
+          prodesLayer.addData(prodes);
+          deterLayer.addData(deter);
+          deterMiningLayer.addData(deter);
+          console.log(
+            '[data] PRODES ' + prodes.features.length +
+            ' · DETER ' + deter.features.length +
+            ' · DETER mineração ' + deter.features.filter((f) => f.properties.classname === 'MINERACAO').length
+          );
+        })
+        .catch((e) => console.error('[data] fetch failed:', e));
+
+      // Hansen GFC v1.11 lossyear — downsampled PNG pre-masked to 2016-2023 pixels.
+      // Full build pipeline in scripts/analysis/download-hansen.mjs. Loads instantly from static.
+      const hansenLayer = L.layerGroup();
+      Promise.all([
+        fetch('data/hansen-yanomami-2016-2023.bounds.json').then((r) => r.json()),
+      ])
+        .then(([b]) => {
+          const overlay = L.imageOverlay('data/hansen-yanomami-2016-2023.png', [[b.south, b.west], [b.north, b.east]], {
+            opacity: 0.85,
+            attribution: 'Hansen/UMD/Google · GFC v1.11 lossyear 2016-2023',
+            interactive: false,
+          });
+          hansenLayer.addLayer(overlay);
+          console.log('[Hansen] overlay bounds', b);
+        })
+        .catch((e) => console.error('[Hansen] load failed:', e));
+
+      // FUNAI TI boundaries (context layer). Kept as WMS — fast cache hit, no filter needed.
+      const TB_WMS = 'https://terrabrasilis.dpi.inpe.br/geoserver/ows';
+      const otherTis = L.tileLayer.wms(TB_WMS, {
+        layers: 'prodes-legal-amz:indigenous_area_legal_amazon',
+        format: 'image/png',
+        transparent: true,
+        opacity: 0.55,
+        attribution: 'Terras Indígenas · FUNAI via TerraBrasilis',
+      });
+
+      L.control.layers(
+        {
+          'Sentinel-2 óptico (EOX)': satellite,
+          'OpenFreeMap escuro': dark,
+          'OpenStreetMap': osm,
+        },
+        {
+          'TI Yanomami (FUNAI)': yanomami,
+          'PRODES desmatamento 2016-2023': prodesLayer,
+          'DETER-Amz alertas 2016-2023': deterLayer,
+          'DETER-Amz garimpo 2016-2023': deterMiningLayer,
+          'Hansen GFC perda 2016-2023': hansenLayer,
+          'Demais Terras Indígenas (FUNAI)': otherTis,
+        },
+        { collapsed: false, position: 'topright' }
+      ).addTo(map);
+
+    </script>
+  </body>
+</html>

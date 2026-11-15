@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>TI Yanomami · NISAR L-band (recortado)</title>
+    <link rel="icon" type="image/svg+xml" href="/marca/iara-simbolo-escuro.svg" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      :root {
+        --ink: #0a1103;
+        --surface: #13201a;
+        --accent: #f07a45;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+        background: var(--ink);
+        color: #ffffff;
+      }
+      #map {
+        position: absolute;
+        inset: 0;
+        background: var(--ink);
+      }
+      .panel {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        z-index: 1000;
+        max-width: 360px;
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: var(--surface);
+        border: 1px solid rgba(240, 122, 69, 0.4);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+      }
+      .panel h1 {
+        margin: 0 0 6px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--accent);
+      }
+      .panel p {
+        margin: 0 0 8px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .panel strong { color: var(--accent); font-weight: 600; }
+      .panel .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .panel .meta span {
+        padding: 2px 7px;
+        border: 1px solid rgba(240, 122, 69, 0.4);
+        border-radius: 999px;
+      }
+      .panel .scenes {
+        margin-top: 10px;
+        max-height: 36vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 11px;
+      }
+      .panel .scenes button {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 5px 8px;
+        border: 1px solid rgba(240, 122, 69, 0.3);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.03);
+        color: rgba(255, 255, 255, 0.85);
+        font-family: inherit;
+        font-size: inherit;
+        cursor: pointer;
+        text-align: left;
+      }
+      .panel .scenes button:hover {
+        background: rgba(240, 122, 69, 0.08);
+        border-color: rgba(240, 122, 69, 0.6);
+        color: #fff;
+      }
+      .panel .scenes button.active {
+        background: rgba(240, 122, 69, 0.18);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .panel .scenes .dir {
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: rgba(240, 122, 69, 0.18);
+        color: var(--accent);
+        font-size: 10px;
+      }
+      .panel .bands {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 10px 0 2px;
+      }
+      .panel .bands button {
+        display: grid;
+        grid-template-columns: 10px 1fr;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 1px solid rgba(240, 122, 69, 0.25);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        color: rgba(255, 255, 255, 0.85);
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+      }
+      .panel .bands button small {
+        display: block;
+        grid-column: 2;
+        margin-top: 2px;
+        font-weight: 400;
+        font-size: 10.5px;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .panel .bands button .dot {
+        grid-row: span 2;
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        box-shadow: 0 0 10px currentColor;
+      }
+      .panel .bands button:hover {
+        background: rgba(240, 122, 69, 0.08);
+        color: #fff;
+      }
+      .panel .bands button.active {
+        background: rgba(240, 122, 69, 0.15);
+        border-color: var(--accent);
+        color: #fff;
+      }
+
+      .leaflet-control-layers,
+      .leaflet-control-zoom a,
+      .leaflet-control-attribution,
+      .leaflet-popup-content-wrapper {
+        background: var(--surface) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(240, 122, 69, 0.4) !important;
+      }
+      .leaflet-control-layers { border-radius: 8px !important; }
+      .leaflet-control-layers-expanded { padding: 10px 12px !important; }
+      .leaflet-control-layers-expanded label {
+        font-size: 12px;
+        color: #ffffff;
+        line-height: 1.8;
+      }
+      .leaflet-control-layers-selector { accent-color: var(--accent); }
+      .leaflet-control-zoom a:hover {
+        background: var(--ink) !important;
+        color: var(--accent) !important;
+      }
+      .leaflet-control-attribution {
+        font-size: 10px !important;
+        border-radius: 6px !important;
+      }
+      .leaflet-control-attribution a { color: var(--accent) !important; }
+      .leaflet-popup-content-wrapper { border-radius: 8px !important; }
+      .leaflet-popup-tip { background: var(--surface) !important; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <aside class="panel">
+      <h1>TI Yanomami · SAR multi-banda + ground truth</h1>
+      <p>
+        Comparação de bandas SAR sobre o polígono FUNAI, com overlays oficiais
+        do INPE. <strong>L-band</strong> atravessa a copa e flagra garimpo;
+        <strong>C-band</strong> para no dossel; <strong>RADD</strong> é produto
+        S1-derivado de detecção de mudança operacional.
+      </p>
+      <div class="bands" id="band-switch">
+        <button type="button" data-band="nisar" class="active">
+          <span class="dot" style="background:#F07A45"></span>
+          NISAR L-band
+          <small>atual · GCOV · penetra copa</small>
+        </button>
+        <button type="button" data-band="sentinel1">
+          <span class="dot" style="background:#9ED9FF"></span>
+          Sentinel-1 C-band
+          <small>só superfície · 6-12 d</small>
+        </button>
+        <button type="button" data-band="sband">
+          <span class="dot" style="background:#B59EF5"></span>
+          NISAR S-band
+          <small>λ 10 cm · ISRO · topo do dossel</small>
+        </button>
+        <button type="button" data-band="radd">
+          <span class="dot" style="background:#FF4D6D"></span>
+          RADD alertas (S1-derivado)
+          <small>Wageningen/GFW · mudança semanal</small>
+        </button>
+        <button type="button" data-band="none">
+          <span class="dot" style="background:rgba(255,255,255,0.35)"></span>
+          Sem banda SAR
+          <small>só polígono FUNAI sobre o basemap</small>
+        </button>
+      </div>
+      <div id="status" class="meta">
+        <span>Carregando polígono + catálogo ASF…</span>
+      </div>
+      <div id="scenes" class="scenes"></div>
+    </aside>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const map = L.map('map', {
+        zoomControl: true,
+        attributionControl: true,
+        preferCanvas: true,
+      }).setView([2.3, -63.3], 7);
+
+      // ───── Basemaps ─────
+      const dark = L.tileLayer('https://tiles.openfreemap.org/styles/dark-matter/{z}/{x}/{y}.png', {
+        attribution: 'OpenFreeMap · OpenMapTiles · © OpenStreetMap',
+        maxZoom: 14,
+      }).addTo(map);
+
+      const satellite = L.tileLayer(
+        'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg',
+        { attribution: 'Sentinel-2 cloudless 2024 (EOX)', maxZoom: 14 }
+      );
+
+      const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19,
+      });
+
+      // ───── TI Yanomami polygon (pre-fetched FUNAI geometry) ─────
+      let yanoPoly = null; // Leaflet latlng ring [[lat, lng], ...] for SVG clip path
+      let yanoGeoJSON = null;
+
+      const yanomamiLayer = L.geoJSON(null, {
+        style: {
+          color: '#F07A45',
+          weight: 2.5,
+          fillColor: '#F07A45',
+          fillOpacity: 0,
+        },
+      }).addTo(map);
+
+      // ───── Custom Leaflet layer: NISAR scenes clipped by the TI polygon via SVG clipPath ─────
+      //
+      // Each NISAR scene has a georeferenced browse PNG (LATLON) whose bounds come from
+      // the granule WKT footprint. We render all scenes as <image> inside one SVG, and
+      // apply a clipPath built from the TI polygon projected to map container coords.
+      // All positions update on zoomend/moveend.
+      const NisarClippedLayer = L.Layer.extend({
+        initialize(scenes, clipRing, opts) {
+          this._scenes = scenes || []; // [{png, bounds (LatLngBounds), opacity, id}]
+          this._ring = clipRing || null; // [[lat, lng], ...]
+          this._opts = opts || {};
+          this._uid = 'yano-clip-' + Math.floor(Math.random() * 1e9);
+        },
+        setClipRing(ring) {
+          this._ring = ring;
+          if (this._map) this._reset();
+        },
+        setScenes(scenes) {
+          this._scenes = scenes;
+          if (!this._map) return;
+          while (this._g.firstChild) this._g.removeChild(this._g.firstChild);
+          this._images = [];
+          for (const scene of this._scenes) {
+            const img = this._makeImageNode(scene);
+            this._g.appendChild(img);
+            this._images.push(img);
+          }
+          this._reset();
+        },
+        _makeImageNode(scene) {
+          const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+          img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', scene.png);
+          img.setAttribute('href', scene.png);
+          img.setAttribute('preserveAspectRatio', 'none');
+          img.setAttribute('opacity', String(scene.opacity ?? 0.9));
+          return img;
+        },
+        onAdd(map) {
+          this._map = map;
+          const NS = 'http://www.w3.org/2000/svg';
+          this._svg = document.createElementNS(NS, 'svg');
+          this._svg.style.position = 'absolute';
+          this._svg.style.pointerEvents = 'none';
+          this._svg.setAttribute('xmlns', NS);
+
+          const defs = document.createElementNS(NS, 'defs');
+          this._clip = document.createElementNS(NS, 'clipPath');
+          this._clip.setAttribute('id', this._uid);
+          this._clipPath = document.createElementNS(NS, 'path');
+          this._clip.appendChild(this._clipPath);
+          defs.appendChild(this._clip);
+          this._svg.appendChild(defs);
+
+          this._g = document.createElementNS(NS, 'g');
+          this._g.setAttribute('clip-path', 'url(#' + this._uid + ')');
+          this._svg.appendChild(this._g);
+
+          this._images = [];
+          for (const scene of this._scenes) {
+            const img = this._makeImageNode(scene);
+            this._g.appendChild(img);
+            this._images.push(img);
+          }
+
+          // Orange outline of the TI drawn on top of the clipped imagery
+          this._outline = document.createElementNS(NS, 'path');
+          this._outline.setAttribute('fill', 'none');
+          this._outline.setAttribute('stroke', '#F07A45');
+          this._outline.setAttribute('stroke-width', '2');
+          this._outline.setAttribute('vector-effect', 'non-scaling-stroke');
+          this._svg.appendChild(this._outline);
+
+          map.getPane('overlayPane').appendChild(this._svg);
+          map.on('zoomend moveend viewreset resize', this._reset, this);
+          this._reset();
+        },
+        onRemove() {
+          this._map.off('zoomend moveend viewreset resize', this._reset, this);
+          if (this._svg && this._svg.parentNode) this._svg.parentNode.removeChild(this._svg);
+        },
+        _reset() {
+          const map = this._map;
+          if (!map) return;
+          const size = map.getSize();
+          const topLeft = map.containerPointToLayerPoint([0, 0]);
+
+          this._svg.setAttribute('width', size.x);
+          this._svg.setAttribute('height', size.y);
+          this._svg.setAttribute('viewBox', '0 0 ' + size.x + ' ' + size.y);
+          L.DomUtil.setPosition(this._svg, topLeft);
+
+          // Build the clip path from the TI polygon, converting latlng → container point.
+          // Offset by topLeft because the SVG is positioned via setPosition in layerPoint coords.
+          let d = '';
+          if (this._ring && this._ring.length) {
+            for (let i = 0; i < this._ring.length; i++) {
+              const [lat, lng] = this._ring[i];
+              const p = map.latLngToContainerPoint([lat, lng]);
+              d += (i === 0 ? 'M' : 'L') + p.x + ',' + p.y;
+            }
+            d += 'Z';
+          }
+          this._clipPath.setAttribute('d', d);
+          this._outline.setAttribute('d', d);
+
+          // Position each scene image using its latlng bounds → container points.
+          for (let i = 0; i < this._scenes.length; i++) {
+            const scene = this._scenes[i];
+            const img = this._images[i];
+            if (!img || !scene.bounds) continue;
+            const nw = map.latLngToContainerPoint(scene.bounds.getNorthWest());
+            const se = map.latLngToContainerPoint(scene.bounds.getSouthEast());
+            img.setAttribute('x', nw.x);
+            img.setAttribute('y', nw.y);
+            img.setAttribute('width', Math.max(1, se.x - nw.x));
+            img.setAttribute('height', Math.max(1, se.y - nw.y));
+          }
+        },
+      });
+      L.nisarClippedLayer = (scenes, ring, opts) => new NisarClippedLayer(scenes, ring, opts);
+
+      // One clipped layer per band. Only the active one is on the map.
+      const nisarLayer = L.nisarClippedLayer([], null).addTo(map);
+      const sentinel1Layer = L.nisarClippedLayer([], null);
+      const sbandLayer = L.nisarClippedLayer([], null);
+      // RADD é tile layer público do Global Forest Watch (produto Wageningen).
+      // Endpoint dynamic aceita filtro de data; pegamos os 2 últimos anos de alertas.
+      // RADD cobre América do Sul desde jan/2020 (metadata oficial WUR/GFW).
+      // Janela completa do produto até hoje.
+      const raddLayer = L.tileLayer(
+        'https://tiles.globalforestwatch.org/wur_radd_alerts/latest/dynamic/{z}/{x}/{y}.png' +
+          '?start_date=2020-01-01&end_date=2026-11-15',
+        {
+          attribution:
+            'RADD alerts · Wageningen Univ. · Global Forest Watch · derivado de Sentinel-1',
+          maxZoom: 14,
+          opacity: 0.9,
+        }
+      );
+
+      const bandLayers = { nisar: nisarLayer, sentinel1: sentinel1Layer, sband: sbandLayer, radd: raddLayer };
+      let activeBand = 'nisar';
+
+      const bandData = {
+        nisar: { scenes: [], active: new Set(), loaded: false, label: 'NISAR L-band' },
+        sentinel1: { scenes: [], active: new Set(), loaded: false, label: 'Sentinel-1 C-band' },
+        sband: { scenes: [], active: new Set(), loaded: false, label: 'NISAR S-band' },
+        radd: { scenes: [], active: new Set(), loaded: true, label: 'RADD alerts (S1-derivado)' },
+      };
+
+      // DETER mineração 2019-2026, bbox regional (Roraima + N. Amazonas + N. Pará).
+      // Mostra garimpo ao redor da TI também — contexto espacial.
+      const deterMiningLayer = L.geoJSON(null, {
+        style: {
+          color: '#FFFFFF',
+          weight: 0.8,
+          fillColor: '#F07A45',
+          fillOpacity: 0.95,
+        },
+        onEachFeature: (f, layer) => {
+          const p = f.properties;
+          layer.bindPopup(
+            '<strong>Garimpo detectado · DETER</strong><br/>' +
+              'Data: ' + (p.view_date || '—') + '<br/>' +
+              'Município: ' + (p.municipality || '—') + '<br/>' +
+              '<em>INPE DETER-Amz, classe MINERACAO</em>'
+          );
+        },
+      });
+
+      fetch('data/deter-mineracao-regional-2019-2026.geojson')
+        .then((r) => r.json())
+        .then((deter) => {
+          deterMiningLayer.addData(deter);
+          console.log('[ground-truth] DETER mineração 2019-2026:', deter.features.length);
+        })
+        .catch((e) => console.error('[ground-truth] falha:', e));
+
+      // ───── Helpers ─────
+      function wktToLatLngBounds(wkt) {
+        const m = wkt.match(/^POLYGON\s*\(\((.+)\)\)$/i);
+        if (!m) return null;
+        const pairs = m[1]
+          .split(/\),\s*\(/)[0]
+          .split(',')
+          .map((p) => p.trim().split(/\s+/).map(Number));
+        let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+        for (const pr of pairs) {
+          const lon = pr[0], lat = pr[1];
+          if (Number.isNaN(lon) || Number.isNaN(lat)) continue;
+          if (lon < w) w = lon;
+          if (lon > e) e = lon;
+          if (lat < s) s = lat;
+          if (lat > n) n = lat;
+        }
+        if (!isFinite(w) || !isFinite(s) || !isFinite(e) || !isFinite(n)) return null;
+        return L.latLngBounds([s, w], [n, e]);
+      }
+
+      // Flatten any GeoJSON Polygon / MultiPolygon to its outer ring in [lat, lng] order.
+      // For MultiPolygon we concatenate outer rings with "M x,y L ... Z" implicitly by
+      // starting each ring fresh — but a single flattened ring is enough here since the
+      // Yanomami FUNAI polygon is a single Polygon.
+      function geoJSONOuterRing(geom) {
+        if (!geom) return null;
+        if (geom.type === 'Polygon') {
+          return geom.coordinates[0].map(([lng, lat]) => [lat, lng]);
+        }
+        if (geom.type === 'MultiPolygon') {
+          // Pick the largest ring by point count — works for our case.
+          let best = null;
+          for (const poly of geom.coordinates) {
+            const ring = poly[0];
+            if (!best || ring.length > best.length) best = ring;
+          }
+          return best ? best.map(([lng, lat]) => [lat, lng]) : null;
+        }
+        return null;
+      }
+
+      function setStatus(txt) {
+        const el = document.getElementById('status');
+        if (!el) return;
+        el.innerHTML = Array.isArray(txt)
+          ? txt.map((t) => '<span>' + t + '</span>').join('')
+          : '<span>' + txt + '</span>';
+      }
+
+      function fitToTi() {
+        if (yanomamiLayer.getLayers().length) {
+          map.fitBounds(yanomamiLayer.getBounds(), { padding: [40, 40] });
+        }
+      }
+
+      // ───── Load Yanomami polygon first (it's the clip mask) ─────
+      let allScenes = []; // cached full list for the scene buttons
+      let activeSceneIds = new Set();
+      let tiBounds = null; // LatLngBounds of the TI polygon (used as mosaic extent)
+      const thumbCache = new Map(); // granuleName → HTMLImageElement
+      let mosaicToken = 0; // bump on every rebuild to cancel in-flight work
+
+      fetch('data/yanomami-polygon.geojson')
+        .then((r) => {
+          if (!r.ok) throw new Error('polygon HTTP ' + r.status);
+          return r.json();
+        })
+        .then((fc) => {
+          const feat = fc.features && fc.features[0];
+          if (!feat) throw new Error('no feature');
+          yanoGeoJSON = feat;
+          yanomamiLayer.addData(feat);
+          yanoPoly = geoJSONOuterRing(feat.geometry);
+          tiBounds = yanomamiLayer.getBounds();
+          // Clip every band layer to the TI polygon.
+          nisarLayer.setClipRing(yanoPoly);
+          sentinel1Layer.setClipRing(yanoPoly);
+          sbandLayer.setClipRing(yanoPoly);
+          fitToTi();
+          wireBandSwitch();
+          loadNisar();
+        })
+        .catch((err) => {
+          console.error('[polygon] failed:', err);
+          setStatus('Falha ao carregar polígono (' + err.message + ')');
+        });
+
+      // ───── Mosaic compositor ─────
+      //
+      // Build a single PNG that covers the TI bbox by draw-imaging each scene's browse
+      // thumbnail (LATLON, ~13 KB each) into its correct lon/lat rectangle. Later scenes
+      // (newest) overpaint earlier ones (source-over), so each pixel is "most recent".
+      // The resulting data URL goes as a single scene into the SVG-clipped layer.
+      const MOSAIC_MAX_DIM = 4096;
+      // Pixels to erode off every swath edge via destination-in composite. Enough to
+      // kill a thin anti-aliasing fringe without creating seams between adjacent
+      // (path, frame) cells.
+      const EDGE_ERODE_PX = 2;
+
+      function loadFullPng(scene) {
+        const key = scene.raw.granuleName;
+        if (thumbCache.has(key)) return Promise.resolve(thumbCache.get(key));
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            thumbCache.set(key, img);
+            resolve(img);
+          };
+          img.onerror = () => resolve(null);
+          img.src = scene.png;
+        });
+      }
+
+      // Alpha erosion via destination-in composite (GPU-only, no pixel loops). Redraw
+      // the image shifted ±K in 4 directions; survivors are pixels opaque in all
+      // shifts. Does NOT cache the output canvas — memory would blow up (14 MB per
+      // canvas × 160 scenes = 2.2 GB). Called fresh per composition; scratch canvas
+      // is garbage-collected after drawImage copies the eroded data to the mosaic.
+      function erodeEdge(img) {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d');
+        if (!ctx) return img;
+        ctx.drawImage(img, 0, 0);
+        if (EDGE_ERODE_PX > 0) {
+          ctx.globalCompositeOperation = 'destination-in';
+          const k = EDGE_ERODE_PX;
+          ctx.drawImage(img, k, 0);
+          ctx.drawImage(img, -k, 0);
+          ctx.drawImage(img, 0, k);
+          ctx.drawImage(img, 0, -k);
+          ctx.globalCompositeOperation = 'source-over';
+        }
+        return c;
+      }
+
+      async function buildMosaic(scenesToDraw, onProgress) {
+        const token = ++mosaicToken;
+        if (!tiBounds || !scenesToDraw.length) return null;
+
+        const north = tiBounds.getNorth();
+        const south = tiBounds.getSouth();
+        const west = tiBounds.getWest();
+        const east = tiBounds.getEast();
+        const lngSpan = east - west;
+        const latSpan = north - south;
+        const aspect = lngSpan / latSpan;
+
+        const w = aspect >= 1 ? MOSAIC_MAX_DIM : Math.round(MOSAIC_MAX_DIM * aspect);
+        const h = aspect >= 1 ? Math.round(MOSAIC_MAX_DIM / aspect) : MOSAIC_MAX_DIM;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        ctx.clearRect(0, 0, w, h);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        // Oldest first so the newest ends up on top.
+        const ordered = [...scenesToDraw].sort((a, b) =>
+          a.raw.startTime.localeCompare(b.raw.startTime)
+        );
+
+        // Load thumbs with progress reporting. Browser caps ~6 parallel connections
+        // per host, so a Promise.all is effectively rate-limited already.
+        let done = 0;
+        const total = ordered.length;
+        if (onProgress) onProgress(0, total);
+        const imgs = await Promise.all(
+          ordered.map((s) =>
+            loadFullPng(s).then((img) => {
+              done++;
+              if (onProgress && token === mosaicToken) onProgress(done, total);
+              return img;
+            })
+          )
+        );
+        if (token !== mosaicToken) return null; // a newer rebuild has started
+
+        let drew = 0;
+        let failed = 0;
+        for (let i = 0; i < ordered.length; i++) {
+          const raw = imgs[i];
+          if (!raw) {
+            failed++;
+            continue;
+          }
+          const scene = ordered[i];
+          const srcImg = erodeEdge(raw);
+          const srcW = srcImg.width || srcImg.naturalWidth;
+          const srcH = srcImg.height || srcImg.naturalHeight;
+          const b = scene.bounds;
+          // Clip the scene footprint to the TI bbox so canvas pixels outside TI are not touched.
+          const sw = Math.max(b.getWest(), west);
+          const se = Math.min(b.getEast(), east);
+          const sn = Math.min(b.getNorth(), north);
+          const ss = Math.max(b.getSouth(), south);
+          if (sw >= se || ss >= sn) continue;
+
+          const bLngSpan = b.getEast() - b.getWest();
+          const bLatSpan = b.getNorth() - b.getSouth();
+          const srcX = ((sw - b.getWest()) / bLngSpan) * srcW;
+          const srcXEnd = ((se - b.getWest()) / bLngSpan) * srcW;
+          const srcY = ((b.getNorth() - sn) / bLatSpan) * srcH;
+          const srcYEnd = ((b.getNorth() - ss) / bLatSpan) * srcH;
+          const sWidth = Math.max(1, srcXEnd - srcX);
+          const sHeight = Math.max(1, srcYEnd - srcY);
+
+          const dx = ((sw - west) / lngSpan) * w;
+          const dxEnd = ((se - west) / lngSpan) * w;
+          const dy = ((north - sn) / latSpan) * h;
+          const dyEnd = ((north - ss) / latSpan) * h;
+          const dWidth = Math.max(1, dxEnd - dx);
+          const dHeight = Math.max(1, dyEnd - dy);
+
+          try {
+            ctx.drawImage(srcImg, srcX, srcY, sWidth, sHeight, dx, dy, dWidth, dHeight);
+            drew++;
+          } catch (err) {
+            console.warn('[mosaic] drawImage failed for', scene.raw.granuleName, err);
+            failed++;
+          }
+        }
+
+        console.log('[mosaic] drew=' + drew + ' failed=' + failed + ' total=' + ordered.length);
+        if (drew === 0) return null;
+        try {
+          return canvas.toDataURL('image/png');
+        } catch (err) {
+          console.error('[mosaic] canvas tainted (CORS):', err);
+          return null;
+        }
+      }
+
+      // ───── ASF Search configs per band ─────
+      // Each band hits the same jsonlite API with its own platform/processingLevel/date range.
+      // Bbox is always a little wider than the TI so we grab every partial-overlap scene.
+      const BAND_CONFIG = {
+        nisar: {
+          platform: 'NISAR',
+          processingLevel: 'GCOV',
+          bbox: '-66.0,-1.0,-60.5,5.0',
+          start: '2025-10-01T00:00:00Z',
+          perCell: 3,
+          label: 'NISAR L-band',
+        },
+        sentinel1: {
+          platform: 'SENTINEL-1A,SENTINEL-1C',
+          processingLevel: 'GRD_HD',
+          bbox: '-66.0,-1.0,-60.5,5.0',
+          start: '2023-01-01T00:00:00Z',
+          perCell: 1,
+          label: 'Sentinel-1 C-band',
+        },
+        // S-band is a pre-built static mosaic — no ASF query needed at runtime.
+        sband: {
+          label: 'NISAR S-band',
+          static: true,
+          mosaicPng: 'data/yanomami-nisar-sband-mosaic.png',
+          mosaicMeta: 'data/yanomami-nisar-sband-mosaic.meta.json',
+        },
+      };
+
+      function loadBand(band) {
+        const cfg = BAND_CONFIG[band];
+        const data = bandData[band];
+        if (data.loaded) return Promise.resolve(data);
+
+        const STATIC = {
+          sentinel1: {
+            catalog: 'data/sentinel1-catalog.json',
+            boundsJson: 'data/sentinel1-yanomami-mosaic.bounds.json',
+            png: 'data/sentinel1-yanomami-mosaic.png',
+          },
+        };
+        if (STATIC[band]) {
+          const spec = STATIC[band];
+          setStatus('Carregando mosaico ' + cfg.label + '…');
+          return Promise.all([
+            fetch(spec.catalog).then((r) => r.json()),
+            fetch(spec.boundsJson).then((r) => r.json()),
+          ]).then(([catalog, b]) => {
+            const mosaicBounds = L.latLngBounds([b.south, b.west], [b.north, b.east]);
+            const first = catalog[catalog.length - 1]?.startTime || '—';
+            const last = catalog[0]?.startTime || '—';
+            data.scenes = [
+              {
+                raw: {
+                  granuleName: band + '_mosaic_' + catalog.length + '_scenes',
+                  startTime: first + ' → ' + last,
+                  path: '—',
+                  frame: '—',
+                  flightDirection: 'MOSAIC',
+                  wkt: '',
+                },
+                png: spec.png,
+                bounds: mosaicBounds,
+                catalog,
+              },
+            ];
+            data.active = new Set([data.scenes[0].raw.granuleName]);
+            data.loaded = true;
+            console.log('[' + band + '] mosaic + ' + catalog.length + ' scenes in catalog');
+            return data;
+          });
+        }
+
+        setStatus('Buscando cenas ' + cfg.label + ' no ASF DAAC…');
+        const url = new URL('https://api.daac.asf.alaska.edu/services/search/param');
+        url.searchParams.set('platform', cfg.platform);
+        url.searchParams.set('processingLevel', cfg.processingLevel);
+        url.searchParams.set('bbox', cfg.bbox);
+        url.searchParams.set('start', cfg.start);
+        if (cfg.end) url.searchParams.set('end', cfg.end);
+        url.searchParams.set('maxResults', '1000');
+        url.searchParams.set('output', 'jsonlite');
+
+        return fetch(url.toString(), { headers: { Accept: 'application/json' } })
+          .then((r) => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          })
+          .then((body) => {
+            const raws = body.results || [];
+            const parsed = raws
+              .map((r) => {
+                const browse = Array.isArray(r.browse) ? r.browse : [];
+                // NISAR uses *_LATLON.png suffix; S1 uses arbitrary browse PNG names.
+                const png =
+                  browse.find((u) => typeof u === 'string' && u.endsWith('_LATLON.png')) ||
+                  browse.find((u) => typeof u === 'string' && /\.png$/i.test(u)) ||
+                  browse.find((u) => typeof u === 'string' && /\.jpg$/i.test(u)) ||
+                  null;
+                const bounds = wktToLatLngBounds(r.wkt);
+                return { raw: r, png, bounds };
+              })
+              .filter((x) => x.png && x.bounds);
+
+            // Dedupe per (path, frame) cell — newer first so revisits with better coverage win.
+            const byCell = new Map();
+            for (const s of parsed) {
+              const key = (s.raw.path ?? '?') + '/' + (s.raw.frame ?? '?');
+              const bucket = byCell.get(key) || [];
+              bucket.push(s);
+              byCell.set(key, bucket);
+            }
+            const picked = [];
+            for (const bucket of byCell.values()) {
+              bucket.sort((a, b) => b.raw.startTime.localeCompare(a.raw.startTime));
+              picked.push(...bucket.slice(0, cfg.perCell));
+            }
+            data.scenes = picked.sort((a, b) =>
+              b.raw.startTime.localeCompare(a.raw.startTime)
+            );
+            data.active = new Set(data.scenes.map((s) => s.raw.granuleName));
+            data.loaded = true;
+            console.log('[' + band + '] ' + parsed.length + ' scenes · ' + data.scenes.length + ' picked');
+            return data;
+          })
+          .catch((err) => {
+            console.error('[' + band + '] failed:', err);
+            setStatus(cfg.label + ' · falha ao buscar (' + err.message + ')');
+            throw err;
+          });
+      }
+
+      // NISAR mosaic is pre-built offline by scripts/analysis/build-nisar-mosaic.py.
+      // The script composites ~70 scenes (newest per path/frame, dark fringe cleaned,
+      // clipped to the TI polygon via rasterized mask) into a single static PNG. The
+      // HTML just loads that PNG as one L.imageOverlay — zero live compositing, zero
+      // runtime memory pressure.
+      // Generic loader for any static pre-built mosaic (both L-band and S-band
+       // use this — their build scripts write the same shape of meta.json).
+      function loadStaticMosaic(band, label, pngUrl, metaUrl, layer) {
+        setStatus('Carregando mosaico ' + label + ' pré-processado…');
+        return fetch(metaUrl)
+          .then((r) => {
+            if (!r.ok) throw new Error('meta.json HTTP ' + r.status);
+            return r.json();
+          })
+          .then((meta) => {
+            const [w, s, e, n] = meta.bbox;
+            const bounds = L.latLngBounds([s, w], [n, e]);
+            layer.setScenes([
+              { id: 'mosaic-' + band, png: pngUrl, bounds, opacity: 1 },
+            ]);
+            bandData[band].loaded = true;
+            bandData[band].scenes = [];
+            bandData[band].active = new Set();
+            setStatus([
+              label + ' · mosaico pré-construído',
+              meta.scenesComposited + ' cenas · ' + meta.dateRange[0] + ' → ' + meta.dateRange[1],
+              'build ' + (meta.buildDate || '').slice(0, 10),
+            ]);
+          })
+          .catch((err) => {
+            console.error('[' + band + '-static] failed:', err);
+            setStatus([
+              label + ' · falha ao carregar mosaico',
+              err.message,
+              'Rode `python3 scripts/analysis/build-nisar-' + (band === 'sband' ? 'sband-' : '') + 'mosaic.py` pra gerar.',
+            ]);
+          });
+      }
+
+      function loadSband() {
+        return loadStaticMosaic(
+          'sband',
+          'NISAR S-band',
+          'data/yanomami-nisar-sband-mosaic.png',
+          'data/yanomami-nisar-sband-mosaic.meta.json',
+          sbandLayer
+        );
+      }
+
+      function loadNisar() {
+        setStatus('Carregando mosaico NISAR pré-processado…');
+        return fetch('data/yanomami-nisar-mosaic.meta.json')
+          .then((r) => {
+            if (!r.ok) throw new Error('meta.json HTTP ' + r.status);
+            return r.json();
+          })
+          .then((meta) => {
+            const [w, s, e, n] = meta.bbox;
+            const bounds = L.latLngBounds([s, w], [n, e]);
+            // Feed the single mosaic through the existing clipped SVG layer. The PNG is
+            // already alpha-clipped to the Yanomami polygon, so the SVG clipPath only
+            // acts as a safety overlap — no visible double-clip.
+            nisarLayer.setScenes([
+              { id: 'mosaic', png: 'data/yanomami-nisar-mosaic.png', bounds, opacity: 1 },
+            ]);
+            bandData.nisar.loaded = true;
+            bandData.nisar.scenes = []; // no per-scene list in static mode
+            bandData.nisar.active = new Set();
+            const sceneList = document.getElementById('scenes');
+            if (sceneList) sceneList.innerHTML = '';
+            setStatus([
+              'NISAR · mosaico pré-construído',
+              meta.scenesComposited + ' cenas · ' + meta.dateRange[0] + ' → ' + meta.dateRange[1],
+              'build ' + (meta.buildDate || '').slice(0, 10),
+            ]);
+          })
+          .catch((err) => {
+            console.error('[nisar-static] failed:', err);
+            setStatus([
+              'NISAR · falha ao carregar mosaico',
+              err.message,
+              'Rode `python3 scripts/analysis/build-nisar-mosaic.py` pra gerar.',
+            ]);
+          });
+      }
+
+      async function renderActiveScenes() {
+        if (activeBand === 'nisar' || activeBand === 'sband' || activeBand === 'radd') return;
+
+        const data = bandData[activeBand];
+        const layer = bandLayers[activeBand];
+        const label = BAND_CONFIG[activeBand].label;
+        const list = data.scenes.filter((s) => data.active.has(s.raw.granuleName));
+        if (!list.length || !tiBounds) {
+          layer.setScenes([]);
+          return;
+        }
+
+        if (activeBand === 'sentinel1') {
+          const mosaic = list[0];
+          layer.setScenes([{ id: 'mosaic', png: mosaic.png, bounds: mosaic.bounds, opacity: 1 }]);
+          const cat = mosaic.catalog || [];
+          const first = cat[cat.length - 1]?.startTime?.slice(0, 10) || '—';
+          const last = cat[0]?.startTime?.slice(0, 10) || '—';
+          setStatus([label, cat.length + ' cenas · mosaico pré-composto', first + ' → ' + last]);
+          return;
+        }
+
+        const onProgress = (done, total) => {
+          setStatus([
+            label + ' · ' + data.scenes.length + ' cenas',
+            'baixando PNG ' + done + '/' + total,
+          ]);
+        };
+        const dataUrl = await buildMosaic(list, onProgress);
+        if (!dataUrl) {
+          setStatus([label + ' · ' + data.scenes.length + ' cenas', 'mosaico vazio (falha de browse)']);
+          layer.setScenes([]);
+          return;
+        }
+        layer.setScenes([{ id: 'mosaic', png: dataUrl, bounds: tiBounds, opacity: 1 }]);
+        const sortedList = [...list].sort((a, b) => a.raw.startTime.localeCompare(b.raw.startTime));
+        setStatus([
+          label + ' · ' + data.scenes.length + ' cenas',
+          list.length + ' no mosaico',
+          sortedList[0].raw.startTime.slice(0, 10) +
+            ' → ' +
+            sortedList[sortedList.length - 1].raw.startTime.slice(0, 10),
+        ]);
+      }
+
+      // Debounce mosaic rebuild during fast clicks in the scene list.
+      let rebuildTimer = null;
+      function scheduleRebuild() {
+        if (rebuildTimer) clearTimeout(rebuildTimer);
+        rebuildTimer = setTimeout(() => {
+          rebuildTimer = null;
+          renderActiveScenes();
+        }, 180);
+      }
+
+      // ───── Band switch: swap the active layer + scene list + data pointers ─────
+      function wireBandSwitch() {
+        const buttons = document.querySelectorAll('#band-switch button');
+        buttons.forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const band = btn.dataset.band;
+            if (band === activeBand) return;
+            buttons.forEach((b) => b.classList.toggle('active', b === btn));
+
+            if (bandLayers[activeBand]) map.removeLayer(bandLayers[activeBand]);
+            activeBand = band;
+
+            if (band === 'none') {
+              allScenes = [];
+              activeSceneIds = new Set();
+              renderSceneList();
+              setStatus('TI Yanomami · sem banda SAR ativa');
+              return;
+            }
+
+            bandLayers[activeBand].addTo(map);
+
+            if (band === 'radd') {
+              allScenes = [];
+              activeSceneIds = new Set();
+              renderSceneList();
+              setStatus([
+                'RADD alerts · Sentinel-1 derivado',
+                'Wageningen Univ. / Global Forest Watch',
+                '2020-01-01 → 2026-11-15 · histórico completo S. America',
+              ]);
+              return;
+            }
+
+            if (!bandData[band].loaded) {
+              try {
+                if (band === 'sband') await loadSband();
+                else if (band === 'nisar') await loadNisar();
+                else await loadBand(band);
+              } catch { return; }
+            }
+            allScenes = bandData[band].scenes;
+            activeSceneIds = bandData[band].active;
+            renderSceneList();
+            renderActiveScenes();
+          });
+        });
+      }
+
+      function renderSceneList() {
+        const container = document.getElementById('scenes');
+        if (!container) return;
+        container.innerHTML = '';
+        for (const s of allScenes) {
+          const name = s.raw.granuleName;
+          const date = s.raw.startTime.slice(0, 10);
+          const dir = s.raw.flightDirection ? s.raw.flightDirection[0] : '?';
+          const track = s.raw.path != null ? 'T' + s.raw.path : '—';
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = activeSceneIds.has(name) ? 'active' : '';
+          btn.innerHTML =
+            '<span>' + date + ' · ' + track + '</span>' +
+            '<span class="dir">' + dir + '</span>';
+          btn.title = name;
+          btn.addEventListener('click', () => {
+            if (activeSceneIds.has(name)) activeSceneIds.delete(name);
+            else activeSceneIds.add(name);
+            btn.classList.toggle('active');
+            scheduleRebuild();
+          });
+          container.appendChild(btn);
+        }
+      }
+
+      L.control.layers(
+        {
+          'OpenFreeMap escuro': dark,
+          'Sentinel-2 óptico (EOX)': satellite,
+          'OpenStreetMap': osm,
+        },
+        {
+          'TI Yanomami (contorno)': yanomamiLayer,
+          'DETER mineração 2019-2026 regional (INPE)': deterMiningLayer,
+        },
+        { collapsed: false, position: 'topright' }
+      ).addTo(map);
+    </script>
+  </body>
+</html>
