@@ -247,23 +247,50 @@
   text-shadow: 0 1px 8px rgb(0 0 0 / 0.65);
 }
 
-/* Ask bar entrance: the bar unrolls left to right out of a tuft of rustling leaves. */
+/* Ask bar entrance: leaves burst out and rustle, the bar unrolls left to right out of them, a
+   flurry of leaves blows along it and a warm glow runs across. The tuft stays, swaying gently. */
 .ask-reveal {
-  --leaf-1: #3f8f5a;
-  --leaf-2: #6cb46f;
+  --leaf-1: #3f9a5e;
+  --leaf-2: #79c97a;
   --leaf-3: #2c6b45;
+  --leaf-4: #a7dc7c;
   position: relative;
 }
 .ask-reveal .ask-unroll {
-  clip-path: inset(0 100% 0 0 round 8px);
-  animation: ask-unroll 1100ms cubic-bezier(0.22, 1, 0.36, 1) 520ms forwards;
+  position: relative;
+  clip-path: inset(-40px 100% -40px -40px);
+  animation:
+    ask-unroll 1100ms cubic-bezier(0.22, 1, 0.36, 1) 650ms forwards,
+    ask-glow 1600ms ease-out 1500ms 1;
 }
 @keyframes ask-unroll {
-  to { clip-path: inset(0 0 0 0 round 8px); }
+  to { clip-path: inset(-40px -40px -40px -40px); }
+}
+@keyframes ask-glow {
+  0% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); border-color: hsl(var(--border)); }
+  25% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.55), 0 0 28px 4px hsl(var(--primary) / 0.45); border-color: hsl(var(--primary)); }
+  100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); border-color: hsl(var(--border)); }
+}
+/* a bright band sweeps across the bar right after it opens */
+.ask-reveal .ask-unroll::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 0%, hsl(var(--primary) / 0.35) 45%, rgb(255 255 255 / 0.18) 50%, transparent 60%);
+  background-size: 250% 100%;
+  background-position: 120% 0;
+  opacity: 0;
+  animation: ask-sheen 1300ms ease-in-out 1550ms 1;
+}
+@keyframes ask-sheen {
+  0% { opacity: 1; background-position: 120% 0; }
+  100% { opacity: 1; background-position: -60% 0; }
 }
 .ask-leaves {
   position: absolute;
-  left: -6px;
+  left: -8px;
   bottom: 22px; /* centre of the 44px bar */
   width: 0;
   height: 0;
@@ -275,42 +302,49 @@
   left: 0;
   top: 0;
   transform-origin: 0 50%;
-  margin-top: -9.5px;
+  margin-top: -11px;
   opacity: 0;
   transform: rotate(calc(var(--a) + 180deg)) scale(0);
   animation:
-    ask-leaf-in 520ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--i) * 45ms) forwards,
-    ask-leaf-rustle 900ms ease-in-out calc(400ms + var(--i) * 70ms) 3 alternate,
-    ask-leaf-settle 700ms ease-out 2600ms forwards;
+    ask-leaf-in 600ms cubic-bezier(0.34, 1.7, 0.64, 1) calc(var(--i) * 40ms) forwards,
+    ask-leaf-rustle 420ms ease-in-out calc(450ms + var(--i) * 35ms) 4 alternate,
+    ask-leaf-settle 800ms ease-out 2300ms forwards,
+    ask-leaf-sway 3.2s ease-in-out calc(3100ms + var(--i) * 120ms) infinite alternate;
 }
-.ask-leaf svg { display: block; filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5)); }
+.ask-leaf svg { display: block; filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.55)); }
 @keyframes ask-leaf-in {
   to { opacity: 1; transform: rotate(calc(var(--a) + 180deg)) scale(var(--s)); }
 }
 @keyframes ask-leaf-rustle {
-  from { transform: rotate(calc(var(--a) + 180deg - 9deg)) scale(var(--s)); opacity: 1; }
-  to { transform: rotate(calc(var(--a) + 180deg + 9deg)) scale(var(--s)); opacity: 1; }
+  from { opacity: 1; transform: rotate(calc(var(--a) + 180deg - 16deg)) scale(var(--s)); }
+  to { opacity: 1; transform: rotate(calc(var(--a) + 180deg + 16deg)) scale(calc(var(--s) * 1.08)); }
 }
-/* Leaves that stay shrink into a small tuft at the bar's edge. */
+/* the leaves that stay shrink into a tuft at the bar's edge */
 @keyframes ask-leaf-settle {
   from { opacity: 1; transform: rotate(calc(var(--a) + 180deg)) scale(var(--s)); }
-  to { opacity: 0.85; transform: rotate(calc(var(--a) + 180deg)) scale(calc(var(--s) * 0.62)); }
+  to { opacity: 0.95; transform: rotate(calc(var(--a) + 180deg)) scale(calc(var(--s) * 0.7)); }
 }
-/* A few leaves get blown along the bar as it unrolls. */
+/* and keep swaying gently, like in a breeze */
+@keyframes ask-leaf-sway {
+  from { opacity: 0.95; transform: rotate(calc(var(--a) + 180deg - 6deg)) scale(calc(var(--s) * 0.7)); }
+  to { opacity: 0.95; transform: rotate(calc(var(--a) + 180deg + 6deg)) scale(calc(var(--s) * 0.7)); }
+}
+/* the rest get blown along the bar as it unrolls */
 .ask-leaf.is-fly {
   animation:
-    ask-leaf-in 520ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--i) * 45ms) forwards,
-    ask-leaf-fly 1500ms cubic-bezier(0.3, 0.6, 0.4, 1) calc(560ms + var(--i) * 40ms) forwards;
+    ask-leaf-in 600ms cubic-bezier(0.34, 1.7, 0.64, 1) calc(var(--i) * 40ms) forwards,
+    ask-leaf-fly 1900ms cubic-bezier(0.3, 0.6, 0.4, 1) calc(650ms + var(--i) * 45ms) forwards;
 }
 @keyframes ask-leaf-fly {
   0% { opacity: 1; transform: translate(0, 0) rotate(calc(var(--a) + 180deg)) scale(var(--s)); }
-  35% { transform: translate(calc(var(--i) * 18px + 90px), -14px) rotate(calc(var(--a) + 420deg)) scale(var(--s)); }
-  70% { opacity: 0.8; transform: translate(calc(var(--i) * 34px + 230px), 6px) rotate(calc(var(--a) + 640deg)) scale(calc(var(--s) * 0.9)); }
-  100% { opacity: 0; transform: translate(calc(var(--i) * 46px + 380px), -10px) rotate(calc(var(--a) + 820deg)) scale(calc(var(--s) * 0.7)); }
+  30% { transform: translate(calc(var(--i) * 22px + 110px), calc(-26px + var(--i) * 3px)) rotate(calc(var(--a) + 460deg)) scale(var(--s)); }
+  65% { opacity: 0.9; transform: translate(calc(var(--i) * 40px + 280px), calc(14px - var(--i) * 2px)) rotate(calc(var(--a) + 700deg)) scale(calc(var(--s) * 0.95)); }
+  100% { opacity: 0; transform: translate(calc(var(--i) * 56px + 470px), -22px) rotate(calc(var(--a) + 920deg)) scale(calc(var(--s) * 0.75)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .ask-reveal .ask-unroll { animation: none; clip-path: none; }
-  .ask-leaf { animation: none; opacity: 0.85; transform: rotate(calc(var(--a) + 180deg)) scale(calc(var(--s) * 0.62)); }
+  .ask-reveal .ask-unroll::after { display: none; }
+  .ask-leaf { animation: none; opacity: 0.95; transform: rotate(calc(var(--a) + 180deg)) scale(calc(var(--s) * 0.7)); }
   .ask-leaf.is-fly { display: none; }
 }
 
