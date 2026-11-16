@@ -170,11 +170,22 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
     }
   }, [canExit, exit])
 
-  const onTime = () => {
+  // Unlock the scroll exit in the last seconds: timeupdate plus a light check, since timeupdate can lag after a seek.
+  useEffect(() => {
     const v = videoRef.current
-    if (!v || !Number.isFinite(v.duration)) return
-    if (!canExit && v.duration - v.currentTime <= SCROLL_EXIT_LAST_S) setCanExit(true)
-  }
+    if (!v || canExit) return
+    const check = () => {
+      if (Number.isFinite(v.duration) && v.duration - v.currentTime <= SCROLL_EXIT_LAST_S) setCanExit(true)
+    }
+    v.addEventListener('timeupdate', check)
+    v.addEventListener('seeked', check)
+    const id = window.setInterval(check, 250)
+    return () => {
+      v.removeEventListener('timeupdate', check)
+      v.removeEventListener('seeked', check)
+      window.clearInterval(id)
+    }
+  }, [canExit])
 
   return createPortal(
     <div ref={rootRef} className="case-video" role="dialog" aria-label={video.title}>
@@ -187,7 +198,6 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
           playsInline
           preload="auto"
           onPlaying={() => (playedRef.current = true)}
-          onTimeUpdate={onTime}
           // At the end it rests on the last frame with the scroll hint; it does not close by itself.
           onEnded={() => setCanExit(true)}
           onError={() => finish(true)}
