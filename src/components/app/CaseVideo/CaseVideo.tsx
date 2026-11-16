@@ -19,9 +19,10 @@ const T = {
 }
 
 /**
- * A case's voiced explainer, full screen, with a skip button that is always visible. Mining plays it when the guided
- * tour closes and then opens the Mining case; Flood and Drought play theirs when the case opens and then show the
- * map with the overview panel. Lives inside <Map> so it can pause and hide the map while the video plays.
+ * A case's voiced explainer, full screen, with a skip button that is always visible. Every case plays it when it
+ * opens (once per session) and then shows the map with the overview panel. Mining also plays it when the guided tour
+ * closes; while the tour runs (it opens Mining by itself) the video waits. Lives inside <Map> so it can pause and
+ * hide the map while the video plays.
  */
 export function CaseVideo() {
   const region = useCaseVideoActive()

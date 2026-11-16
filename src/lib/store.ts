@@ -196,12 +196,12 @@ export const useUi = create<UiState>((set, get) => ({
 
 /* ------------------------------------------------------------------ */
 /* Case videos: the voiced explainer of a case, full screen.            */
-/* Mining (YANO) plays it when the guided tour closes; Flood (ENCH) and */
-/* Drought (SECA) play theirs when the case opens. Once per session.    */
+/* Every case plays it when the case opens (once per session); Mining   */
+/* also plays it when the guided tour closes. Held while the tour runs. */
 /* ------------------------------------------------------------------ */
 
 /** Cases whose video plays as soon as the case opens (the camera has landed). */
-const VIDEO_ON_OPEN: RegionId[] = ['ENCH', 'SECA']
+const VIDEO_ON_OPEN: RegionId[] = ['YANO', 'ENCH', 'SECA']
 const caseVideoKey = (id: RegionId) => `iara.caseVideoSeen.${id}`
 
 function caseVideoSeen(id: RegionId): boolean {
@@ -216,6 +216,9 @@ interface CaseVideoState {
   seen: Partial<Record<RegionId, boolean>>
   /** Video asked for explicitly (Mining, after the tour); null when none. */
   requested: RegionId | null
+  /** The guided tour opens Mining on its own; its video waits for the end of the tour. */
+  tourRunning: boolean
+  setTourRunning: (on: boolean) => void
   playCaseVideo: (id: RegionId) => void
   finishCaseVideo: (id: RegionId) => void
 }
@@ -223,6 +226,8 @@ interface CaseVideoState {
 export const useCaseVideo = create<CaseVideoState>((set) => ({
   seen: {},
   requested: null,
+  tourRunning: false,
+  setTourRunning: (on) => set({ tourRunning: on }),
   playCaseVideo: (id) => set({ requested: id }),
   finishCaseVideo: (id) => {
     try {
@@ -240,6 +245,8 @@ export function useCaseVideoActive(): RegionId | null {
   const region = useApp((s) => s.activeRegion)
   const arrived = useApp((s) => s.aoiActive && s.caseArrived)
   const seen = useCaseVideo((s) => s.seen[region]) ?? caseVideoSeen(region)
+  const tourRunning = useCaseVideo((s) => s.tourRunning)
   if (requested) return requested
+  if (tourRunning) return null
   return arrived && VIDEO_ON_OPEN.includes(region) && !seen ? region : null
 }

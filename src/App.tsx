@@ -46,6 +46,11 @@ export default function App() {
   ]
   useHydrateUrlState()
 
+  // While the tour runs it opens Mining by itself; the case video waits until the tour closes.
+  useEffect(() => {
+    useCaseVideo.getState().setTourRunning(tutorialOn)
+  }, [tutorialOn])
+
   useEffect(() => {
     if (ready && !hasSeenTutorial()) {
       const t = window.setTimeout(() => {
