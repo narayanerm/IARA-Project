@@ -1,6 +1,6 @@
 # IARA Apoio, the support app
 
-**IARA is the website** in the root of this repository. The website is the main product of the project: it uses satellite radar to follow floods, drought and fire across the Amazon, with maps, radar images and analysis.
+**IARA is the website**, published at https://iara.earth from the root of this repository. The website is the main product of the project: it uses satellite radar to follow floods, drought and fire across the Amazon, with maps, radar images and analysis.
 
 This folder holds **IARA Apoio**, a small support app that goes with the website. Together they make up the IARA project, but the app is only a companion. It carries to the phone the few things that people who live by the river need day to day, and it does not replace the website. It answers four questions quickly:
 
@@ -67,4 +67,4 @@ ANA (telemetry web service), INPE (Programa Queimadas, daily hotspot files), Fun
 
 ## Em português
 
-O IARA é o site, que é a parte principal do projeto. Esta pasta guarda o IARA Apoio, um app de apoio ao site para comunidades ribeirinhas e indígenas. Site e app fazem parte do mesmo projeto, mas o app é só um complemento. Precisa de internet: toda vez que abre, busca o nível do rio na ANA e os focos de fogo do dia no INPE. Na primeira vez abre um tour que mostra cada aba. Para ver sem celular, baixe `visualizer.html` e abra com dois cliques. Para instalar no Android, use `apk/IARA.apk` e permita a instalação quando o celular pedir.
+O IARA é o site (https://iara.earth), que é a parte principal do projeto. Esta pasta guarda o IARA Apoio, um app de apoio ao site para comunidades ribeirinhas e indígenas. Site e app fazem parte do mesmo projeto, mas o app é só um complemento. Precisa de internet: toda vez que abre, busca o nível do rio na ANA e os focos de fogo do dia no INPE. Na primeira vez abre um tour que mostra cada aba. Para ver sem celular, baixe `visualizer.html` e abra com dois cliques. Para instalar no Android, use `apk/IARA.apk` e permita a instalação quando o celular pedir.

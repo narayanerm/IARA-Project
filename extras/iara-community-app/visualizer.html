@@ -4911,6 +4911,10 @@ body[data-tela=&quot;inicio&quot;] .topo-linha { padding-left: 6px; }
 /* mapa de satélite */
 .ver-mapa { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 12px 14px; border: 1px solid var(--linha); border-radius: var(--r); background: var(--superficie); color: var(--agua); font-weight: 600; text-decoration: none; }
 .ver-mapa .ph { font-size: 1.4rem; }
+.site-iara { margin-top: 14px; }
+.site-iara span { flex: 1; }
+.site-iara small { display: block; color: var(--apagado); font-weight: 400; font-size: 0.82rem; }
+.site-iara .ph-arrow-square-out { font-size: 1.1rem; color: var(--apagado); }
 .mapa-caixa { position: relative; margin: 12px -16px 0; height: min(62vh, 520px); background: #0b120e; }
 #mapa-leaflet { position: absolute; inset: 0; }
 .mapa-sem { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: #e6eee8; background: #0b120e; }
@@ -5678,6 +5682,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
     &lt;li&gt;&lt;a href=&quot;#mais/beneficios&quot;&gt;&lt;i class=&quot;ph ph-hand-coins&quot;&gt;&lt;/i&gt;Benefícios&lt;/a&gt;&lt;/li&gt;
   &lt;/ul&gt;
 
+  &lt;a class=&quot;ver-mapa site-iara&quot; href=&quot;https://iara.earth&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;&lt;i class=&quot;ph ph-globe&quot;&gt;&lt;/i&gt;&lt;span&gt;Abrir o site IARA&lt;small&gt;O projeto principal, com mapas de radar de toda a Amazônia&lt;/small&gt;&lt;/span&gt;&lt;i class=&quot;ph ph-arrow-square-out&quot;&gt;&lt;/i&gt;&lt;/a&gt;
+
   &lt;p class=&quot;rodape-dados&quot;&gt;&lt;span id=&quot;inicio-datas&quot;&gt;&lt;/span&gt; &lt;button class=&quot;link-texto&quot; type=&quot;button&quot; data-acao=&quot;atualizar&quot;&gt;Atualizar agora&lt;/button&gt;&lt;/p&gt;
 &lt;/section&gt;
 
@@ -5817,6 +5823,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     &lt;div class=&quot;sobre&quot;&gt;
       &lt;p&gt;Este é um app de apoio. A parte principal do projeto IARA é o site, que usa radar de satélite para acompanhar cheia, seca e fogo em toda a Amazônia, com mapas, imagens de radar e análises.&lt;/p&gt;
       &lt;p&gt;O app leva para o celular só o que quem mora na beira do rio precisa no dia a dia: o rio e o fogo perto de casa, onde denunciar e onde pedir ajuda. Site e app fazem parte do mesmo projeto. IARA quer dizer Imageamento de Áreas Ribeirinhas Alagadas e nasceu no NASA Space Apps Challenge 2026.&lt;/p&gt;
+      &lt;p&gt;&lt;a href=&quot;https://iara.earth&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Abrir o site IARA: iara.earth&lt;/a&gt;&lt;/p&gt;
       &lt;p&gt;Toda vez que o app abre, ele busca a altura do rio na telemetria da ANA e os focos de calor do dia no INPE. Por isso precisa de internet. Os limites das terras indígenas e das reservas vêm da Funai e do ICMBio.&lt;/p&gt;
     &lt;/div&gt;
   &lt;/div&gt;
@@ -6734,7 +6741,7 @@ IARA.GUIAS = [
   /* ---------- tour da primeira vez ---------- */
   var PASSOS = [
     { tela: &quot;inicio&quot;, icone: &quot;hand-waving&quot;, titulo: &quot;Um app de apoio ao site IARA&quot;,
-      texto: &quot;O IARA é, antes de tudo, um site que acompanha cheia, seca e fogo na Amazônia com radar de satélite. Este app é o apoio dele no celular: mostra o rio e o fogo perto da sua comunidade e onde denunciar e pedir ajuda.&quot; },
+      texto: &quot;O IARA é, antes de tudo, um site que acompanha cheia, seca e fogo na Amazônia com radar de satélite. Este app é o apoio dele no celular: mostra o rio e o fogo perto da sua comunidade e onde denunciar e pedir ajuda. O site fica em iara.earth.&quot; },
     { tela: &quot;inicio&quot;, icone: &quot;wifi-high&quot;, titulo: &quot;Dados de hoje&quot;,
       texto: &quot;Os números vêm da ANA e do INPE e são buscados toda vez que você abre o app. Por isso ele precisa de internet.&quot; },
     { tela: &quot;inicio&quot;, aba: &quot;inicio&quot;, icone: &quot;house&quot;, titulo: &quot;Início&quot;,
@@ -6808,7 +6815,7 @@ IARA.GUIAS = [
 "></iframe></div>
 <div class="texto">
   <h1>App de apoio do IARA</h1>
-  <p>A parte principal do projeto IARA é o site. Este é o app de apoio, para quem mora na beira do rio, rodando dentro de uma moldura de celular. Clique como se fosse o dedo.</p>
+  <p>A parte principal do projeto IARA é o site, em <a href="https://iara.earth" target="_blank" rel="noopener" style="color:#8fd6a6">iara.earth</a>. Este é o app de apoio, para quem mora na beira do rio, rodando dentro de uma moldura de celular. Clique como se fosse o dedo.</p>
   <p>Na primeira vez abre um tour que mostra cada aba. Depois escolha uma cidade, por exemplo Tefé ou Lábrea.</p>
   <p>O app precisa de internet: o nível do rio vem da ANA e os focos de fogo vêm do INPE, buscados na hora.</p>
   <button type="button" onclick="var f=document.getElementById('app');f.srcdoc=f.srcdoc">Recomeçar</button>

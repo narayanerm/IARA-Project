@@ -698,7 +698,7 @@
   /* ---------- tour da primeira vez ---------- */
   var PASSOS = [
     { tela: "inicio", icone: "hand-waving", titulo: "Um app de apoio ao site IARA",
-      texto: "O IARA é, antes de tudo, um site que acompanha cheia, seca e fogo na Amazônia com radar de satélite. Este app é o apoio dele no celular: mostra o rio e o fogo perto da sua comunidade e onde denunciar e pedir ajuda." },
+      texto: "O IARA é, antes de tudo, um site que acompanha cheia, seca e fogo na Amazônia com radar de satélite. Este app é o apoio dele no celular: mostra o rio e o fogo perto da sua comunidade e onde denunciar e pedir ajuda. O site fica em iara.earth." },
     { tela: "inicio", icone: "wifi-high", titulo: "Dados de hoje",
       texto: "Os números vêm da ANA e do INPE e são buscados toda vez que você abre o app. Por isso ele precisa de internet." },
     { tela: "inicio", aba: "inicio", icone: "house", titulo: "Início",
