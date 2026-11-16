@@ -163,6 +163,9 @@ interface UiState {
   enchFloodOn: boolean
   /** SECA case: show NASA GIBS SMAP soil moisture overlay. */
   secaDroughtOn: boolean
+  /** Before/after scenes picked by hand in the SAR comparison (null = automatic pick). */
+  sarPair: [string, string] | null
+  setSarPair: (p: [string, string] | null) => void
   toggleSatellite: () => void
   toggleRelief: () => void
   setRightOpen: (v: boolean) => void
@@ -196,6 +199,8 @@ export const useUi = create<UiState>((set, get) => ({
   yanomamiDeterOn: false,
   enchFloodOn: false,
   secaDroughtOn: false,
+  sarPair: null,
+  setSarPair: (p) => set({ sarPair: p }),
   toggleSatellite: () => set({ satelliteOn: !get().satelliteOn }),
   toggleRelief: () => set({ reliefOn: !get().reliefOn }),
   setRightOpen: (v) => set({ rightOpen: v }),

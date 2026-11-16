@@ -13,6 +13,7 @@ import {
 import { useUi } from '@/lib/store'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
+import { takeSharedSar } from '@/lib/url-state'
 
 /**
  * Ported from manaus-flood-case (SarArchiveCompare). Simplified:
@@ -92,8 +93,11 @@ export function SarArchive({ bbox, beforeDate, afterDate, prefer }: Props) {
   const [mission, setMission] = useState<ArchiveMission>('NISAR')
   const [year, setYear] = useState<string>('')
   const [missing, setMissing] = useState(false)
+  // True once the pair differs from the automatic pick (chosen by hand or opened from a link).
+  const [custom, setCustom] = useState(false)
   const setSarMapPickId = useUi((s) => s.setSarMapPickId)
   const setSarArchivePick = useUi((s) => s.setSarArchivePick)
+  const setSarPair = useUi((s) => s.setSarPair)
 
   const byId = useMemo(() => new Map(scenes.map((s) => [s.id, s])), [scenes])
   const before = ids.before ? (byId.get(ids.before) ?? null) : null
@@ -101,6 +105,19 @@ export function SarArchive({ bbox, beforeDate, afterDate, prefer }: Props) {
 
   useEffect(() => {
     if (!scenes.length) return
+    const shared = takeSharedSar()
+    const sb = shared && scenes.find((s) => s.id === shared[0])
+    const sa = shared && scenes.find((s) => s.id === shared[1])
+    if (sb && sa) {
+      setMissing(false)
+      setIds({ before: sb.id, after: sa.id })
+      setMission(sa.mission)
+      setYear(sa.date.slice(0, 4))
+      setSlot('after')
+      setCustom(true)
+      return
+    }
+    setCustom(false)
     const m: ArchiveMission | undefined = prefer === 'NISAR' ? 'NISAR' : undefined
     const pick = (iso: string) => (m ? closestScene(scenes, iso, m, 45) : null) ?? closestScene(scenes, iso)
     const b = pick(beforeDate)
@@ -127,6 +144,12 @@ export function SarArchive({ bbox, beforeDate, afterDate, prefer }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [before, after, bboxKey, setSarArchivePick])
 
+  // A hand-picked pair goes into shared links.
+  useEffect(() => {
+    setSarPair(custom && before && after ? [before.id, after.id] : null)
+  }, [custom, before, after, setSarPair])
+  useEffect(() => () => setSarPair(null), [setSarPair])
+
   const inMission = useMemo(() => scenes.filter((s) => s.mission === mission), [scenes, mission])
   const years = useMemo(() => {
     const m = new Map<string, number>()
@@ -144,6 +167,7 @@ export function SarArchive({ bbox, beforeDate, afterDate, prefer }: Props) {
 
   const assign = (sc: ArchiveScene) => {
     setIds((cur) => ({ ...cur, [slot]: sc.id }))
+    setCustom(true)
     setSlot(slot === 'before' ? 'after' : 'before')
   }
 
@@ -154,6 +178,7 @@ export function SarArchive({ bbox, beforeDate, afterDate, prefer }: Props) {
     const next = list[list.findIndex((s) => s.id === cur.id) + dir]
     if (next) {
       setIds((c) => ({ ...c, [which]: next.id }))
+      setCustom(true)
       setYear(next.date.slice(0, 4))
     }
   }
