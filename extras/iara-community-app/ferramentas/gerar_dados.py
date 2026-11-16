@@ -38,24 +38,6 @@ def simplificar(c):
 
 
 out = {}
-# focos: [lat, lon, mes, focos]
-out["focos"] = [[round(x["geometry"]["coordinates"][1], 2), round(x["geometry"]["coordinates"][0], 2), x["properties"]["mes"], x["properties"]["focos"]]
-                for x in carregar("focos_inpe")["features"]]
-# risco: só células moderado ou mais, [lat, lon, mes, classe 1 a 3]
-CL = {"moderado": 1, "alto": 2, "muito alto": 3}
-out["risco"] = []
-for x in carregar("risco_fogo")["features"]:
-    p = x["properties"]; k = CL.get(p["risco"])
-    if not k: continue
-    for poly in aneis(x["geometry"]):
-        lon, lat = centro(poly[0][:-1]); out["risco"].append([round(lat, 3), round(lon, 3), p["mes"], k])
-# deter: [lat, lon, mes, classe, area, municipio, uf]
-out["deter"] = []
-for x in carregar("desmatamento_deter")["features"]:
-    p = x["properties"]; poly = aneis(x["geometry"])
-    if not poly: continue
-    lon, lat = centro(poly[0][0][:-1])
-    out["deter"].append([round(lat, 3), round(lon, 3), p["mes"], p["classe"], p["area_km2"], p["municipio"], p["uf"]])
 # territórios: nome, tipo, povo, fase, focos 2026, risco, caixa e polígono simplificado
 out["territorios"] = []
 for camada, ti in [("terras_indigenas", True), ("territorios_tradicionais", False)]:

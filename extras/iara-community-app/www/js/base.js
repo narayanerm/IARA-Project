@@ -1,28 +1,25 @@
 /* Dados fixos do app IARA: estações de rio, cidades, telefones, canais e cursos.
-   Conferidos em 14/11/2026. Ao atualizar, troque também DATA_RIO. */
+   Os números do rio e do fogo não ficam aqui: o app busca na ANA e no INPE toda vez que abre. */
 
 window.IARA = window.IARA || {};
 
-IARA.DATA_RIO = "13/11/2026";
-IARA.FONTE_RIO = "https://www.gov.br/ana/pt-br/sala-de-situacao/rio-amazonas/boletins/diario/boletim_01_amazonas_publica1311-1.pdf";
-
-/* Boletim diário da ANA (Sala de Situação Rio Amazonas) de 13/11/2026.
-   cm = cota de hoje, ontem = cota de 12/11, d4 = cota de 09/11.
+/* Estações da ANA. A altura do rio chega ao vivo da telemetria da ANA quando o app abre
+   (telemetriaws1.ana.gov.br, medição a cada 15 minutos). Aqui ficam só as marcas fixas de cada estação:
    seca = cota que o rio passa em 95% do tempo (abaixo dela a ANA marca estiagem).
-   cheia = cota de inundação do SGB, quando o boletim traz. */
+   cheia = cota de inundação do SGB, quando existe. */
 IARA.ESTACOES = [
-  { id: "manaus", nome: "Manaus", rio: "Rio Negro", lat: -3.14, lon: -60.03, cm: 1627, ontem: 1630, d4: 1637, seca: 1738, cheia: 2750, severa: 2900, ana: "Estiagem" },
-  { id: "manacapuru", nome: "Manacapuru", rio: "Rio Solimões", lat: -3.31, lon: -60.62, cm: 700, ontem: 702, d4: 705, seca: 789, cheia: 1820, severa: 1960, ana: "Estiagem" },
-  { id: "itacoatiara", nome: "Itacoatiara", rio: "Rio Amazonas", lat: -3.14, lon: -58.44, cm: 332, ontem: 334, d4: 338, seca: 377, cheia: 1400, severa: 1420, ana: "Estiagem" },
-  { id: "obidos", nome: "Óbidos", rio: "Rio Amazonas", lat: -1.91, lon: -55.52, cm: 63, ontem: 63, d4: 66, seca: 111, cheia: null, severa: null, ana: "Estiagem" },
-  { id: "santarem", nome: "Santarém", rio: "Rio Tapajós", lat: -2.42, lon: -54.71, cm: 130, ontem: 131, d4: 133, seca: 111, cheia: null, severa: null, ana: "Estiagem" },
-  { id: "itaituba", nome: "Itaituba", rio: "Rio Tapajós", lat: -4.28, lon: -55.98, cm: 189, ontem: 190, d4: 182, seca: 215, cheia: null, severa: null, ana: "Estiagem" },
-  { id: "altamira", nome: "Altamira", rio: "Rio Xingu", lat: -3.20, lon: -52.21, cm: 563, ontem: 562, d4: 558, seca: 246, cheia: 950, severa: null, ana: "Normal" },
-  { id: "tabatinga", nome: "Tabatinga", rio: "Rio Solimões", lat: -4.25, lon: -69.94, cm: 390, ontem: 389, d4: 355, seca: 141, cheia: null, severa: null, ana: "Estiagem" },
-  { id: "portovelho", nome: "Porto Velho", rio: "Rio Madeira", lat: -8.76, lon: -63.90, cm: 391, ontem: 392, d4: 415, seca: 228, cheia: 1700, severa: null, ana: "Estiagem" },
-  { id: "riobranco", nome: "Rio Branco", rio: "Rio Acre", lat: -9.97, lon: -67.81, cm: 173, ontem: 177, d4: 168, seca: 146, cheia: 1400, severa: null, ana: "Estiagem" },
-  { id: "cruzeiro", nome: "Cruzeiro do Sul", rio: "Rio Juruá", lat: -7.63, lon: -72.67, cm: 472, ontem: 487, d4: 456, seca: 315, cheia: null, severa: null, ana: "Estiagem" },
-  { id: "boavista", nome: "Boa Vista", rio: "Rio Branco", lat: 2.82, lon: -60.67, cm: 22, ontem: 22, d4: 23, seca: -3, cheia: 800, severa: 850, ana: "Estiagem" }
+  { id: "manaus", cod: "14990000", nome: "Manaus", rio: "Rio Negro", lat: -3.14, lon: -60.03, seca: 1738, cheia: 2750, severa: 2900 },
+  { id: "manacapuru", cod: "14100000", nome: "Manacapuru", rio: "Rio Solimões", lat: -3.31, lon: -60.62, seca: 789, cheia: 1820, severa: 1960 },
+  { id: "itacoatiara", cod: "16030000", nome: "Itacoatiara", rio: "Rio Amazonas", lat: -3.14, lon: -58.44, seca: 377, cheia: 1400, severa: 1420 },
+  { id: "obidos", cod: "17050001", nome: "Óbidos", rio: "Rio Amazonas", lat: -1.91, lon: -55.52, seca: 111, cheia: null, severa: null },
+  { id: "santarem", cod: "17900000", nome: "Santarém", rio: "Rio Tapajós", lat: -2.42, lon: -54.71, seca: 111, cheia: null, severa: null },
+  { id: "itaituba", cod: "17730000", nome: "Itaituba", rio: "Rio Tapajós", lat: -4.28, lon: -55.98, seca: 215, cheia: null, severa: null },
+  { id: "altamira", cod: "18850000", nome: "Altamira", rio: "Rio Xingu", lat: -3.20, lon: -52.21, seca: 246, cheia: 950, severa: null },
+  { id: "tabatinga", cod: "10100000", nome: "Tabatinga", rio: "Rio Solimões", lat: -4.25, lon: -69.94, seca: 141, cheia: null, severa: null },
+  { id: "portovelho", cod: "15400000", nome: "Porto Velho", rio: "Rio Madeira", lat: -8.76, lon: -63.90, seca: 228, cheia: 1700, severa: null },
+  { id: "riobranco", cod: "13600002", nome: "Rio Branco", rio: "Rio Acre", lat: -9.97, lon: -67.81, seca: 146, cheia: 1400, severa: null },
+  { id: "cruzeiro", cod: "12500000", nome: "Cruzeiro do Sul", rio: "Rio Juruá", lat: -7.63, lon: -72.67, seca: 315, cheia: null, severa: null },
+  { id: "boavista", cod: "14620000", nome: "Boa Vista", rio: "Rio Branco", lat: 2.82, lon: -60.67, seca: -3, cheia: 800, severa: 850 }
 ];
 
 /* Cidades ribeirinhas para escolher sem GPS (centro da cidade, precisão de alguns km). */
@@ -124,7 +121,7 @@ IARA.APRENDER = [
   ]}
 ];
 
-/* Guias para ler sem internet. */
+/* Guias. */
 IARA.GUIAS = [
   { id: "cheia", titulo: "Antes e durante a cheia", icone: "waves", blocos: [
     ["Quando o rio começar a subir", ["Cadastre seu CEP no alerta da Defesa Civil: mande um SMS para 40199 com o CEP.", "Suba marombas e jiraus para guardar móveis, sementes e ração acima da água.", "Guarde documentos e remédios em saco plástico fechado, no lugar mais alto da casa."]],
