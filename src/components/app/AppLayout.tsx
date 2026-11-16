@@ -71,17 +71,18 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           {/* Map tools only make sense once a case is open. */}
           {aoiActive && (
             <>
-              {/* Once the case video has been watched it no longer plays by itself; this brings it back. */}
+              {/* Once the case video has been watched it no longer plays by itself; this brings it back.
+                  Below lg the header is already full, so the case panel shows the same button instead. */}
               {caseArrived && videoSeen && !videoOn && (
                 <button
                   type="button"
                   onClick={() => playCaseVideo(activeRegion)}
-                  className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-2.5 font-sans text-[13px] font-bold tracking-[-0.005em] text-foreground/75 transition-colors hover:bg-black/55 hover:text-foreground hover:backdrop-blur-xl hover:backdrop-saturate-150 sm:px-3"
+                  className="hidden h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 font-sans text-[13px] font-bold tracking-[-0.005em] text-foreground/75 transition-colors hover:bg-black/55 hover:text-foreground hover:backdrop-blur-xl hover:backdrop-saturate-150 lg:inline-flex"
                   title={t('case.videoHint')}
                   aria-label={t('case.video')}
                 >
                   <Play className="h-3 w-3 fill-current" strokeWidth={2} aria-hidden="true" />
-                  <span className="hidden sm:inline">{t('case.video')}</span>
+                  {t('case.video')}
                 </button>
               )}
               <HeaderToggle

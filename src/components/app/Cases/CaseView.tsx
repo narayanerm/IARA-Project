@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Play } from 'lucide-react'
 import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
-import { useApp, type CaseTab, useCaseVideoActive } from '@/lib/store'
+import { useApp, type CaseTab, useCaseVideo, useCaseVideoActive } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
 import { CaseAlerts } from './CaseAlerts'
 import { CaseSar, useCasePoint } from './CaseSar'
@@ -38,6 +38,8 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
   const t = useT()
   const tr = useTr()
   const clearAoi = useApp((s) => s.clearAoi)
+  const videoSeen = useCaseVideo((s) => !!s.seen[c.id])
+  const playCaseVideo = useCaseVideo((s) => s.playCaseVideo)
   // The tab lives in the store so the assistant can open it too; reset the scroll bar when it changes.
   const tab = useApp((s) => s.caseTab)
   const setTab = useApp((s) => s.setCaseTab)
@@ -72,6 +74,17 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
             {t('case.back')}
           </button>
+          {videoSeen && (
+            <button
+              type="button"
+              onClick={() => playCaseVideo(c.id)}
+              className="case-panel-video"
+              title={t('case.videoHint')}
+            >
+              <Play className="h-2.5 w-2.5 fill-current" strokeWidth={2} aria-hidden="true" />
+              {t('case.video')}
+            </button>
+          )}
           <span className="case-panel-count">
             <b>0{index}</b> / 0{CASE_ORDER.length}
           </span>

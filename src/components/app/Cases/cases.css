@@ -821,3 +821,14 @@
   color: #fff;
   text-decoration: underline;
 }
+
+/* "Video explanation" in the case panel's top row, on screens too narrow for it in the header. */
+.case-panel-video {
+  margin-left: auto; margin-right: 10px; display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 6px; font-size: 11.5px; font-weight: 700; white-space: nowrap;
+  color: rgb(241 238 229 / 0.85); background: rgb(255 255 255 / 0.08); transition: background 150ms;
+}
+.case-panel-video:hover { background: rgb(255 255 255 / 0.16); }
+.case-panel-video + .case-panel-count { margin-left: 0; }
+/* From lg up the header has room for it. */
+@media (min-width: 1024px) { .case-panel-video { display: none; } }
