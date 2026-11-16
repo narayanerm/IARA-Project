@@ -77,6 +77,13 @@ export function Tutorial({ steps, onClose }: { steps: TourStep[]; onClose: () =>
   }
   const next = () => (i < steps.length - 1 ? setI(i + 1) : finish())
 
+  // While the tour runs, freeze the case cards (see cases.css) so the highlighted card doesn't
+  // grow and shrink with the pointer.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-tour-lock', '')
+    return () => document.documentElement.removeAttribute('data-tour-lock')
+  }, [])
+
   // Follow the element while the step is open: panels slide in and cards widen on hover, so poll
   // its box instead of measuring once. Skip the step if the element never appears.
   useEffect(() => {
