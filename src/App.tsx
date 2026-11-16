@@ -3,7 +3,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { LowPolyIntro } from '@/components/app/LoadingScreen/LowPolyIntro'
 import { Tutorial, hasSeenTutorial, TUTORIAL_OPEN_EVENT, type TourStep } from '@/components/app/Tutorial/Tutorial'
 import { useApp, useCaseVideo } from '@/lib/store'
-import { readUrlState } from '@/lib/url-state'
+import { applyUrlState, readUrlState, startUrlSync } from '@/lib/url-state'
 import { useT } from '@/lib/i18n'
 
 // The dashboard (map, cases, assistant) lives in its own chunks, so the entry script stays small and
@@ -12,11 +12,9 @@ const AppLayout = lazy(() => import('@/components/app/AppLayout').then((m) => ({
 
 function useHydrateUrlState() {
   useEffect(() => {
-    const s = readUrlState()
-    const api = useApp.getState()
-    if (s.aoi) api.setActiveRegion(s.aoi)
-    if (s.layer) api.setActiveLayer(s.layer)
-    if (s.t !== undefined) api.setTimeIndex(s.t)
+    // A shared link reopens the sender's screen; from then on the address bar follows the screen.
+    applyUrlState(readUrlState())
+    return startUrlSync()
   }, [])
 }
 
