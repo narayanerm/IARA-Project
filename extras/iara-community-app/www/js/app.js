@@ -148,7 +148,7 @@
     var off = !navigator.onLine;
     $("#sem-net-titulo").textContent = off ? "Sem internet" : "Não deu para atualizar";
     $("#sem-net-texto").textContent = off
-      ? "O IARA precisa de internet para buscar o nível do rio na ANA e os focos de fogo no INPE. Ligue os dados móveis ou o Wi-Fi e tente de novo."
+      ? "Este app precisa de internet para buscar o nível do rio na ANA e os focos de fogo no INPE. Ligue os dados móveis ou o Wi-Fi e tente de novo."
       : "A ANA e o INPE não responderam agora. Pode ser a internet fraca ou os sites fora do ar. Tente de novo em alguns minutos.";
     t.hidden = false; raiz.classList.add("bloqueado");
   }
@@ -631,7 +631,7 @@
     TELAS.forEach(function (t) { $("#" + t).hidden = t !== tela; });
     document.body.dataset.tela = tela;
     var titulo = $("#topo-titulo");
-    titulo.textContent = tela === "inicio" ? "IARA" : (tela === "mais" && sub && IARA.GUIAS.some(function (g) { return g.id === sub; }) ? "Guia" : $("#" + tela).dataset.titulo);
+    titulo.textContent = tela === "inicio" ? "IARA, app de apoio" : (tela === "mais" && sub && IARA.GUIAS.some(function (g) { return g.id === sub; }) ? "Guia" : $("#" + tela).dataset.titulo);
     titulo.classList.toggle("so-leitor", tela === "inicio");
     var detalhe = sub && sub !== "telefones" && !/^(guias|cursos|funai|beneficios)$/.test(sub);
     $(".voltar-topo").setAttribute("href", detalhe ? "#" + tela : "#inicio");
@@ -697,8 +697,10 @@
 
   /* ---------- tour da primeira vez ---------- */
   var PASSOS = [
-    { tela: "inicio", icone: "hand-waving", titulo: "Para que serve o IARA",
-      texto: "O IARA mostra como está o rio e se tem fogo perto da sua comunidade, e diz onde denunciar e pedir ajuda. Os números vêm da ANA e do INPE e são buscados toda vez que você abre o app. Por isso ele precisa de internet." },
+    { tela: "inicio", icone: "hand-waving", titulo: "Um app de apoio ao site IARA",
+      texto: "O IARA é, antes de tudo, um site que acompanha cheia, seca e fogo na Amazônia com radar de satélite. Este app é o apoio dele no celular: mostra o rio e o fogo perto da sua comunidade e onde denunciar e pedir ajuda." },
+    { tela: "inicio", icone: "wifi-high", titulo: "Dados de hoje",
+      texto: "Os números vêm da ANA e do INPE e são buscados toda vez que você abre o app. Por isso ele precisa de internet." },
     { tela: "inicio", aba: "inicio", icone: "house", titulo: "Início",
       texto: "O resumo do seu lugar: a altura do rio na estação mais perto e quantos focos de fogo há a até 30 km. Os quadrados de Serviços levam para cada parte do app." },
     { tela: "rio", aba: "rio", icone: "waves", titulo: "Rio",

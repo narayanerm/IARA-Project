@@ -1,4 +1,4 @@
-/* Dados fixos do app IARA: estações de rio, cidades, telefones, canais e cursos.
+/* Dados fixos do app de apoio do IARA: estações de rio, cidades, telefones, canais e cursos.
    Os números do rio e do fogo não ficam aqui: o app busca na ANA e no INPE toda vez que abre. */
 
 window.IARA = window.IARA || {};

@@ -41,7 +41,7 @@ moldura = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IARA, visualizador do app</title>
+<title>IARA Apoio, visualizador do app</title>
 <style>
   body { margin: 0; min-height: 100vh; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 40px; padding: 24px; box-sizing: border-box; background: #1b211e; font-family: Arial, sans-serif; color: #e6eee8; }
   .aparelho { width: 412px; height: 860px; padding: 14px; background: #0b0d0c; border-radius: 44px; box-shadow: 0 0 0 2px #3a403d; flex: none; }
@@ -54,10 +54,10 @@ moldura = """<!doctype html>
 </style>
 </head>
 <body>
-<div class="aparelho"><iframe id="app" title="App IARA" srcdoc="__APP__"></iframe></div>
+<div class="aparelho"><iframe id="app" title="App de apoio do IARA" srcdoc="__APP__"></iframe></div>
 <div class="texto">
-  <h1>IARA no celular</h1>
-  <p>Este é o app de verdade, rodando dentro de uma moldura de celular. Clique como se fosse o dedo.</p>
+  <h1>App de apoio do IARA</h1>
+  <p>A parte principal do projeto IARA é o site. Este é o app de apoio, para quem mora na beira do rio, rodando dentro de uma moldura de celular. Clique como se fosse o dedo.</p>
   <p>Na primeira vez abre um tour que mostra cada aba. Depois escolha uma cidade, por exemplo Tefé ou Lábrea.</p>
   <p>O app precisa de internet: o nível do rio vem da ANA e os focos de fogo vêm do INPE, buscados na hora.</p>
   <button type="button" onclick="var f=document.getElementById('app');f.srcdoc=f.srcdoc">Recomeçar</button>
