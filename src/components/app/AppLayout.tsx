@@ -39,6 +39,13 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
         </button>
 
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <button
+            onClick={() => triggerTutorial()}
+            className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 font-sans text-[13px] font-bold tracking-[-0.005em] text-foreground/75 transition-colors hover:bg-black/55 hover:text-foreground hover:backdrop-blur-xl hover:backdrop-saturate-150 sm:inline-flex"
+            title={t('appLayout.tour')}
+          >
+            Tour
+          </button>
           {/* Map tools only make sense once a case is open. */}
           {aoiActive && (
             <>
@@ -63,15 +70,6 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
               </span>
             </>
           )}
-          {!aoiActive && (
-            <button
-              onClick={() => triggerTutorial()}
-              className="hidden h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-3 font-sans text-[13px] font-bold tracking-[-0.005em] text-foreground/75 transition-colors hover:bg-black/55 hover:text-foreground hover:backdrop-blur-xl hover:backdrop-saturate-150 sm:inline-flex"
-              title={t('appLayout.tour')}
-            >
-              Tour
-            </button>
-          )}
           <LanguageToggle compact />
         </div>
       </div>
@@ -86,7 +84,9 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
             balloon. Hidden on phones (the case sheet covers the bottom). */}
         {introDone && aoiActive && caseArrived && (
           <div className="pointer-events-none absolute inset-x-3 bottom-10 z-30 hidden justify-center md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-[460px] md:bottom-14">
-            <AskBar reveal className="pointer-events-auto" />
+            <div data-tour="ask" className="pointer-events-auto flex w-full max-w-[640px]">
+              <AskBar reveal />
+            </div>
           </div>
         )}
         {/* Assistant and tools open as a floating drawer below the header (also on the home screen, for questions asked in the ask bar). */}
