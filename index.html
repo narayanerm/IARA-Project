@@ -8,10 +8,17 @@
     <meta name="description" content="NISAR L-band sobre a Amazônia: garimpo (TI Yanomami), enchente (Manaus) e seca (Tefé)." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Loaded without blocking the first render: the intro carries its own font, so Inter only has
+         to be there by the time the hub shows. -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..800&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..800&display=swap" rel="stylesheet" />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

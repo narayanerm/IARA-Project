@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { AppLayout } from '@/components/app/AppLayout'
 import { LowPolyIntro } from '@/components/app/LoadingScreen/LowPolyIntro'
 import { Tutorial, hasSeenTutorial, TUTORIAL_OPEN_EVENT, type TourStep } from '@/components/app/Tutorial/Tutorial'
 import { useApp } from '@/lib/store'
 import { readUrlState } from '@/lib/url-state'
 import { useT } from '@/lib/i18n'
+
+// The dashboard (map, cases, assistant) lives in its own chunks, so the entry script stays small and
+// the intro iframe starts right away instead of waiting for the whole app to download and parse.
+const AppLayout = lazy(() => import('@/components/app/AppLayout').then((m) => ({ default: m.AppLayout })))
 
 function useHydrateUrlState() {
   useEffect(() => {
@@ -20,6 +23,13 @@ function useHydrateUrlState() {
 export default function App() {
   const t = useT()
   const [ready, setReady] = useState(false)
+  // The dashboard mounts once the intro page has arrived, so the intro gets the network to itself
+  // first; a guard mounts it anyway if the intro is slow to load.
+  const [introLoaded, setIntroLoaded] = useState(false)
+  useEffect(() => {
+    const id = window.setTimeout(() => setIntroLoaded(true), 4000)
+    return () => window.clearTimeout(id)
+  }, [])
   const [tutorialOn, setTutorialOn] = useState(false)
   // Opened from inside a case, the tour skips the two steps about the cards.
   const [tourInCase, setTourInCase] = useState(false)
@@ -59,9 +69,13 @@ export default function App() {
   return (
     <TooltipProvider delayDuration={120}>
       <main className="h-full bg-background text-foreground">
-        {/* the dashboard is mounted underneath from the start; the intro splits open to reveal it */}
-        {!ready && <LowPolyIntro onDone={() => setReady(true)} />}
-        <AppLayout introDone={ready} />
+        {/* the dashboard is mounted underneath once the intro page has loaded; the intro splits open to reveal it */}
+        {!ready && <LowPolyIntro onLoaded={() => setIntroLoaded(true)} onDone={() => setReady(true)} />}
+        {(introLoaded || ready) && (
+          <Suspense fallback={null}>
+            <AppLayout introDone={ready} />
+          </Suspense>
+        )}
         {tutorialOn && (
           <Tutorial
             key={`${tourInCase}-${tourRun}`}
