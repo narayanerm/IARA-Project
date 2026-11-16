@@ -18,13 +18,13 @@ const PROVIDERS = [
     name: 'gemini',
     key: 'GEMINI_API_KEY',
     url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-    model: (env) => env.GEMINI_MODEL || 'gemini-3.5-flash',
+    model: (env) => env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
   },
   {
     name: 'groq',
     key: 'GROQ_API_KEY',
     url: 'https://api.groq.com/openai/v1/chat/completions',
-    model: (env) => env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    model: (env) => env.GROQ_MODEL || 'openai/gpt-oss-120b',
   },
   {
     name: 'openrouter',
@@ -146,6 +146,8 @@ export default {
           }),
         })
         if (res.status === 429 || res.status >= 500) {
+          const detail = await res.text().catch(() => '')
+          console.log(`[iara-agent] ${p.name} ${p.model(env)} ${res.status}: ${detail.slice(0, 500)}`)
           errors.push(`${p.name} ${res.status}`)
           continue
         }
