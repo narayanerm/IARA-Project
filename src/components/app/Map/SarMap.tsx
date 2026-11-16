@@ -224,7 +224,7 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
       </Map>
       <HomeButton />
       <YanomamiCaseControls />
-      <CaseVideo />
+      <CaseVideo mapRef={mapRef} />
     </div>
   )
 }

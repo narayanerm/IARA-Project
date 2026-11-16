@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { useMap } from 'react-map-gl/maplibre'
+import type { MapRef } from 'react-map-gl/maplibre'
 import { ArrowDown } from 'lucide-react'
 import { useT } from '@/lib/i18n'
 import { useApp, useCaseVideo, useCaseVideoActive } from '@/lib/store'
@@ -28,18 +28,17 @@ const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce
  * localStorage), then only from the "Video explanation" header button. Mining also plays it when the guided tour
  * closes, if unseen; while the tour runs (it opens Mining by itself) the video waits.
  * In the last seconds, or after it ends, scrolling down pushes the card up and reveals the page; "Skip video" does the
- * same at any time. Lives inside <Map> so it can keep the map still while the video plays.
+ * same at any time. Gets the map through `mapRef` (it sits next to <Map>, not inside it) to keep it still while the video plays.
  */
-export function CaseVideo() {
+export function CaseVideo({ mapRef }: { mapRef: RefObject<MapRef | null> }) {
   const region = useCaseVideoActive()
   if (!region) return null
-  return <CaseVideoPlayer key={region} region={region} />
+  return <CaseVideoPlayer key={region} region={region} mapRef={mapRef} />
 }
 
-function CaseVideoPlayer({ region }: { region: RegionId }) {
+function CaseVideoPlayer({ region, mapRef }: { region: RegionId; mapRef: RefObject<MapRef | null> }) {
   const t = useT()
   const close = useCaseVideo((s) => s.closeCaseVideo)
-  const { current: mapRef } = useMap()
   // The card shows as soon as the case opens; the camera finishes its flight behind it, and only then is the map
   // stopped and snapshotted for the glass.
   const arrived = useApp((s) => s.caseArrived || !s.aoiActive)
@@ -89,7 +88,7 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
   // frames dropped in testing), so the still map is snapshotted once, blurred once here, and used as the rim's image.
   const [glass, setGlass] = useState<{ img: string; w: number; h: number } | null>(null)
   useEffect(() => {
-    const m = mapRef?.getMap()
+    const m = mapRef.current?.getMap()
     if (!m || !arrived) return
     m.stop()
     const grab = () => {
@@ -109,17 +108,25 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
         /* no snapshot: the rim stays a plain tinted glass */
       }
     }
-    // The camera may have just landed at once (duration 0) under the card: wait for the new place's tiles,
-    // or the snapshot would be the old place or mostly black.
+    // The camera may have just landed at once (duration 0) under the card: wait for the new place's tiles, or the
+    // snapshot would be mostly black. Animated layers can keep the map from ever going idle, so after a few seconds
+    // it takes whatever is drawn. Grabbed inside a render event, while the WebGL frame is still readable.
+    let done = false
+    let force = false
     const onRender = () => {
-      if (m.areTilesLoaded()) grab()
-      else m.once('idle', grab)
+      if (done || !(force || m.areTilesLoaded())) return
+      done = true
+      grab()
     }
-    m.once('render', onRender)
+    m.on('render', onRender)
     m.triggerRepaint()
+    const id = window.setTimeout(() => {
+      force = true
+      m.triggerRepaint()
+    }, 3000)
     return () => {
+      window.clearTimeout(id)
       m.off('render', onRender)
-      m.off('idle', grab)
     }
   }, [mapRef, arrived])
 
