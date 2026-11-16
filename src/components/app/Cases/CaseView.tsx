@@ -66,7 +66,7 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
     >
       <header className="shrink-0 px-5 pt-4">
         <div className="flex items-center">
-          <button type="button" onClick={clearAoi} className="case-panel-back">
+          <button type="button" onClick={clearAoi} className="case-panel-back" data-tour="case-back">
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
             {t('case.back')}
           </button>
@@ -77,7 +77,7 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
         <div className="case-panel-kicker">{tr(c.analysis)}</div>
         <h2 className="case-panel-title">{tr(c.place)}</h2>
 
-        <div role="tablist" aria-label={t('case.tabs')} className="case-tabs">
+        <div role="tablist" aria-label={t('case.tabs')} className="case-tabs" data-tour="case-tabs">
           {TABS.map(({ id, label }) => (
             <button
               key={id}

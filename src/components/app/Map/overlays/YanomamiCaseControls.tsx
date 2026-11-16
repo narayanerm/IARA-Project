@@ -205,6 +205,7 @@ export function YanomamiCaseControls() {
         shown ? 'layers-enter pointer-events-auto' : 'pointer-events-none opacity-0'
       )}
       aria-hidden={!shown}
+      data-tour={shown ? 'sar-layers' : undefined}
       style={{ right: 8, bottom: 44 }}
       onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
     >

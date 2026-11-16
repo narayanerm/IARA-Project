@@ -349,9 +349,14 @@
 }
 
 /* Tour: the area a step talks about flashes briefly once, instead of a lasting outline. */
-.tour-flash { opacity: 0; animation: tour-flash 750ms ease-out 150ms 1 both; }
+.tour-tip { animation: tour-tip-in 220ms ease-out both; transition: left 220ms ease, top 220ms ease; }
+@keyframes tour-tip-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.tour-cta { color: var(--tour-accent); border-color: color-mix(in srgb, var(--tour-accent) 50%, transparent); background: color-mix(in srgb, var(--tour-accent) 15%, transparent); }
+.tour-cta:hover { background: color-mix(in srgb, var(--tour-accent) 25%, transparent); }
+.tour-ring-pulse { animation: tour-ring 1.4s ease-in-out infinite; }
+@keyframes tour-ring { 0%, 100% { stroke-opacity: 0.9; } 50% { stroke-opacity: 0.3; } }
 @keyframes tour-flash { 0% { opacity: 0; } 30% { opacity: 0.28; } 100% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .tour-flash { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tour-tip, .tour-ring-pulse { animation: none; transition: none; } }
 
 /* Layers panel entrance: fade in, a river runs over the cards, leaves rustle around the edges, one flash. */
 .layers-reveal { animation: layers-in 420ms ease-out both; }

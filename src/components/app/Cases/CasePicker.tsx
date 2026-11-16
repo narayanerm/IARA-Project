@@ -165,6 +165,7 @@ function CaseFrame({
     <button
       ref={frame}
       type="button"
+      data-tour={`case-${c.id}`}
       className={cn('case-card', chosen && 'is-chosen', live && 'is-live')}
       style={{ '--case': c.color, '--i': index } as React.CSSProperties}
       onPointerEnter={() => {
@@ -234,7 +235,7 @@ function CaseFrame({
 
       <span className="case-card-top" aria-hidden="true">
         <span className="case-card-kicker">{tr(c.analysis)}</span>
-        <span className="case-card-go">
+        <span className="case-card-go" data-tour={`case-go-${c.id}`}>
           {t('case.explore')}
         </span>
       </span>
