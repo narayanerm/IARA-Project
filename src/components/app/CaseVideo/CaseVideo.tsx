@@ -109,10 +109,17 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
         /* no snapshot: the rim stays a plain tinted glass */
       }
     }
-    m.once('render', grab)
+    // The camera may have just landed at once (duration 0) under the card: wait for the new place's tiles,
+    // or the snapshot would be the old place or mostly black.
+    const onRender = () => {
+      if (m.areTilesLoaded()) grab()
+      else m.once('idle', grab)
+    }
+    m.once('render', onRender)
     m.triggerRepaint()
     return () => {
-      m.off('render', grab)
+      m.off('render', onRender)
+      m.off('idle', grab)
     }
   }, [mapRef, arrived])
 
