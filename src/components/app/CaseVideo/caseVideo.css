@@ -1,22 +1,73 @@
-/* Case video: full screen over the map. Nothing blurred or filtered on top, so the compositor only draws the video. */
+/* Case video: a large liquid-glass card over the page. The page stays visible behind a light veil; only the card's
+   glass rim blurs what is behind it, and nothing is drawn over the video itself. */
 .case-video {
-  position: absolute; inset: 0; z-index: 70; display: grid; place-items: center;
-  background: #050807; animation: case-video-in 400ms ease-out both;
+  position: absolute; inset: 0; z-index: 70;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: 64px 16px 24px;
+  background: rgb(5 8 7 / 0.42);
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  animation: case-video-in 450ms ease-out both;
+  transition: background 650ms ease-in;
 }
-.case-video video { width: 100%; height: 100%; object-fit: contain; background: #050807; filter: none; }
-.case-video-actions { position: absolute; top: 64px; right: 14px; display: flex; gap: 8px; }
+.case-video.is-leaving { background: rgb(5 8 7 / 0); }
+
+/* Same glass recipe as the case panel, with a brighter rim. 16:9 video, as large as fits with a margin around it. */
+.case-video-frame {
+  position: relative;
+  width: min(88vw, calc((100vh - 150px) * 16 / 9 + 28px));
+  padding: 14px;
+  border-radius: 24px;
+  background: linear-gradient(155deg, rgb(255 255 255 / 0.14) 0%, rgb(255 255 255 / 0.04) 40%, rgb(255 255 255 / 0.02) 100%), rgb(18 20 22 / 0.5);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 0.2);
+  box-shadow:
+    inset 1px 1px 0 rgb(255 255 255 / 0.25),
+    inset 0 0 22px rgb(255 255 255 / 0.05),
+    0 30px 80px -24px rgb(0 0 0 / 0.75);
+  will-change: transform;
+  /* backwards, not both: after the entrance the inline transform (pull, exit) must win */
+  animation: case-video-rise 600ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.case-video-frame video {
+  display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px;
+  background: #050807; object-fit: contain; filter: none;
+}
+
+.case-video-actions { position: absolute; top: 26px; right: 26px; display: flex; gap: 8px; }
 .case-video-btn {
   padding: 7px 13px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #f1eee5;
   background: rgb(13 21 18 / 0.85); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18); transition: background 150ms;
 }
 .case-video-btn:hover { background: rgb(240 122 69 / 0.35); }
-.case-video-btn:focus-visible { outline: 2px solid #f1eee5; outline-offset: 3px; }
+.case-video-btn:focus-visible, .case-video-cue:focus-visible { outline: 2px solid #f1eee5; outline-offset: 3px; }
 .case-video-loading {
   position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 999px;
   border: 3px solid rgb(241 238 229 / 0.25); border-top-color: #f07a45; animation: case-video-spin 900ms linear infinite;
 }
-@keyframes case-video-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes case-video-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .case-video, .case-video-loading { animation: none; } }
 
+/* Scroll hint, shown in the last seconds and after the end. */
+.case-video-cue {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; color: #f1eee5;
+  background: rgb(13 21 18 / 0.78); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16), 0 8px 24px rgb(0 0 0 / 0.4);
+  animation: case-video-in 400ms ease-out both;
+}
+.case-video-cue-arrow { color: #f07a45; animation: case-video-bob 1.3s ease-in-out infinite; }
+.case-video.is-leaving .case-video-cue { opacity: 0; transition: opacity 200ms; }
+
+@keyframes case-video-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes case-video-rise { from { opacity: 0; transform: translateY(24px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes case-video-spin { to { transform: rotate(360deg); } }
+@keyframes case-video-bob { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(3px); } }
+
+/* Narrow screens: the card takes almost the full width with a thinner rim. */
+@media (max-width: 640px) {
+  .case-video { padding: 60px 8px 16px; }
+  .case-video-frame { width: calc(100vw - 16px); padding: 8px; border-radius: 18px; }
+  .case-video-frame video { border-radius: 11px; }
+  .case-video-actions { top: 16px; right: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .case-video, .case-video-frame, .case-video-cue, .case-video-loading, .case-video-cue-arrow { animation: none; }
+}
