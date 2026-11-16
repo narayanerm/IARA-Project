@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { ProductLayer, RegionId, SubsidencePolygon } from './types'
 import type { NisarProduct } from './nisar'
+import type { ArchiveScene, Bbox } from './sarArchive'
 
 export type CaseTab = 'overview' | 'timeline' | 'forecast'
 
@@ -150,6 +151,8 @@ interface UiState {
   reliefOn: boolean
   /** Archive scene id picked in the case panel to drive the SAR map overlay. */
   sarMapPickId: string | null
+  /** Before/after scenes picked in the SAR comparator of the case panel, read by the export. */
+  sarArchivePick: { bbox: Bbox; before: ArchiveScene | null; after: ArchiveScene | null } | null
   /** YANO case: active SAR band mosaic on the map (null = none). */
   yanomamiBand: 'nisar' | 'sband' | 's1c' | null
   /** YANO case: show RADD alerts as a map overlay (can stack with any SAR band). */
@@ -168,6 +171,7 @@ interface UiState {
   clearAsk: () => void
   setPopupOpen: (v: boolean) => void
   setSarMapPickId: (id: string | null) => void
+  setSarArchivePick: (pick: UiState['sarArchivePick']) => void
   setYanomamiBand: (b: 'nisar' | 'sband' | 's1c' | null) => void
   toggleYanomamiRadd: () => void
   toggleYanomamiDeter: () => void
@@ -186,6 +190,7 @@ export const useUi = create<UiState>((set, get) => ({
   satelliteOn: true,
   reliefOn: false,
   sarMapPickId: null,
+  sarArchivePick: null,
   yanomamiBand: null,
   yanomamiRaddOn: false,
   yanomamiDeterOn: false,
@@ -199,6 +204,7 @@ export const useUi = create<UiState>((set, get) => ({
   clearAsk: () => set({ askQueue: null }),
   setPopupOpen: (v) => set({ popupOpen: v }),
   setSarMapPickId: (id) => set({ sarMapPickId: id }),
+  setSarArchivePick: (pick) => set({ sarArchivePick: pick }),
   setYanomamiBand: (b) => set({ yanomamiBand: b }),
   toggleYanomamiRadd: () => set({ yanomamiRaddOn: !get().yanomamiRaddOn }),
   toggleYanomamiDeter: () => set({ yanomamiDeterOn: !get().yanomamiDeterOn }),

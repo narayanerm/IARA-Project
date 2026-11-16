@@ -6,6 +6,7 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 import { REGIONS } from '@/lib/regions'
 import { useApp, useUi } from '@/lib/store'
 import { useDeterAlerts } from '@/lib/useDeterAlerts'
+import { setSnapshotMap } from '@/lib/mapSnapshot'
 import { GIBS_BY_REGION } from '@/lib/gibs'
 import { useI18n } from '@/lib/i18n'
 import { hasWebGL2 } from '@/lib/webgl-support'
@@ -131,6 +132,7 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
       <Map
         ref={(r) => {
           mapRef.current = r
+          setSnapshotMap(r?.getMap() ?? null)
         }}
         mapLib={maplibregl}
         initialViewState={{

@@ -93,6 +93,7 @@ export function SarArchive({ bbox, beforeDate, afterDate, prefer }: Props) {
   const [year, setYear] = useState<string>('')
   const [missing, setMissing] = useState(false)
   const setSarMapPickId = useUi((s) => s.setSarMapPickId)
+  const setSarArchivePick = useUi((s) => s.setSarArchivePick)
 
   const byId = useMemo(() => new Map(scenes.map((s) => [s.id, s])), [scenes])
   const before = ids.before ? (byId.get(ids.before) ?? null) : null
@@ -117,6 +118,14 @@ export function SarArchive({ bbox, beforeDate, afterDate, prefer }: Props) {
   useEffect(() => {
     setSarMapPickId(after?.id ?? null)
   }, [after, setSarMapPickId])
+
+  // Shared so the export downloads the same two dates shown here.
+  const bboxKey = bbox.join(',')
+  useEffect(() => {
+    setSarArchivePick(before || after ? { bbox, before, after } : null)
+    // `bboxKey` identifies `bbox`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [before, after, bboxKey, setSarArchivePick])
 
   const inMission = useMemo(() => scenes.filter((s) => s.mission === mission), [scenes, mission])
   const years = useMemo(() => {
