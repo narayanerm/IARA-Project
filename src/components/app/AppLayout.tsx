@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { triggerTutorial } from './Tutorial/Tutorial'
 import { CasePicker } from './Cases/CasePicker'
 import { cn } from '@/lib/utils'
-import { useApp, useUi } from '@/lib/store'
+import { useApp, useUi, useCaseVideoActive } from '@/lib/store'
 import { useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 import type { ForecastMapProps } from '@/lib/predictive-models'
@@ -29,6 +29,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const aoiActive = useApp((s) => s.aoiActive)
   const clearAoi = useApp((s) => s.clearAoi)
   const caseArrived = useApp((s) => s.caseArrived)
+  const videoOn = useCaseVideoActive() !== null
   const [forecastMap, setForecastMap] = useState<ForecastMapProps | null>(null)
   // The opaque case picker covers the map until a case is chosen, so the map only has to exist once
   // the intro is over. Its code is fetched a moment after the intro starts, then mounted at the end.
@@ -105,7 +106,7 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
             case panel leaves free, clear of the SAR band panel. It unrolls from a tuft of leaves and stays
             in place while the assistant panel is open, so the capybara can repeat the answer in her
             balloon. Hidden on phones (the case sheet covers the bottom). */}
-        {introDone && aoiActive && caseArrived && (
+        {introDone && aoiActive && caseArrived && !videoOn && (
           <div className="pointer-events-none absolute inset-x-3 bottom-10 z-30 hidden justify-center md:flex md:left-[calc(clamp(340px,30vw,420px)+24px)] md:right-[460px] md:bottom-14">
             <div data-tour="ask" className="pointer-events-auto flex w-full max-w-[640px]">
               <Suspense fallback={null}>

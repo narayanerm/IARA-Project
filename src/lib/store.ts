@@ -193,3 +193,53 @@ export const useUi = create<UiState>((set, get) => ({
   toggleYanomamiRadd: () => set({ yanomamiRaddOn: !get().yanomamiRaddOn }),
   toggleYanomamiDeter: () => set({ yanomamiDeterOn: !get().yanomamiDeterOn }),
 }))
+
+/* ------------------------------------------------------------------ */
+/* Case videos: the voiced explainer of a case, full screen.            */
+/* Mining (YANO) plays it when the guided tour closes; Flood (ENCH) and */
+/* Drought (SECA) play theirs when the case opens. Once per session.    */
+/* ------------------------------------------------------------------ */
+
+/** Cases whose video plays as soon as the case opens (the camera has landed). */
+const VIDEO_ON_OPEN: RegionId[] = ['ENCH', 'SECA']
+const caseVideoKey = (id: RegionId) => `iara.caseVideoSeen.${id}`
+
+function caseVideoSeen(id: RegionId): boolean {
+  try {
+    return window.sessionStorage.getItem(caseVideoKey(id)) === '1'
+  } catch {
+    return false
+  }
+}
+
+interface CaseVideoState {
+  seen: Partial<Record<RegionId, boolean>>
+  /** Video asked for explicitly (Mining, after the tour); null when none. */
+  requested: RegionId | null
+  playCaseVideo: (id: RegionId) => void
+  finishCaseVideo: (id: RegionId) => void
+}
+
+export const useCaseVideo = create<CaseVideoState>((set) => ({
+  seen: {},
+  requested: null,
+  playCaseVideo: (id) => set({ requested: id }),
+  finishCaseVideo: (id) => {
+    try {
+      window.sessionStorage.setItem(caseVideoKey(id), '1')
+    } catch {
+      /* private mode: the video just plays again next visit */
+    }
+    set((s) => ({ seen: { ...s.seen, [id]: true }, requested: s.requested === id ? null : s.requested }))
+  },
+}))
+
+/** The case whose video owns the screen right now, or null. */
+export function useCaseVideoActive(): RegionId | null {
+  const requested = useCaseVideo((s) => s.requested)
+  const region = useApp((s) => s.activeRegion)
+  const arrived = useApp((s) => s.aoiActive && s.caseArrived)
+  const seen = useCaseVideo((s) => s.seen[region]) ?? caseVideoSeen(region)
+  if (requested) return requested
+  return arrived && VIDEO_ON_OPEN.includes(region) && !seen ? region : null
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
-import { useApp, type CaseTab } from '@/lib/store'
+import { useApp, type CaseTab, useCaseVideoActive } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
 import { CaseAlerts } from './CaseAlerts'
 import { CaseSar, useCasePoint } from './CaseSar'
@@ -28,7 +28,9 @@ export function CaseView({ onForecastMapChange }: { onForecastMapChange: SetCase
   const aoiActive = useApp((s) => s.aoiActive)
   const arrived = useApp((s) => s.caseArrived)
   const activeRegion = useApp((s) => s.activeRegion)
-  if (!aoiActive || !arrived) return null
+  // The case panel waits for the case video (Flood, Drought) to end or be skipped.
+  const videoOn = useCaseVideoActive() !== null
+  if (!aoiActive || !arrived || videoOn) return null
   return <CasePanel key={activeRegion} c={CASES[activeRegion]} onForecastMapChange={onForecastMapChange} />
 }
 

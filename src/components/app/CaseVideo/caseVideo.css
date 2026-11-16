@@ -1,0 +1,21 @@
+/* Case video: full screen over the map. Nothing blurred or filtered on top, so the compositor only draws the video. */
+.case-video {
+  position: absolute; inset: 0; z-index: 70; display: grid; place-items: center;
+  background: #050807; animation: case-video-in 400ms ease-out both;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.case-video video { width: 100%; height: 100%; object-fit: contain; background: #050807; filter: none; }
+.case-video-actions { position: absolute; top: 64px; right: 14px; display: flex; gap: 8px; }
+.case-video-btn {
+  padding: 7px 13px; border-radius: 8px; font-size: 13px; font-weight: 700; color: #f1eee5;
+  background: rgb(13 21 18 / 0.85); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18); transition: background 150ms;
+}
+.case-video-btn:hover { background: rgb(240 122 69 / 0.35); }
+.case-video-btn:focus-visible { outline: 2px solid #f1eee5; outline-offset: 3px; }
+.case-video-loading {
+  position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 999px;
+  border: 3px solid rgb(241 238 229 / 0.25); border-top-color: #f07a45; animation: case-video-spin 900ms linear infinite;
+}
+@keyframes case-video-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes case-video-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .case-video, .case-video-loading { animation: none; } }

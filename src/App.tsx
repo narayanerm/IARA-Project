@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { LowPolyIntro } from '@/components/app/LoadingScreen/LowPolyIntro'
 import { Tutorial, hasSeenTutorial, TUTORIAL_OPEN_EVENT, type TourStep } from '@/components/app/Tutorial/Tutorial'
-import { useApp } from '@/lib/store'
+import { useApp, useCaseVideo } from '@/lib/store'
 import { readUrlState } from '@/lib/url-state'
 import { useT } from '@/lib/i18n'
 
@@ -80,7 +80,11 @@ export default function App() {
           <Tutorial
             key={`${tourInCase}-${tourRun}`}
             steps={tourInCase ? TOUR.slice(2) : TOUR}
-            onClose={() => setTutorialOn(false)}
+            onClose={() => {
+              setTutorialOn(false)
+              // After the Mining tour, its voiced video plays, then the Mining case opens on the main map.
+              useCaseVideo.getState().playCaseVideo('YANO')
+            }}
           />
         )}
       </main>

@@ -21,6 +21,7 @@ import { useBasemapAdapter } from './hooks/useBasemapAdapter'
 import { OVERVIEW_CENTER, OVERVIEW_ZOOM, useMapCamera } from './hooks/useMapCamera'
 import { useFocusedTi } from './hooks/useFocusedTi'
 import { HomeButton } from './overlays/HomeButton'
+import { CaseVideo } from '../CaseVideo/CaseVideo'
 
 import { TerrainSource } from './layers/TerrainSource'
 import { SatelliteLayer } from './layers/SatelliteLayer'
@@ -215,6 +216,7 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
           </Marker>
         )}
         <CaseMarkers />
+        <CaseVideo />
       </Map>
       <HomeButton />
       <YanomamiCaseControls />

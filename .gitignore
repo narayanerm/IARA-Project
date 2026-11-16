@@ -29,3 +29,6 @@ public/analysis/data/sentinel1-browse/
 public/analysis/data/sentinel1-browse-manaus/
 public/analysis/data/sentinel1-browse-manaquiri/
 public/analysis/data/.hansen-*.tif
+
+# Case videos, rebuilt by scripts/case-videos.sh (too large for git)
+public/case-video/*.mp4

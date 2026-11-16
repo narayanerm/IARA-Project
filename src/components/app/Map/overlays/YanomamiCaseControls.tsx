@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { Layers } from 'lucide-react'
-import { useApp, useUi } from '@/lib/store'
+import { useApp, useUi, useCaseVideoActive } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n'
 
@@ -143,6 +143,7 @@ export function YanomamiCaseControls() {
   const lang = useI18n((s) => s.lang)
   const aoiActive = useApp((s) => s.aoiActive)
   const caseArrived = useApp((s) => s.caseArrived)
+  const videoOn = useCaseVideoActive() !== null
   const band = useUi((s) => s.yanomamiBand)
   const raddOn = useUi((s) => s.yanomamiRaddOn)
   const setBand = useUi((s) => s.setYanomamiBand)
@@ -168,7 +169,7 @@ export function YanomamiCaseControls() {
     if (open && shown) setOpenSeq((n) => n + 1)
   }, [open, shown, activeRegion])
 
-  if (!aoiActive) return null
+  if (!aoiActive || videoOn) return null
 
   const showGarimpoOverlays = activeRegion === 'YANO'
   const current = BANDS.find((b) => b.id === band)
