@@ -286,11 +286,12 @@ export const useCaseVideo = create<CaseVideoState>((set, get) => ({
 export function useCaseVideoActive(): RegionId | null {
   const requested = useCaseVideo((s) => s.requested)
   const region = useApp((s) => s.activeRegion)
-  const arrived = useApp((s) => s.aoiActive && s.caseArrived)
+  // As soon as the case is opened (the camera keeps flying in behind the card).
+  const opened = useApp((s) => s.aoiActive)
   const seen = useCaseVideo((s) => !!s.seen[region])
   const closed = useCaseVideo((s) => !!s.closed[region])
   const tourRunning = useCaseVideo((s) => s.tourRunning)
   if (requested) return requested
   if (tourRunning) return null
-  return arrived && !seen && !closed ? region : null
+  return opened && !seen && !closed ? region : null
 }

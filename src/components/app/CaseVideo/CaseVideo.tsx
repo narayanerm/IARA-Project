@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useMap } from 'react-map-gl/maplibre'
 import { ArrowDown } from 'lucide-react'
 import { useT } from '@/lib/i18n'
-import { useCaseVideo, useCaseVideoActive } from '@/lib/store'
+import { useApp, useCaseVideo, useCaseVideoActive } from '@/lib/store'
 import type { RegionId } from '@/lib/types'
 import './caseVideo.css'
 
@@ -40,6 +40,9 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
   const t = useT()
   const close = useCaseVideo((s) => s.closeCaseVideo)
   const { current: mapRef } = useMap()
+  // The card shows as soon as the case opens; the camera finishes its flight behind it, and only then is the map
+  // stopped and snapshotted for the glass.
+  const arrived = useApp((s) => s.caseArrived || !s.aoiActive)
   const videoRef = useRef<HTMLVideoElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -52,8 +55,8 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
   const [canExit, setCanExit] = useState(false)
   const video = VIDEOS[region]
 
-  // Closing only closes: it never opens or switches a case, so whatever screen is behind the video stays as it was.
-  // Idempotent: a double click on skip, Esc repeated, or ended/error right after a skip do nothing the second time.
+  // Closing only closes: it never opens or switches a case, so whatever screen is behind the card stays as it was.
+  // Idempotent: a double click, Esc during the exit or an error while leaving do nothing the second time.
   const closedRef = useRef(false)
   const finish = useCallback(
     (failed = false) => {
@@ -66,7 +69,7 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
 
   /** Card flies up and the veil fades, revealing the page; then the video is closed. */
   const exit = useCallback(() => {
-    if (exitingRef.current) return
+    if (exitingRef.current || closedRef.current) return
     exitingRef.current = true
     videoRef.current?.pause()
     const frame = frameRef.current
@@ -87,7 +90,7 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
   const [glass, setGlass] = useState<{ img: string; w: number; h: number } | null>(null)
   useEffect(() => {
     const m = mapRef?.getMap()
-    if (!m) return
+    if (!m || !arrived) return
     m.stop()
     const grab = () => {
       try {
@@ -111,7 +114,7 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
     return () => {
       m.off('render', grab)
     }
-  }, [mapRef])
+  }, [mapRef, arrived])
 
   // Line the snapshot up with the page behind the rim (the map fills #app).
   const [glassPos, setGlassPos] = useState('0px 0px')
