@@ -477,7 +477,7 @@ export const DICT = {
 
     'appLayout.tour': 'Mostrar tutorial guiado',
     'tutorial.card.title': 'Cada cartão é um caso',
-    'tutorial.card.body': 'São três problemas da Amazônia: garimpo, enchente e seca. Passe o mouse sobre o cartão de mineração para ver o vídeo e os dados da região.',
+    'tutorial.card.body': 'São três problemas da Amazônia: garimpo, enchente e seca. O cartão de mineração já está aberto com os dados da região. Passe o mouse sobre ele para ver o vídeo.',
     'tutorial.open.title': 'Abra o caso',
     'tutorial.open.body': 'Clique em Explorar. O mapa voa até a Terra Yanomami e abre o caso.',
     'tutorial.open.cta': 'explorar',
@@ -987,7 +987,7 @@ export const DICT = {
 
     'appLayout.tour': 'Show guided tutorial',
     'tutorial.card.title': 'Each card is a case',
-    'tutorial.card.body': 'Three Amazon challenges: mining, flooding and drought. Hover over the mining card to see its video and the region at a glance.',
+    'tutorial.card.body': 'Three Amazon challenges: mining, flooding and drought. The mining card is open with the region at a glance. Hover over it to play the video.',
     'tutorial.open.title': 'Open the case',
     'tutorial.open.body': 'Click Explore. The map flies to Yanomami land and opens the case.',
     'tutorial.open.cta': 'explore',

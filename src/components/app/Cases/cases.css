@@ -91,6 +91,19 @@
     flex-grow: 1.9;
   }
 }
+/* During the guided tour the mining card stays open and still, so the highlight and the Explore
+   button don't move with the pointer. */
+@media (min-width: 721px) {
+  [data-tour-lock] .case-picker:not(.is-choosing) .case-row .case-card {
+    flex-grow: 0.7 !important;
+  }
+  [data-tour-lock] .case-picker:not(.is-choosing) .case-row .case-card[data-tour="case-YANO"] {
+    flex-grow: 1.9 !important;
+  }
+}
+[data-tour-lock] .case-picker:not(.is-choosing) .case-card:not([data-tour="case-YANO"]) .case-card-media {
+  filter: saturate(0.4) brightness(0.55);
+}
 .case-picker.is-choosing .case-card {
   flex-grow: 0.0001;
   opacity: 0;
@@ -110,7 +123,7 @@
     scale 1800ms var(--ease),
     filter 900ms var(--ease);
 }
-.case-card:is(:hover, :focus-visible) .case-card-media {
+.case-card:is(:hover, :focus-visible, [data-tour-lock] [data-tour="case-YANO"]) .case-card-media {
   scale: 1.1;
 }
 .case-card.is-chosen .case-card-media {
@@ -172,7 +185,7 @@
   opacity: 0;
   transition: opacity 600ms var(--ease);
 }
-.case-card:is(:hover, :focus-visible) .case-card-shade::after {
+.case-card:is(:hover, :focus-visible, [data-tour-lock] [data-tour="case-YANO"]) .case-card-shade::after {
   opacity: 1;
 }
 .case-card.is-chosen .case-card-shade {
@@ -274,10 +287,10 @@
 .case-card-go svg {
   display: none;
 }
-.case-card:is(:hover, :focus-visible) .case-card-go {
+.case-card:is(:hover, :focus-visible, [data-tour-lock] [data-tour="case-YANO"]) .case-card-go {
   letter-spacing: 0.06em;
 }
-.case-card:is(:hover, :focus-visible) .case-card-go::after {
+.case-card:is(:hover, :focus-visible, [data-tour-lock] [data-tour="case-YANO"]) .case-card-go::after {
   transform: scaleX(1);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -298,7 +311,7 @@
   flex-direction: column;
   max-width: 30rem;
 }
-.case-card:is(:hover, :focus-visible) .case-card-reveal {
+.case-card:is(:hover, :focus-visible, [data-tour-lock] [data-tour="case-YANO"]) .case-card-reveal {
   grid-template-rows: 1fr;
 }
 .case-card-place,
@@ -309,14 +322,14 @@
     opacity 350ms var(--ease),
     translate 600ms var(--ease);
 }
-.case-card:is(:hover, :focus-visible) :is(.case-card-place, .case-card-meta) {
+.case-card:is(:hover, :focus-visible, [data-tour-lock] [data-tour="case-YANO"]) :is(.case-card-place, .case-card-meta) {
   opacity: 1;
   translate: 0 0;
 }
-.case-card:is(:hover, :focus-visible) .case-card-place {
+.case-card:is(:hover, :focus-visible, [data-tour-lock] [data-tour="case-YANO"]) .case-card-place {
   transition-delay: 220ms;
 }
-.case-card:is(:hover, :focus-visible) .case-card-meta {
+.case-card:is(:hover, :focus-visible, [data-tour-lock] [data-tour="case-YANO"]) .case-card-meta {
   transition-delay: 300ms;
 }
 .case-card-place {
