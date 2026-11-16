@@ -154,7 +154,7 @@ export interface ArchiveState {
 
 const archiveCache = new Map<string, Promise<{ scenes: ArchiveScene[]; error: string | null }>>()
 
-function loadArchive(bbox: Bbox) {
+export function loadArchive(bbox: Bbox) {
   const key = bbox.join(',')
   let p = archiveCache.get(key)
   if (!p) {
