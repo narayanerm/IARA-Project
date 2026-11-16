@@ -8,8 +8,8 @@ import { useI18n } from '@/lib/i18n'
  * SAR layer switcher shown in every case, laid out like a map app's layer picker: one thumbnail
  * tile in the corner shows the active band; pointing at it (or tapping it) opens a row of cards,
  * each a thumbnail of that band's mosaic for this case with its name underneath. Three bands
- * (NISAR L, NISAR S, Sentinel-1 C); in the YANO (garimpo) case also the two ground-truth
- * overlays that stack on any band, RADD alerts and DETER mineração.
+ * (NISAR L, NISAR S, Sentinel-1 C); in the YANO (garimpo) case also the RADD alerts
+ * ground-truth overlay that stacks on any band.
  * Positioned bottom-right, just above the HomeButton and the MapLibre attribution.
  */
 
@@ -22,7 +22,7 @@ const BANDS: Array<{ id: Band; label: string; color: string }> = [
 ]
 
 // Balloon over each card: full name, then a plain-language description in the site language.
-const DESC: Record<Band | 'radd' | 'deter', { title: { pt: string; en: string }; pt: string; en: string }> = {
+const DESC: Record<Band | 'radd', { title: { pt: string; en: string }; pt: string; en: string }> = {
   nisar: {
     title: { pt: 'NISAR L-band · λ 24 cm', en: 'NISAR L-band · λ 24 cm' },
     pt: 'Onda longa que atravessa a copa e chega ao chão e aos troncos. Mostra onde a floresta foi aberta, mesmo com nuvens.',
@@ -43,11 +43,6 @@ const DESC: Record<Band | 'radd' | 'deter', { title: { pt: string; en: string };
     pt: 'Perda de floresta detectada pelo radar do Sentinel-1, de 2020 até hoje. Cada ponto é um alerta.',
     en: 'Forest loss detected by Sentinel-1 radar, from 2020 to today. Each dot is an alert.',
   },
-  deter: {
-    title: { pt: 'DETER mineração (INPE)', en: 'DETER mining (INPE)' },
-    pt: '683 áreas de garimpo mapeadas pelo INPE entre 2019 e 2026.',
-    en: '683 mining areas mapped by INPE between 2019 and 2026.',
-  },
 }
 
 // Leaves around the row's edges for the entrance; some fly up and away, the rest settle and fade.
@@ -67,7 +62,7 @@ const ASK_BAR_ENTRANCE_MS = 1750
 
 const thumb = (region: string, band: Band) => `/layer-thumbs/${region}-${band}.webp`
 
-/* Drawn thumbnails for the two overlays: scattered alert pixels, and mining polygons. */
+/* Drawn thumbnail for the RADD overlay: scattered alert pixels. */
 function RaddThumb() {
   const cells = [
     [10, 12], [14, 12], [14, 16], [30, 8], [34, 10], [22, 30], [26, 30], [26, 34], [40, 26],
@@ -83,21 +78,6 @@ function RaddThumb() {
     </svg>
   )
 }
-function DeterThumb() {
-  return (
-    <svg viewBox="0 0 56 56" className="h-full w-full">
-      <rect width="56" height="56" fill="#16241d" />
-      <path d="M0 30 C14 26 22 36 34 30 S50 18 56 22" stroke="#2b7ea6" strokeWidth="3" fill="none" opacity="0.7" />
-      <g fill="rgb(255 255 255 / 0.12)" stroke="#fff" strokeWidth="1.2">
-        <path d="M8 8 L22 6 L24 16 L12 20 Z" />
-        <path d="M30 36 L44 32 L48 44 L34 48 Z" />
-        <path d="M36 8 L46 10 L44 18 L34 16 Z" />
-        <path d="M6 40 L14 38 L16 46 L8 48 Z" />
-      </g>
-    </svg>
-  )
-}
-
 function Card({
   label,
   tipTitle,
@@ -165,10 +145,8 @@ export function YanomamiCaseControls() {
   const caseArrived = useApp((s) => s.caseArrived)
   const band = useUi((s) => s.yanomamiBand)
   const raddOn = useUi((s) => s.yanomamiRaddOn)
-  const deterOn = useUi((s) => s.yanomamiDeterOn)
   const setBand = useUi((s) => s.setYanomamiBand)
   const toggleRadd = useUi((s) => s.toggleYanomamiRadd)
-  const toggleDeter = useUi((s) => s.toggleYanomamiDeter)
   // Open by default (and again on every case change); the tile toggles it.
   const [open, setOpen] = useState(true)
   useEffect(() => setOpen(true), [activeRegion])
@@ -194,7 +172,7 @@ export function YanomamiCaseControls() {
 
   const showGarimpoOverlays = activeRegion === 'YANO'
   const current = BANDS.find((b) => b.id === band)
-  const overlays = (showGarimpoOverlays ? [raddOn && 'RADD', deterOn && 'DETER'] : []).filter(Boolean)
+  const overlays = (showGarimpoOverlays ? [raddOn && 'RADD'] : []).filter(Boolean)
   const panelName = lang === 'pt' ? 'Camadas SAR' : 'SAR layers'
   const tileLabel = current ? current.label : panelName
 
@@ -272,11 +250,8 @@ export function YanomamiCaseControls() {
         {showGarimpoOverlays && (
           <>
             <span className="mx-1 mt-2 h-[44px] w-px shrink-0 bg-white/12" aria-hidden="true" />
-            <Card label="RADD" tipTitle={DESC.radd.title[lang]} desc={DESC.radd[lang]} color="#FF4D6D" active={raddOn} onClick={toggleRadd}>
+            <Card label="RADD" tipTitle={DESC.radd.title[lang]} desc={DESC.radd[lang]} alignRight color="#FF4D6D" active={raddOn} onClick={toggleRadd}>
               <RaddThumb />
-            </Card>
-            <Card label="DETER" tipTitle={DESC.deter.title[lang]} desc={DESC.deter[lang]} alignRight color="#ffffff" active={deterOn} onClick={toggleDeter}>
-              <DeterThumb />
             </Card>
           </>
         )}
