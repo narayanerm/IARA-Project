@@ -19,10 +19,10 @@ const T = {
 }
 
 /**
- * A case's voiced explainer, full screen, with a skip button that is always visible. Every case plays it when it
- * opens (once per session) and then shows the map with the overview panel. Mining also plays it when the guided tour
- * closes; while the tour runs (it opens Mining by itself) the video waits. Lives inside <Map> so it can pause and
- * hide the map while the video plays.
+ * A case's voiced explainer, full screen, with a skip button that is always visible. It plays by itself when the case
+ * opens until the visitor has watched it once (remembered per case in localStorage), then only from the
+ * "Video explanation" header button. Mining also plays it when the guided tour closes, if unseen; while the tour runs
+ * (it opens Mining by itself) the video waits. Lives inside <Map> so it can pause and hide the map while it plays.
  */
 export function CaseVideo() {
   const region = useCaseVideoActive()
@@ -32,20 +32,25 @@ export function CaseVideo() {
 
 function CaseVideoPlayer({ region }: { region: RegionId }) {
   const lang = useI18n((s) => s.lang) as 'pt' | 'en'
-  const finish = useCaseVideo((s) => s.finishCaseVideo)
+  const close = useCaseVideo((s) => s.closeCaseVideo)
   const { current: mapRef } = useMap()
   const videoRef = useRef<HTMLVideoElement>(null)
+  // Counts as watched only once it has actually started playing (then ended or was skipped).
+  const playedRef = useRef(false)
   const [ready, setReady] = useState(false)
   const [muted, setMuted] = useState(false)
   const video = VIDEOS[region]
 
-  const done = useCallback(() => {
-    // Asked for after the tour (Mining): continue into that case. Otherwise the case is already open.
-    const app = useApp.getState()
-    const wasRequested = useCaseVideo.getState().requested === region
-    finish(region)
-    if (wasRequested && !(app.aoiActive && app.activeRegion === region)) app.setActiveRegion(region)
-  }, [finish, region])
+  const done = useCallback(
+    (failed = false) => {
+      // Asked for after the tour (Mining): continue into that case. From the header button the case is already open.
+      const app = useApp.getState()
+      const wasRequested = useCaseVideo.getState().requested === region
+      close(region, !failed && playedRef.current)
+      if (wasRequested && !(app.aoiActive && app.activeRegion === region)) app.setActiveRegion(region)
+    },
+    [close, region]
+  )
 
   // Nothing competes with the video for the GPU: the map behind stops moving and is not painted while it plays.
   useEffect(() => {
@@ -98,8 +103,9 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
         controls
         playsInline
         preload="auto"
-        onEnded={done}
-        onError={done}
+        onPlaying={() => (playedRef.current = true)}
+        onEnded={() => done()}
+        onError={() => done(true)}
       />
       {!ready && <span className="case-video-loading" aria-hidden="true" />}
       <div className="case-video-actions">
@@ -116,7 +122,7 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
             {T.unmute[lang]}
           </button>
         )}
-        <button type="button" className="case-video-btn" onClick={done}>
+        <button type="button" className="case-video-btn" onClick={() => done()}>
           {T.skip[lang]}
         </button>
       </div>

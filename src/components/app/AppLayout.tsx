@@ -2,7 +2,8 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { triggerTutorial } from './Tutorial/Tutorial'
 import { CasePicker } from './Cases/CasePicker'
 import { cn } from '@/lib/utils'
-import { useApp, useUi, useCaseVideoActive } from '@/lib/store'
+import { Play } from 'lucide-react'
+import { useApp, useUi, useCaseVideo, useCaseVideoActive } from '@/lib/store'
 import { useT } from '@/lib/i18n'
 import { LanguageToggle } from '@/components/common/LanguageToggle'
 import type { ForecastMapProps } from '@/lib/predictive-models'
@@ -30,6 +31,9 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
   const clearAoi = useApp((s) => s.clearAoi)
   const caseArrived = useApp((s) => s.caseArrived)
   const videoOn = useCaseVideoActive() !== null
+  const activeRegion = useApp((s) => s.activeRegion)
+  const videoSeen = useCaseVideo((s) => !!s.seen[activeRegion])
+  const playCaseVideo = useCaseVideo((s) => s.playCaseVideo)
   const [forecastMap, setForecastMap] = useState<ForecastMapProps | null>(null)
   // The opaque case picker covers the map until a case is chosen, so the map only has to exist once
   // the intro is over. Its code is fetched a moment after the intro starts, then mounted at the end.
@@ -67,6 +71,19 @@ export function AppLayout({ introDone = true }: { introDone?: boolean }) {
           {/* Map tools only make sense once a case is open. */}
           {aoiActive && (
             <>
+              {/* Once the case video has been watched it no longer plays by itself; this brings it back. */}
+              {caseArrived && videoSeen && !videoOn && (
+                <button
+                  type="button"
+                  onClick={() => playCaseVideo(activeRegion)}
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-2.5 font-sans text-[13px] font-bold tracking-[-0.005em] text-foreground/75 transition-colors hover:bg-black/55 hover:text-foreground hover:backdrop-blur-xl hover:backdrop-saturate-150 sm:px-3"
+                  title={t('case.videoHint')}
+                  aria-label={t('case.video')}
+                >
+                  <Play className="h-3 w-3 fill-current" strokeWidth={2} aria-hidden="true" />
+                  <span className="hidden sm:inline">{t('case.video')}</span>
+                </button>
+              )}
               <HeaderToggle
                 label={t('map.satellite')}
                 hint={t('map.satelliteHint')}

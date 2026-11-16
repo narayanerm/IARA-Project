@@ -196,46 +196,58 @@ export const useUi = create<UiState>((set, get) => ({
 
 /* ------------------------------------------------------------------ */
 /* Case videos: the voiced explainer of a case, full screen.            */
-/* Every case plays it when the case opens (once per session); Mining   */
-/* also plays it when the guided tour closes. Held while the tour runs. */
+/* It plays by itself until the visitor has watched it once (to the end */
+/* or skipped after it started); that is remembered per case in         */
+/* localStorage. After that it only plays from the "Video explanation"  */
+/* button. Mining also plays it when the guided tour closes, if unseen. */
 /* ------------------------------------------------------------------ */
 
-/** Cases whose video plays as soon as the case opens (the camera has landed). */
-const VIDEO_ON_OPEN: RegionId[] = ['YANO', 'ENCH', 'SECA']
-const caseVideoKey = (id: RegionId) => `iara.caseVideoSeen.${id}`
+const VIDEO_SEEN_KEY = 'iara.caseVideoSeen.v1'
 
-function caseVideoSeen(id: RegionId): boolean {
+function readVideoSeen(): Partial<Record<RegionId, boolean>> {
   try {
-    return window.sessionStorage.getItem(caseVideoKey(id)) === '1'
+    const raw = window.localStorage.getItem(VIDEO_SEEN_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : {}
+    return parsed && typeof parsed === 'object' ? (parsed as Partial<Record<RegionId, boolean>>) : {}
   } catch {
-    return false
+    return {}
+  }
+}
+
+function writeVideoSeen(seen: Partial<Record<RegionId, boolean>>) {
+  try {
+    window.localStorage.setItem(VIDEO_SEEN_KEY, JSON.stringify(seen))
+  } catch {
+    /* private mode or storage blocked: the video may play again on the next visit */
   }
 }
 
 interface CaseVideoState {
+  /** Watched at least once (persisted). */
   seen: Partial<Record<RegionId, boolean>>
-  /** Video asked for explicitly (Mining, after the tour); null when none. */
+  /** Closed in this page load without counting as watched (it failed, or was skipped before it started). */
+  closed: Partial<Record<RegionId, boolean>>
+  /** Video asked for explicitly (the "Video explanation" button, or Mining after the tour); null when none. */
   requested: RegionId | null
-  /** The guided tour opens Mining on its own; its video waits for the end of the tour. */
+  /** The guided tour opens Mining on its own; the video waits for the end of the tour. */
   tourRunning: boolean
   setTourRunning: (on: boolean) => void
   playCaseVideo: (id: RegionId) => void
-  finishCaseVideo: (id: RegionId) => void
+  /** Ends the video; `watched` marks it as seen for good. */
+  closeCaseVideo: (id: RegionId, watched: boolean) => void
 }
 
-export const useCaseVideo = create<CaseVideoState>((set) => ({
-  seen: {},
+export const useCaseVideo = create<CaseVideoState>((set, get) => ({
+  seen: typeof window !== 'undefined' ? readVideoSeen() : {},
+  closed: {},
   requested: null,
   tourRunning: false,
   setTourRunning: (on) => set({ tourRunning: on }),
   playCaseVideo: (id) => set({ requested: id }),
-  finishCaseVideo: (id) => {
-    try {
-      window.sessionStorage.setItem(caseVideoKey(id), '1')
-    } catch {
-      /* private mode: the video just plays again next visit */
-    }
-    set((s) => ({ seen: { ...s.seen, [id]: true }, requested: s.requested === id ? null : s.requested }))
+  closeCaseVideo: (id, watched) => {
+    const seen = watched ? { ...get().seen, [id]: true } : get().seen
+    if (watched) writeVideoSeen(seen)
+    set((s) => ({ seen, closed: { ...s.closed, [id]: true }, requested: s.requested === id ? null : s.requested }))
   },
 }))
 
@@ -244,9 +256,10 @@ export function useCaseVideoActive(): RegionId | null {
   const requested = useCaseVideo((s) => s.requested)
   const region = useApp((s) => s.activeRegion)
   const arrived = useApp((s) => s.aoiActive && s.caseArrived)
-  const seen = useCaseVideo((s) => s.seen[region]) ?? caseVideoSeen(region)
+  const seen = useCaseVideo((s) => !!s.seen[region])
+  const closed = useCaseVideo((s) => !!s.closed[region])
   const tourRunning = useCaseVideo((s) => s.tourRunning)
   if (requested) return requested
   if (tourRunning) return null
-  return arrived && VIDEO_ON_OPEN.includes(region) && !seen ? region : null
+  return arrived && !seen && !closed ? region : null
 }

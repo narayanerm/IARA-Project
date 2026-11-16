@@ -88,7 +88,8 @@ export default function App() {
             onClose={() => {
               setTutorialOn(false)
               // After the Mining tour, its voiced video plays, then the Mining case opens on the main map.
-              useCaseVideo.getState().playCaseVideo('YANO')
+              const video = useCaseVideo.getState()
+              if (!video.seen.YANO) video.playCaseVideo('YANO')
             }}
           />
         )}
