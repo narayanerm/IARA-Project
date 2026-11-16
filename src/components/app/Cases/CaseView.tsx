@@ -4,13 +4,10 @@ import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
 import { useApp, type CaseTab, useCaseVideo, useCaseVideoActive } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
 import { CaseLeanAlerts } from './CaseFloodAlerts'
-import { CaseSar, useCasePoint } from './CaseSar'
-import { CaseSeries } from './CaseSeries'
-import { CaseFlowOutlook } from './CaseFlowOutlook'
+import { CaseSar } from './CaseSar'
 import { CaseStory } from './CaseStory'
 import { useTr } from './shared'
-import { CaseForecasts, type SetCaseForecastMap } from './CaseForecasts'
-import { REGIONS } from '@/lib/regions'
+import { type SetCaseForecastMap } from './CaseForecasts'
 
 type Tab = CaseTab
 
@@ -34,7 +31,7 @@ export function CaseView({ onForecastMapChange }: { onForecastMapChange: SetCase
   return <CasePanel key={activeRegion} c={CASES[activeRegion]} onForecastMapChange={onForecastMapChange} />
 }
 
-function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChange: SetCaseForecastMap }) {
+function CasePanel({ c }: { c: CaseStudy; onForecastMapChange: SetCaseForecastMap }) {
   const t = useT()
   const tr = useTr()
   const clearAoi = useApp((s) => s.clearAoi)
@@ -43,8 +40,6 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
   // The tab lives in the store so the assistant can open it too; reset the scroll bar when it changes.
   const tab = useApp((s) => s.caseTab)
   const setTab = useApp((s) => s.setCaseTab)
-  const timelinePoint = useCasePoint(c)
-  const bounds = REGIONS.find((region) => region.id === c.id)!.bbox
   const panelRef = useRef<HTMLElement>(null)
   const index = CASE_ORDER.indexOf(c.id) + 1
   const tabIndex = TABS.findIndex((x) => x.id === tab)
@@ -112,15 +107,7 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
 
       <div key={tab} role="tabpanel" className="case-scroll" onScroll={onScroll}>
         {tab === 'overview' && <CaseStory c={c} />}
-        {tab === 'timeline' && (
-          <>
-            <CaseSeries c={c} />
-            {c.id !== 'YANO' && <CaseFlowOutlook kind={c.id === 'ENCH' ? 'flood' : 'drought'} bounds={bounds} />}
-            <div className="mx-5 border-t border-border" />
-            {c.id === 'ENCH' && <CaseForecasts kind="observed" bounds={bounds} initialDate={timelinePoint.sar?.after} onMapChange={onForecastMapChange} />}
-            <CaseSar c={c} />
-          </>
-        )}
+        {tab === 'timeline' && <CaseSar c={c} yearPicker />}
         {tab === 'forecast' && <CaseLeanAlerts c={c} />}
       </div>
     </aside>

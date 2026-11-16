@@ -467,7 +467,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
     placeShort: 'Manaus',
     color: '#4DA3F7',
     camera: { center: [-60.0, -2.6], zoom: 9 },
-    cover: { center: [-60.0, -2.6], zoom: 9.5 },
+    cover: { center: [-60.0, -3.11], zoom: 12 },
     outline: { kind: 'ibge', code: 1302603 },
     ibgeCode: 1302603,
     meta: [

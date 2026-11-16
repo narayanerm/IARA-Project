@@ -33,7 +33,7 @@ export interface UrlState {
   sar?: [string, string]
 }
 
-const VALID_TABS: readonly CaseTab[] = ['overview', 'timeline', 'alerts']
+const VALID_TABS: readonly CaseTab[] = ['overview', 'timeline', 'forecast']
 const VALID_AOIS: readonly RegionId[] = ['YANO', 'ENCH', 'SECA']
 const VALID_BANDS: readonly SarBand[] = ['nisar', 'sband', 's1c']
 const VALID_PANELS: readonly RightTab[] = ['nisar', 'meta', 'chat']
