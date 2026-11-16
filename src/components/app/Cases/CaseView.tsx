@@ -1,16 +1,15 @@
 import { useEffect, useRef } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, HelpCircle } from 'lucide-react'
 import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
 import { useApp, type CaseTab } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
-import { CaseAlerts } from './CaseAlerts'
-import { CaseSar, useCasePoint } from './CaseSar'
-import { CaseSeries } from './CaseSeries'
-import { CaseFlowOutlook } from './CaseFlowOutlook'
+import { CaseLeanAlerts } from './CaseFloodAlerts'
+import { CaseTour } from './CaseTour'
+import { triggerCaseTour } from '../Tutorial/Tutorial'
+import { CaseSar } from './CaseSar'
 import { CaseStory } from './CaseStory'
 import { useTr } from './shared'
-import { CaseForecasts, type SetCaseForecastMap } from './CaseForecasts'
-import { REGIONS } from '@/lib/regions'
+import type { SetCaseForecastMap } from './CaseForecasts'
 
 type Tab = CaseTab
 
@@ -24,23 +23,22 @@ const TABS: Array<{ id: Tab; label: TKey }> = [
  * The single surface of a case. It waits for the camera to land, then slides in as a sheet docked
  * to the left edge (or up from the bottom on phones). The way out is always back to the cases.
  */
-export function CaseView({ onForecastMapChange }: { onForecastMapChange: SetCaseForecastMap }) {
+// The forecast map hook stays in the signature for the layout; the lean alerts no longer draw forecast layers.
+export function CaseView(_: { onForecastMapChange: SetCaseForecastMap }) {
   const aoiActive = useApp((s) => s.aoiActive)
   const arrived = useApp((s) => s.caseArrived)
   const activeRegion = useApp((s) => s.activeRegion)
   if (!aoiActive || !arrived) return null
-  return <CasePanel key={activeRegion} c={CASES[activeRegion]} onForecastMapChange={onForecastMapChange} />
+  return <CasePanel key={activeRegion} c={CASES[activeRegion]} />
 }
 
-function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChange: SetCaseForecastMap }) {
+function CasePanel({ c }: { c: CaseStudy }) {
   const t = useT()
   const tr = useTr()
   const clearAoi = useApp((s) => s.clearAoi)
   // The tab lives in the store so the assistant can open it too; reset the scroll bar when it changes.
   const tab = useApp((s) => s.caseTab)
   const setTab = useApp((s) => s.setCaseTab)
-  const timelinePoint = useCasePoint(c)
-  const bounds = REGIONS.find((region) => region.id === c.id)!.bbox
   const panelRef = useRef<HTMLElement>(null)
   const index = CASE_ORDER.indexOf(c.id) + 1
   const tabIndex = TABS.findIndex((x) => x.id === tab)
@@ -70,14 +68,24 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
             {t('case.back')}
           </button>
-          <span className="case-panel-count">
+          <button
+            type="button"
+            onClick={triggerCaseTour}
+            title={t('caseTour.replay')}
+            aria-label={t('caseTour.replay')}
+            className="ml-auto mr-3 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            tour
+          </button>
+          <span className="case-panel-count" style={{ marginLeft: 0 }}>
             <b>0{index}</b> / 0{CASE_ORDER.length}
           </span>
         </div>
         <div className="case-panel-kicker">{tr(c.analysis)}</div>
         <h2 className="case-panel-title">{tr(c.place)}</h2>
 
-        <div role="tablist" aria-label={t('case.tabs')} className="case-tabs">
+        <div role="tablist" aria-label={t('case.tabs')} className="case-tabs" data-tour="case-tabs">
           {TABS.map(({ id, label }) => (
             <button
               key={id}
@@ -99,19 +107,17 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
         {tab === 'overview' && <CaseStory c={c} />}
         {tab === 'timeline' && (
           <>
-            <CaseSeries c={c} />
-            {c.id !== 'YANO' && <CaseFlowOutlook kind={c.id === 'ENCH' ? 'flood' : 'drought'} bounds={bounds} />}
-            <div className="mx-5 border-t border-border" />
-            {c.id === 'ENCH' && <CaseForecasts kind="observed" bounds={bounds} initialDate={timelinePoint.sar?.after} onMapChange={onForecastMapChange} />}
-            <CaseSar c={c} />
+            {/* Every case: visible before/after of the picked year → yearly series → full SAR archive. */}
+            <CaseSar c={c} yearPicker />
           </>
         )}
         {tab === 'alerts' && (
-          <CaseAlerts c={c} forecast={
-            c.id !== 'YANO' && <CaseForecasts kind={c.id === 'ENCH' ? 'flood' : 'drought'} bounds={bounds} onMapChange={onForecastMapChange} />
-          } />
+          <div data-tour="case-alerts">
+            <CaseLeanAlerts c={c} />
+          </div>
         )}
       </div>
+      <CaseTour c={c} />
     </aside>
   )
 }

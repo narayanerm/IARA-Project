@@ -113,7 +113,15 @@ export function YanomamiCaseLayers({ beforeId }: { beforeId?: string }) {
             id="yano-radd-layer"
             type="raster"
             beforeId={beforeId}
-            paint={{ 'raster-opacity': 0.85, 'raster-fade-duration': 0 }}
+            // RADD tiles come pink: turn them red, like the alerts in the case timeline.
+            paint={{
+              'raster-opacity': 0.9,
+              'raster-fade-duration': 0,
+              'raster-hue-rotate': 38,
+              'raster-saturation': 1,
+              'raster-contrast': 0.4,
+              'raster-brightness-max': 0.85,
+            }}
           />
         </Source>
       )}
