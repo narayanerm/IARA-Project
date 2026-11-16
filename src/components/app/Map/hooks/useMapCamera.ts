@@ -3,7 +3,7 @@ import type { MapRef } from 'react-map-gl/maplibre'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import { INDIGENOUS_LANDS, polygonCentroid } from '@/data/layers/indigenous-lands'
 import { CASES } from '@/data/cases'
-import { useApp } from '@/lib/store'
+import { caseVideoAutoplays, useApp } from '@/lib/store'
 import type { Region } from '@/lib/types'
 import { BEARING, PITCH } from '../constants'
 
@@ -117,7 +117,8 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
       lock(m, cam.zoom)
       st.setCaseArrived(true)
     }
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // The video covers the map, so the camera lands at once underneath it.
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches || caseVideoAutoplays(id)
     let wait: number | undefined
     if (fromPicker && !reduce) {
       // Match cut: jump close and flat behind the picture, then pull back once it starts to fade.
@@ -127,6 +128,8 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
         m.once('moveend', onEnd)
       }, CASE_REVEAL_MS)
     } else {
+      // Listen first: with duration 0 flyTo fires moveend synchronously.
+      m.once('moveend', onEnd)
       m.flyTo({
         ...cam,
         pitch: PITCH,
@@ -135,7 +138,6 @@ export function useMapCamera(mapRef: RefObject<MapRef | null>, region: Region, m
         curve: 1.6,
         essential: true,
       })
-      m.once('moveend', onEnd)
     }
 
     // Re-fit the lock when the window changes size (rotating a phone, resizing a laptop window).

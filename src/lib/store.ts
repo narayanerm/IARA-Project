@@ -282,6 +282,12 @@ export const useCaseVideo = create<CaseVideoState>((set, get) => ({
   },
 }))
 
+/** Whether opening this case right now will play its video on top of the map (same rule as useCaseVideoActive). */
+export function caseVideoAutoplays(id: RegionId): boolean {
+  const v = useCaseVideo.getState()
+  return !v.tourRunning && !v.seen[id] && !v.closed[id]
+}
+
 /** The case whose video owns the screen right now, or null. */
 export function useCaseVideoActive(): RegionId | null {
   const requested = useCaseVideo((s) => s.requested)
