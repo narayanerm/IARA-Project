@@ -38,10 +38,7 @@ export function CaseForecasts({ kind, bounds, initialDate, onMapChange }: {
   const [outlookRunDate, setOutlookRunDate] = useState<string | null>(null)
   const [outlookError, setOutlookError] = useState(false)
   const [outlookAttempt, setOutlookAttempt] = useState(0)
-  // Click-to-GEOGLOWS popup disabled per user request — the map used to turn any
-  // click into a reach lookup and show a probability widget; that was noisy and
-  // not useful. The flood signal dots stay inert (no onRiverSelect wired).
-  const canSelectRiver = false
+  const canSelectRiver = kind === 'flood' || kind === 'drought'
   const [point, setPoint] = useState<ForecastPoint | null>(canSelectRiver ? referencePoint : null)
   const [focus, setFocus] = useState<ForecastPoint | null>(null)
   const [signals, setSignals] = useState<FloodSignal[]>([])

@@ -3,7 +3,6 @@ import type { RegionId } from '@/lib/types'
 // The three focused case studies. Historical figures name their sources alongside the values.
 
 export type Ref = { label: string; url: string }
-
 export type L = { pt: string; en: string; refs?: Ref[] }
 export type RiskLevel = 'critical' | 'high' | 'watch'
 export type PainIcon = 'health' | 'water' | 'forest' | 'home' | 'boat' | 'food' | 'fish' | 'fire' | 'road' | 'people'
@@ -315,7 +314,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
         },
       ],
       thresholds: [],
-      source: { label: 'Hutukara Associação Yanomami', url: 'https://hutukara.org/' },
+      source: { label: 'Hutukara Associação Yanomami', url: 'https://hutukarayanomami.org/' },
       footnote: {
         pt: 'Sem dado consolidado da Hutukara para 2019. Em 2024 o Greenpeace mediu 223 hectares novos.',
         en: 'No consolidated Hutukara figure for 2019. In 2024 Greenpeace measured 223 new hectares.',
@@ -412,7 +411,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
       en: 'Forest scatters the radar signal and looks bright. Bare soil and pit water return little signal: the clearing shows up as a dark patch, even under cloud.',
     },
     sources: [
-      { label: 'Hutukara', url: 'https://hutukara.org/' },
+      { label: 'Hutukara', url: 'https://hutukarayanomami.org/' },
       { label: 'MapBiomas Alerta', url: 'https://alerta.mapbiomas.org/' },
       { label: 'INPE DETER', url: 'http://terrabrasilis.dpi.inpe.br/app/map/deter' },
       { label: 'ISA · Terras Indígenas', url: 'https://terrasindigenas.org.br/pt-br/terras-indigenas/4016' },
