@@ -156,6 +156,9 @@ interface UiState {
   yanomamiRaddOn: boolean
   /** YANO case: show DETER mineração polygons as a map overlay. */
   yanomamiDeterOn: boolean
+  /** Before/after scenes picked by hand in the SAR comparison (null = automatic pick). */
+  sarPair: [string, string] | null
+  setSarPair: (p: [string, string] | null) => void
   toggleSatellite: () => void
   toggleRelief: () => void
   setRightOpen: (v: boolean) => void
@@ -181,6 +184,8 @@ export const useUi = create<UiState>((set, get) => ({
   yanomamiBand: null,
   yanomamiRaddOn: false,
   yanomamiDeterOn: false,
+  sarPair: null,
+  setSarPair: (p) => set({ sarPair: p }),
   toggleSatellite: () => set({ satelliteOn: !get().satelliteOn }),
   toggleRelief: () => set({ reliefOn: !get().reliefOn }),
   setRightOpen: (v) => set({ rightOpen: v }),
