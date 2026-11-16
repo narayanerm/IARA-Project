@@ -1,7 +1,9 @@
 {
   "appId": "br.iara.app",
-  "appName": "IARA",
+  "appName": "IARA Apoio",
   "webDir": "www",
   "backgroundColor": "#eef3ee",
-  "android": { "backgroundColor": "#eef3ee" }
+  "android": {
+    "backgroundColor": "#eef3ee"
+  }
 }

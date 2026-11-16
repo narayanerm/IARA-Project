@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>IARA</title>
-<meta name="description" content="Nível do rio, fogo perto de casa, onde denunciar e cursos gratuitos para comunidades ribeirinhas da Amazônia.">
+<title>IARA Apoio</title>
+<meta name="description" content="App de apoio ao site IARA: nível do rio, fogo perto de casa, onde denunciar e cursos gratuitos para comunidades ribeirinhas da Amazônia.">
 <meta name="theme-color" content="#102019">
-<meta property="og:title" content="IARA">
-<meta property="og:description" content="Nível do rio, fogo perto de casa, onde denunciar e cursos gratuitos para comunidades ribeirinhas da Amazônia.">
+<meta property="og:title" content="IARA Apoio, o app de apoio do site IARA">
+<meta property="og:description" content="App de apoio ao site IARA: nível do rio, fogo perto de casa, onde denunciar e cursos gratuitos para comunidades ribeirinhas da Amazônia.">
 <meta property="og:image" content="img/og.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="img/icone-192.png">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="IARA">
+<meta name="apple-mobile-web-app-title" content="IARA Apoio">
 <script>try { var t = localStorage.getItem("iara-tema"); if (t) document.documentElement.dataset.theme = t; var l = localStorage.getItem("iara-letra"); if (l) document.documentElement.dataset.letra = l; } catch (e) {}</script>
 <link rel="stylesheet" href="vendor/phosphor/style.css">
 <link rel="stylesheet" href="css/app.css">
@@ -23,7 +23,7 @@
 <header class="topo">
   <div class="topo-linha">
     <a class="voltar-topo" href="#inicio" aria-label="Voltar ao início"><i class="ph ph-arrow-left"></i></a>
-    <a class="marca" href="#inicio"><img src="img/logo-escuro.svg" alt="IARA" width="104" height="40"></a>
+    <a class="marca" href="#inicio"><img src="img/logo-escuro.svg" alt="IARA" width="104" height="40"><span class="marca-apoio">app de apoio</span></a>
     <h1 class="topo-titulo" id="topo-titulo"></h1>
   </div>
   <img class="faixa" src="img/faixa.svg" alt="" width="1500" height="30">
@@ -100,7 +100,7 @@
     <figure><img src="img/radar-cheia.jpg" width="520" height="520" loading="lazy" alt="Imagem de radar de Manaus na cheia: o rio aparece escuro e a mata alagada aparece clara."><figcaption>Cheia. Manaus, 10.07.2026. NISAR, banda L.</figcaption></figure>
     <figure><img src="img/radar-seca.jpg" width="520" height="520" loading="lazy" alt="Imagem de radar de Manaus na seca, com menos mata alagada nas margens."><figcaption>Seca. Manaus, 26.10.2026. NISAR, banda L.</figcaption></figure>
   </div>
-  <p class="nota">No radar, o rio aberto fica escuro e a mata alagada fica clara. É assim que o projeto IARA acompanha a cheia.</p>
+  <p class="nota">No radar, o rio aberto fica escuro e a mata alagada fica clara. É assim que o site IARA acompanha a cheia em toda a Amazônia.</p>
 
   <h2 class="secao">O que fazer</h2>
   <ul class="linhas" id="rio-guias"></ul>
@@ -204,9 +204,10 @@
       <li hidden id="li-instalar"><button type="button" id="btn-instalar"><i class="ph ph-download-simple"></i><span class="txt">Instalar no celular</span></button></li>
     </ul>
 
-    <h2 class="secao">Sobre o IARA</h2>
+    <h2 class="secao">Sobre este app</h2>
     <div class="sobre">
-      <p>IARA quer dizer Imageamento de Áreas Ribeirinhas Alagadas. É um projeto do NASA Space Apps Challenge 2026 que usa radar de satélite e dados públicos para avisar comunidades sobre cheia, seca e fogo.</p>
+      <p>Este é um app de apoio. A parte principal do projeto IARA é o site, que usa radar de satélite para acompanhar cheia, seca e fogo em toda a Amazônia, com mapas, imagens de radar e análises.</p>
+      <p>O app leva para o celular só o que quem mora na beira do rio precisa no dia a dia: o rio e o fogo perto de casa, onde denunciar e onde pedir ajuda. Site e app fazem parte do mesmo projeto. IARA quer dizer Imageamento de Áreas Ribeirinhas Alagadas e nasceu no NASA Space Apps Challenge 2026.</p>
       <p>Toda vez que o app abre, ele busca a altura do rio na telemetria da ANA e os focos de calor do dia no INPE. Por isso precisa de internet. Os limites das terras indígenas e das reservas vêm da Funai e do ICMBio.</p>
     </div>
   </div>

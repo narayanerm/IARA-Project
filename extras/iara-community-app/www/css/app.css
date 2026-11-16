@@ -68,7 +68,9 @@ p { margin: 0; }
 .topo { position: fixed; inset: 0 0 auto; z-index: 20; background: var(--topo); color: var(--topo-tinta); padding-top: var(--seg-top); }
 .topo-linha { height: var(--topo-h); display: flex; align-items: center; gap: 4px; padding: 0 16px 0 6px; }
 .marca { display: flex; padding: 0 10px; }
+.marca { align-items: center; gap: 10px; text-decoration: none; }
 .marca img { height: 34px; width: auto; display: block; }
+.marca-apoio { color: var(--topo-tinta); opacity: 0.75; font-size: 0.82rem; font-weight: 500; padding-left: 10px; border-left: 1px solid rgb(230 238 232 / 0.35); line-height: 1.1; }
 .voltar-topo { width: 44px; height: 44px; display: grid; place-items: center; color: var(--topo-tinta); text-decoration: none; }
 .topo-titulo { font-family: var(--titulo); font-weight: 650; letter-spacing: -0.025em; font-size: 1.25rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 body[data-tela="inicio"] .voltar-topo, body:not([data-tela="inicio"]) .marca { display: none; }
