@@ -5,7 +5,7 @@
 # For each folder it takes the most recent .mp4 with voice ("voz" in the name, but not "sem_voz"), copies the
 # H.264/AAC streams as they are (no re-encode) with the index at the front (+faststart) so playback starts before the
 # whole file has downloaded, and saves a poster frame. The app does not depend on the video length.
-# The .mp4 copies are git-ignored (15+ MB each); the posters are committed.
+# The copies (about 12-15 MB each) are committed so the published site serves them.
 set -e
 FF="${FFMPEG:-ffmpeg}"
 ROOT="${VIDEO_ROOT:-..}"
