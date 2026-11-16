@@ -27,6 +27,132 @@
     return carregando[nome];
   }
 
+  /* ---------- dados ao vivo: ANA e INPE, buscados toda vez que o app abre ---------- */
+  var ANA = "https://telemetriaws1.ana.gov.br/ServiceANA.asmx/DadosHidrometeorologicos";
+  var INPE = "https://dataserver-coids.inpe.br/queimadas/queimadas/focos/csv/diario/Brasil/focos_diario_br_";
+  var AMAZONIA = [-19, -75, 6, -43]; /* sul, oeste, norte, leste: só guarda os focos desta caixa */
+  var vivo = { rio: "carregando", fogo: "carregando", focos: [], dias: {}, quando: 0, rodada: 0 };
+  var celulas = {};
+
+  function dois(x) { return ("0" + x).slice(-2); }
+  function dataBr(d) { return dois(d.getDate()) + "/" + dois(d.getMonth() + 1) + "/" + d.getFullYear(); }
+  function hora(t) { var d = new Date(t); return dois(d.getHours()) + ":" + dois(d.getMinutes()); }
+  function diaHora(t) {
+    var d = new Date(t), hoje = new Date();
+    var dia = d.toDateString() === hoje.toDateString() ? "hoje" : d.toDateString() === new Date(Date.now() - 864e5).toDateString() ? "ontem" : "em " + dois(d.getDate()) + "/" + dois(d.getMonth() + 1);
+    return dia + " às " + hora(t);
+  }
+
+  function baixar(url) {
+    var ctl = window.AbortController ? new AbortController() : null;
+    var t = setTimeout(function () { if (ctl) ctl.abort(); }, 45000);
+    return fetch(url, { cache: "no-cache", signal: ctl ? ctl.signal : undefined }).then(function (r) {
+      clearTimeout(t); if (!r.ok) throw new Error("HTTP " + r.status); return r.text();
+    }, function (e) { clearTimeout(t); throw e; });
+  }
+
+  /* Rio: telemetria da ANA, uma leitura a cada 15 minutos. A hora vem no horário de Brasília. */
+  function lerAna(xml) {
+    var doc = new DOMParser().parseFromString(xml, "text/xml"), out = [];
+    var regs = doc.getElementsByTagName("DadosHidrometereologicos");
+    for (var i = 0; i < regs.length; i++) {
+      var dh = regs[i].getElementsByTagName("DataHora")[0], nv = regs[i].getElementsByTagName("Nivel")[0];
+      if (!dh || !nv || !nv.textContent.trim()) continue;
+      var v = parseFloat(nv.textContent), t = Date.parse(dh.textContent.trim().replace(" ", "T") + "-03:00");
+      if (isFinite(v) && isFinite(t)) out.push([t, v]);
+    }
+    return out.sort(function (a, b) { return a[0] - b[0]; });
+  }
+  /* mediana das leituras perto de uma hora, para um valor errado do sensor não aparecer como cota */
+  function cotaPerto(L, alvo, folga) {
+    var xs = L.filter(function (p) { return Math.abs(p[0] - alvo) <= folga; }).map(function (p) { return p[1]; }).sort(function (a, b) { return a - b; });
+    return xs.length ? Math.round(xs[(xs.length - 1) >> 1]) : null;
+  }
+  function buscarRio(rodada) {
+    var hoje = new Date(), ini = new Date(Date.now() - 5 * 864e5);
+    return Promise.all(IARA.ESTACOES.map(function (e) {
+      var url = ANA + "?codEstacao=" + e.cod + "&dataInicio=" + dataBr(ini) + "&dataFim=" + dataBr(hoje);
+      return baixar(url).then(function (xml) {
+        if (rodada !== vivo.rodada) return false;
+        var L = lerAna(xml);
+        var ult = L.length ? L[L.length - 1][0] : 0;
+        if (!ult || Date.now() - ult > 3 * 864e5) { e.cm = null; return false; }
+        e.cm = cotaPerto(L, ult, 36e5); e.hora = ult;
+        e.ontem = cotaPerto(L, ult - 864e5, 2 * 36e5);
+        e.d4 = cotaPerto(L, ult - 4 * 864e5, 3 * 36e5);
+        return true;
+      }).catch(function () { e.cm = null; return false; });
+    })).then(function (ok) {
+      if (rodada !== vivo.rodada) return;
+      vivo.rio = ok.some(Boolean) ? "pronto" : "erro";
+    });
+  }
+
+  /* Fogo: arquivo do dia do INPE, com os focos de todos os satélites. Vários satélites veem
+     o mesmo fogo, então os focos são juntados em quadrados de cerca de 2 km. */
+  function diaUtc(k) { return new Date(Date.now() - k * 864e5).toISOString().slice(0, 10).replace(/-/g, ""); }
+  function lerFocos(txt) {
+    var linhas = txt.split("\n"), cab = linhas[0].split(",").map(function (x) { return x.trim(); });
+    var iLat = cab.indexOf("lat"), iLon = cab.indexOf("lon"), iT = cab.indexOf("data_hora_gmt"), iR = cab.indexOf("risco_fogo"), iS = cab.indexOf("numero_dias_sem_chuva");
+    if (iLat < 0 || iLon < 0 || iT < 0) throw new Error("formato");
+    var A = AMAZONIA;
+    for (var i = 1; i < linhas.length; i++) {
+      var c = linhas[i].split(","); if (c.length < cab.length) continue;
+      var lat = +c[iLat], lon = +c[iLon];
+      if (!(lat >= A[0] && lat <= A[2] && lon >= A[1] && lon <= A[3])) continue;
+      var t = Date.parse(c[iT].trim().replace(" ", "T") + "Z"); if (!isFinite(t)) continue;
+      var r = iR >= 0 ? parseFloat(c[iR]) : NaN, sc = iS >= 0 ? parseInt(c[iS], 10) : NaN;
+      var k = Math.round(lat * 50) + ":" + Math.round(lon * 50), f = celulas[k];
+      if (!f) { f = celulas[k] = { lat: lat, lon: lon, t: t, r: -1, s: -1 }; vivo.focos.push(f); }
+      else if (t > f.t) f.t = t;
+      if (r >= 0 && r <= 1 && r > f.r) f.r = r;
+      if (sc >= 0 && sc < 999 && sc > f.s) f.s = sc;
+    }
+  }
+  var pedidosFogo = {};
+  function buscarFogo(ate, rodada) {
+    var lista = [];
+    for (var k = 0; k <= ate; k++) if (!vivo.dias[k]) lista.push(k);
+    return Promise.all(lista.map(function (k) {
+      if (!pedidosFogo[k]) {
+        pedidosFogo[k] = baixar(INPE + diaUtc(k) + ".csv").then(function (txt) {
+          if (rodada !== vivo.rodada) return false;
+          lerFocos(txt); vivo.dias[k] = true; return true;
+        }).catch(function () { return false; }).then(function (ok) { delete pedidosFogo[k]; return ok; });
+      }
+      return pedidosFogo[k];
+    })).then(function () {
+      if (rodada !== vivo.rodada) return;
+      vivo.fogo = vivo.dias[0] || vivo.dias[1] ? "pronto" : "erro";
+    });
+  }
+
+  function atualizar() {
+    vivo.rodada++; var rodada = vivo.rodada;
+    vivo.rio = vivo.fogo = "carregando"; vivo.focos = []; vivo.dias = {}; celulas = {}; pedidosFogo = {};
+    IARA.ESTACOES.forEach(function (e) { e.cm = e.ontem = e.d4 = e.hora = null; });
+    if (!navigator.onLine) { vivo.rio = vivo.fogo = "erro"; semInternet(true); return; }
+    semInternet(false); rota(true);
+    var pr = buscarRio(rodada).then(function () { if (rodada === vivo.rodada) rota(true); });
+    var pf = buscarFogo(janelaFogo === 48 ? 2 : 1, rodada).then(function () { if (rodada === vivo.rodada) rota(true); });
+    Promise.all([pr, pf]).then(function () {
+      if (rodada !== vivo.rodada) return;
+      vivo.quando = Date.now();
+      if (vivo.rio === "erro" && vivo.fogo === "erro") semInternet(true); else rota(true);
+    });
+  }
+
+  function semInternet(ver) {
+    var t = $("#sem-net");
+    if (!ver) { t.hidden = true; raiz.classList.remove("bloqueado"); return; }
+    var off = !navigator.onLine;
+    $("#sem-net-titulo").textContent = off ? "Sem internet" : "Não deu para atualizar";
+    $("#sem-net-texto").textContent = off
+      ? "O IARA precisa de internet para buscar o nível do rio na ANA e os focos de fogo no INPE. Ligue os dados móveis ou o Wi-Fi e tente de novo."
+      : "A ANA e o INPE não responderam agora. Pode ser a internet fraca ou os sites fora do ar. Tente de novo em alguns minutos.";
+    t.hidden = false; raiz.classList.add("bloqueado");
+  }
+
   /* ---------- contas de mapa ---------- */
   function km(a, b, c, d) {
     var r = Math.PI / 180, dl = (c - a) * r, dn = (d - b) * r;
@@ -49,10 +175,6 @@
   function m(cm) { return (cm / 100).toFixed(2).replace(".", ","); }
   function n(x) { return x.toLocaleString("pt-BR"); }
 
-  var MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-  var MESES_DADOS = [6, 7, 8, 9, 10, 11];
-  var ULTIMO_DIA = { 11: "até o dia 13" };
-  var RISCO_NOME = ["baixo", "moderado", "alto", "muito alto"];
 
   /* ---------- lugar ---------- */
   var lugar = ler("iara-lugar", null);
@@ -61,7 +183,7 @@
     lugar = l; guardar("iara-lugar", l);
     fecharFolha();
     var e = estacaoPerto();
-    if (e) { estacaoSel = e.id; }
+    if (e) { estacaoSel = e.id; guardar("iara-estacao", e.id); }
     desenharTudo();
   }
 
@@ -119,14 +241,14 @@
   function estacao() { return IARA.ESTACOES.filter(function (e) { return e.id === estacaoSel; })[0] || estacaoPerto() || IARA.ESTACOES[0]; }
 
   function variacao(e) {
-    var d = e.cm - e.ontem, d4 = e.cm - e.d4;
-    var hoje = d === 0 ? "Ficou igual desde ontem" : (d < 0 ? "Desceu " + (-d) + " cm desde ontem" : "Subiu " + d + " cm desde ontem");
-    var quatro = d4 === 0 ? "igual a 9/11" : (d4 < 0 ? (-d4) + " cm abaixo de 9/11" : d4 + " cm acima de 9/11");
+    var d = e.ontem == null ? null : e.cm - e.ontem, d4 = e.d4 == null ? null : e.cm - e.d4;
+    var hoje = d == null ? "Sem medição de ontem para comparar" : d === 0 ? "Ficou igual desde ontem" : (d < 0 ? "Desceu " + (-d) + " cm desde ontem" : "Subiu " + d + " cm desde ontem");
+    var quatro = d4 == null ? "" : d4 === 0 ? "Igual a quatro dias atrás." : (d4 < 0 ? "Há quatro dias estava " + (-d4) + " cm mais alto." : "Há quatro dias estava " + d4 + " cm mais baixo.");
     return { hoje: hoje, quatro: quatro, d: d };
   }
   function situacao(e) {
     if (e.cheia && e.cm >= e.cheia) return "Acima da cota de inundação (" + m(e.cheia) + " m).";
-    if (e.cm < e.seca) return m(e.seca - e.cm) + " m abaixo da cota de seca (" + m(e.seca) + " m).";
+    if (e.cm < e.seca) return m(e.seca - e.cm) + " m abaixo da cota de seca (" + m(e.seca) + " m). A ANA chama isso de estiagem.";
     return m(e.cm - e.seca) + " m acima da cota de seca (" + m(e.seca) + " m)." + (e.cheia ? " A inundação começa em " + m(e.cheia) + " m." : "");
   }
 
@@ -165,53 +287,49 @@
     }
     sel.value = e.id;
     $("#rio-nome").textContent = e.rio + " em " + e.nome;
-    $("#rio-cota").innerHTML = m(e.cm) + "<small>m</small>";
-    $("#rio-variacao").textContent = v.hoje + ". " + v.quatro.charAt(0).toUpperCase() + v.quatro.slice(1) + ".";
-    $("#rio-situacao").textContent = situacao(e) + " Situação na ANA: " + e.ana.toLowerCase() + ".";
-    $("#rio-data").textContent = "Boletim da ANA de " + IARA.DATA_RIO + ".";
-    desenharRegua(e);
+    var painel = $(".rio-painel");
+    painel.classList.toggle("sem-dado", e.cm == null);
+    if (e.cm == null) {
+      $("#rio-cota").innerHTML = "&nbsp;";
+      $("#rio-variacao").textContent = vivo.rio === "carregando" ? "Buscando a medição na ANA." : "Esta estação não mandou medição nos últimos dias. Escolha outra na lista abaixo.";
+      $("#rio-situacao").innerHTML = vivo.rio === "erro" ? '<button class="link-texto" type="button" data-acao="atualizar">Tentar de novo</button>' : "";
+      $("#rio-data").textContent = "";
+      $("#regua").innerHTML = "";
+    } else {
+      $("#rio-cota").innerHTML = m(e.cm) + "<small>m</small>";
+      $("#rio-variacao").textContent = v.hoje + ". " + v.quatro;
+      $("#rio-situacao").textContent = situacao(e);
+      $("#rio-data").textContent = "Medição automática da ANA, " + diaHora(e.hora) + ".";
+      desenharRegua(e);
+    }
 
     var lista = IARA.ESTACOES.slice();
     if (lugar) lista.sort(function (a, b) { return km(lugar.lat, lugar.lon, a.lat, a.lon) - km(lugar.lat, lugar.lon, b.lat, b.lon); });
     $("#lista-estacoes").innerHTML = lista.map(function (x) {
-      var d = x.cm - x.ontem, seta = d < 0 ? "arrow-down" : (d > 0 ? "arrow-up" : "minus");
+      var d = x.cm == null || x.ontem == null ? 0 : x.cm - x.ontem, seta = d < 0 ? "arrow-down" : (d > 0 ? "arrow-up" : "minus");
       var dist = lugar ? ", a " + n(Math.round(km(lugar.lat, lugar.lon, x.lat, x.lon))) + " km" : "";
       return '<li><button type="button" data-id="' + x.id + '"' + (x.id === e.id ? ' aria-current="true"' : "") + "><span>" + esc(x.nome) +
-        "<small>" + esc(x.rio) + dist + '</small></span><span class="n">' + m(x.cm) + ' m</span><i class="ph ph-' + seta + '" aria-label="' + (d < 0 ? "descendo" : d > 0 ? "subindo" : "estável") + '"></i></button></li>';
+        "<small>" + esc(x.rio) + dist + '</small></span><span class="n">' + (x.cm == null ? (vivo.rio === "carregando" ? "..." : "sem dado") : m(x.cm) + " m") + '</span><i class="ph ph-' + seta + '" aria-label="' + (x.cm == null ? "sem medição" : d < 0 ? "descendo" : d > 0 ? "subindo" : "estável") + '"></i></button></li>';
     }).join("");
   }
 
   /* ---------- fogo ---------- */
-  var mesFogo = ler("iara-mes", 11), raioFogo = ler("iara-raio", 30);
+  var janelaFogo = ler("iara-janela", 24), raioFogo = ler("iara-raio", 30);
+  if (janelaFogo !== 24 && janelaFogo !== 48) janelaFogo = 24;
 
-  function focosPerto(F, mes, raio) {
-    var g = raio / 111 + 0.1, out = [];
+  function focosPerto(janela, raio) {
+    var g = raio / 111 + 0.1, desde = Date.now() - janela * 36e5, out = [], F = vivo.focos;
     for (var i = 0; i < F.length; i++) {
       var f = F[i];
-      if (f[2] !== mes || Math.abs(f[0] - lugar.lat) > g || Math.abs(f[1] - lugar.lon) > g) continue;
-      var d = km(lugar.lat, lugar.lon, f[0], f[1]);
-      if (d <= raio) out.push({ lat: f[0], lon: f[1], n: f[3], d: d });
+      if (f.t < desde || Math.abs(f.lat - lugar.lat) > g || Math.abs(f.lon - lugar.lon) > g) continue;
+      var d = km(lugar.lat, lugar.lon, f.lat, f.lon);
+      if (d <= raio) out.push({ lat: f.lat, lon: f.lon, t: f.t, r: f.r, s: f.s, d: d });
     }
     return out.sort(function (a, b) { return a.d - b.d; });
   }
-  function riscoPerto(R, mes) {
-    var melhor = 0, dmin = 99;
-    for (var i = 0; i < R.length; i++) {
-      var r = R[i];
-      if (r[2] !== mes) continue;
-      var dl = Math.abs(r[0] - lugar.lat), dn = Math.abs(r[1] - lugar.lon);
-      if (dl <= 0.13 && dn <= 0.13 && dl + dn < dmin) { dmin = dl + dn; melhor = r[3]; }
-    }
-    return melhor;
-  }
-  function desmatePerto(D, raio) {
-    var g = raio / 111 + 0.1, out = [];
-    D.forEach(function (x) {
-      if (Math.abs(x[0] - lugar.lat) > g || Math.abs(x[1] - lugar.lon) > g) return;
-      var d = km(lugar.lat, lugar.lon, x[0], x[1]);
-      if (d <= raio) out.push({ d: d, classe: x[3], area: x[4], mes: x[2] });
-    });
-    return out.sort(function (a, b) { return a.d - b.d; });
+  function fogoPronto(janela) { return vivo.fogo === "pronto" && (janela !== 48 || vivo.dias[2]); }
+  function fraseFocos(n_, raio, janela) {
+    return (n_ === 0 ? "Nenhum foco de calor" : n(n_) + (n_ === 1 ? " foco de calor" : " focos de calor")) + " a até " + raio + " km nas últimas " + janela + " horas.";
   }
 
   function desenharRadar(lista, raio) {
@@ -231,7 +349,7 @@
     ctx.fillStyle = cor("--fogo");
     lista.forEach(function (f) {
       var x = c + (f.lon - lugar.lon) * kx * escala, y = c - (f.lat - lugar.lat) * 111 * escala;
-      var s = Math.min(26, 9 + Math.sqrt(f.n) * 4);
+      var s = 14;
       ctx.fillRect(x - s / 2, y - s / 2, s, s);
     });
     ctx.fillStyle = cor("--tinta"); ctx.beginPath(); ctx.arc(c, c, 9, 0, 7); ctx.fill();
@@ -246,54 +364,63 @@
   }
 
   function desenharFogo() {
-    segmento($("#fogo-mes"), MESES_DADOS.map(function (x) { return [x, MESES[x - 1].slice(0, 3)]; }), mesFogo, function (v) { mesFogo = v; guardar("iara-mes", v); desenharFogo(); });
+    segmento($("#fogo-janela"), [[24, "24 horas"], [48, "48 horas"]], janelaFogo, function (v) { janelaFogo = v; guardar("iara-janela", v); desenharFogo(); });
     segmento($("#fogo-raio"), [[10, "10 km"], [30, "30 km"], [50, "50 km"]], raioFogo, function (v) { raioFogo = v; guardar("iara-raio", v); desenharFogo(); });
     $("#fogo").classList.toggle("sem-lugar-fogo", !lugar);
     if (!lugar) {
       $("#fogo-resumo").textContent = "Para ver o fogo perto de você, diga onde está.";
       $("#fogo-perto").innerHTML = '<button class="btn btn-cheio" type="button" data-acao="gps"><i class="ph ph-crosshair"></i>Usar minha localização</button>';
       $("#fogo-risco").innerHTML = '<button class="link-texto" type="button" data-acao="escolher">Escolher cidade ou reserva</button>';
-      $("#fogo-desmate").textContent = ""; $("#fogo-nota").textContent = "";
+      $("#fogo-nota").textContent = "";
       return;
     }
-    Promise.all([dados("focos"), dados("risco"), dados("deter")]).then(function (r) {
-      var lista = focosPerto(r[0], mesFogo, raioFogo), total = lista.reduce(function (a, f) { return a + f.n; }, 0);
-      var nomeMes = MESES[mesFogo - 1] + (ULTIMO_DIA[mesFogo] ? " (" + ULTIMO_DIA[mesFogo] + ")" : "");
-      $("#fogo-resumo").textContent = total === 0
-        ? "Nenhum foco de calor a até " + raioFogo + " km em " + nomeMes + "."
-        : n(total) + (total === 1 ? " foco de calor" : " focos de calor") + " a até " + raioFogo + " km em " + nomeMes + ".";
-      $("#fogo-perto").textContent = lista.length ? "O mais perto fica a " + Math.max(1, Math.round(lista[0].d)) + " km, " + rumo(lugar.lat, lugar.lon, lista[0].lat, lista[0].lon) + "." : "";
-      var rk = riscoPerto(r[1], mesFogo);
-      $("#fogo-risco").innerHTML = "Risco de fogo na sua área em " + MESES[mesFogo - 1] + ': <span class="risco-tag">' + RISCO_NOME[rk] + "</span>.";
-      var dm = desmatePerto(r[2], raioFogo);
-      $("#fogo-desmate").textContent = dm.length
-        ? n(dm.length) + (dm.length === 1 ? " alerta" : " alertas") + " de desmatamento ou queimada do INPE a até " + raioFogo + " km desde junho."
-        : "Nenhum alerta grande de desmatamento a até " + raioFogo + " km desde junho.";
-      $("#fogo-nota").textContent = "Focos do satélite de referência do INPE, somados em quadrados de cerca de 10 km. Um foco é um ponto quente visto do espaço, pode ser roça, mata ou pasto. O risco é um índice da equipe IARA, não previsão oficial.";
-      desenharRadar(lista, raioFogo);
-    });
+    if (vivo.fogo === "pronto" && janelaFogo === 48 && !vivo.dias[2]) {
+      var rodada = vivo.rodada;
+      buscarFogo(2, rodada).then(function () { if (rodada === vivo.rodada && document.body.dataset.tela === "fogo") desenharFogo(); });
+    }
+    if (!fogoPronto(janelaFogo)) {
+      $("#fogo-resumo").textContent = vivo.fogo === "erro" ? "Não deu para buscar os focos no INPE agora." : "Buscando os focos de calor no INPE.";
+      $("#fogo-perto").innerHTML = vivo.fogo === "erro" ? '<button class="link-texto" type="button" data-acao="atualizar">Tentar de novo</button>' : "";
+      $("#fogo-risco").textContent = ""; $("#fogo-nota").textContent = "";
+      desenharRadar([], raioFogo);
+      return;
+    }
+    var lista = focosPerto(janelaFogo, raioFogo);
+    $("#fogo-resumo").textContent = fraseFocos(lista.length, raioFogo, janelaFogo);
+    var p = lista[0];
+    $("#fogo-perto").textContent = p ? "O mais perto fica a " + Math.max(1, Math.round(p.d)) + " km, " + rumo(lugar.lat, lugar.lon, p.lat, p.lon) + ", visto " + diaHora(p.t) + "." : "";
+    $("#fogo-risco").textContent = "";
+    $("#fogo-nota").textContent = "Focos de todos os satélites que o INPE usa, juntados em quadrados de 2 km para não contar o mesmo fogo duas vezes. Um foco é um ponto quente visto do espaço: pode ser roça, mata ou pasto. Dados buscados no INPE às " + hora(vivo.quando || Date.now()) + ".";
+    desenharRadar(lista, raioFogo);
   }
 
   /* ---------- início ---------- */
   function desenharInicio() {
     var tem = !!lugar;
     $("#lugar-vazio").hidden = tem; $("#lugar-cheio").hidden = !tem;
-    $("#inicio-datas").textContent = "Rio: boletim da ANA de " + IARA.DATA_RIO + ". Fogo: INPE, de junho a 13/11/2026.";
+    $("#inicio-datas").textContent = vivo.rio === "carregando" || vivo.fogo === "carregando" ? "Atualizando os dados da ANA e do INPE."
+      : "Atualizado às " + hora(vivo.quando || Date.now()) + ". Rio: medição automática da ANA. Fogo: focos de calor do INPE.";
     if (!tem) return;
     $("#lugar-nome").textContent = lugar.nome;
-    var e = estacao(), v = variacao(e);
+    var e = estacao();
     var dist = Math.round(km(lugar.lat, lugar.lon, e.lat, e.lon));
-    $("#resumo-rio").innerHTML = '<i class="ph ph-waves"></i><span><small>' + esc(e.rio + " em " + e.nome) + (dist > 40 ? ", a " + n(dist) + " km" : "") + "</small><b>" + m(e.cm) + " m</b><small>" + v.hoje + "." + (e.cm < e.seca ? " Abaixo da cota de seca." : "") + '</small></span><i class="ph ph-caret-right"></i>';
-    var bf = $("#resumo-fogo"), cab = '<i class="ph ph-fire"></i><span><small>Fogo a até 30 km, em novembro (até o dia 13)</small>';
-    bf.innerHTML = cab + "<b>&nbsp;</b></span>";
-    Promise.all([dados("focos"), dados("risco")]).then(function (r) {
-      var ultimo = MESES_DADOS[MESES_DADOS.length - 1];
-      var lista = focosPerto(r[0], ultimo, 30), total = lista.reduce(function (a, f) { return a + f.n; }, 0), rk = riscoPerto(r[1], ultimo);
-      bf.innerHTML = cab + "<b>" + (total === 0 ? "Nenhum foco de calor" : n(total) + (total === 1 ? " foco de calor" : " focos de calor")) + "</b><small>" +
-        (lista.length ? "O mais perto fica a " + Math.max(1, Math.round(lista[0].d)) + " km, " + rumo(lugar.lat, lugar.lon, lista[0].lat, lista[0].lon) + ". " : "") +
-        "Risco de fogo: " + RISCO_NOME[rk] + '.</small></span><i class="ph ph-caret-right"></i>';
-      ocultarIcones();
-    });
+    var cabRio = '<i class="ph ph-waves"></i><span><small>' + esc(e.rio + " em " + e.nome) + (dist > 40 ? ", a " + n(dist) + " km" : "") + "</small>";
+    if (e.cm == null) {
+      $("#resumo-rio").innerHTML = cabRio + "<b>" + (vivo.rio === "carregando" ? "Atualizando" : "Sem medição agora") + "</b><small>" + (vivo.rio === "carregando" ? "Buscando na ANA." : "Toque para ver outras estações.") + '</small></span><i class="ph ph-caret-right"></i>';
+    } else {
+      var v = variacao(e);
+      $("#resumo-rio").innerHTML = cabRio + "<b>" + m(e.cm) + " m</b><small>" + v.hoje + "." + (e.cm < e.seca ? " Abaixo da cota de seca." : "") + '</small></span><i class="ph ph-caret-right"></i>';
+    }
+    var bf = $("#resumo-fogo"), cab = '<i class="ph ph-fire"></i><span><small>Fogo a até 30 km, nas últimas 24 horas</small>';
+    if (vivo.fogo !== "pronto") {
+      bf.innerHTML = cab + "<b>" + (vivo.fogo === "carregando" ? "Atualizando" : "Sem dados agora") + "</b><small>" + (vivo.fogo === "carregando" ? "Buscando no INPE." : "O INPE não respondeu.") + '</small></span><i class="ph ph-caret-right"></i>';
+    } else {
+      var lista = focosPerto(24, 30), p = lista[0];
+      bf.innerHTML = cab + "<b>" + (lista.length === 0 ? "Nenhum foco de calor" : n(lista.length) + (lista.length === 1 ? " foco de calor" : " focos de calor")) + "</b><small>" +
+        (p ? "O mais perto fica a " + Math.max(1, Math.round(p.d)) + " km, " + rumo(lugar.lat, lugar.lon, p.lat, p.lon) + "." : "Nada visto pelos satélites.") +
+        '</small></span><i class="ph ph-caret-right"></i>';
+    }
+    ocultarIcones();
     dados("territorios").then(function (T) {
       var achado = null;
       for (var i = 0; i < T.length && !achado; i++) {
@@ -304,9 +431,16 @@
       var el = $("#resumo-terr");
       if (!achado) { el.hidden = true; return; }
       var nome = (achado.t === "TI" && achado.n.indexOf("Terra") !== 0 ? "Terra indígena " : "") + achado.n;
-      el.innerHTML = "Este lugar fica na <strong>" + esc(nome) + "</strong>" + (achado.e ? ", do povo " + esc(achado.e) : "") + ". " +
-        (achado.fo ? n(achado.fo) + (achado.fo === 1 ? " foco de calor" : " focos de calor") + " dentro do território em 2026." : "Nenhum foco de calor dentro do território em 2026.");
-      el.hidden = false;
+      var txt = "Este lugar fica na <strong>" + esc(nome) + "</strong>" + (achado.e ? ", do povo " + esc(achado.e) : "") + ".";
+      if (vivo.fogo === "pronto") {
+        var desde = Date.now() - 24 * 36e5, b2 = achado.b, nf = 0;
+        vivo.focos.forEach(function (f) {
+          if (f.t < desde || f.lat < b2[0] || f.lat > b2[2] || f.lon < b2[1] || f.lon > b2[3]) return;
+          for (var k = 0; k < achado.p.length; k++) if (dentro(f.lat, f.lon, achado.p[k])) { nf++; break; }
+        });
+        txt += " " + (nf ? n(nf) + (nf === 1 ? " foco de calor" : " focos de calor") : "Nenhum foco de calor") + " dentro do território nas últimas 24 horas.";
+      }
+      el.innerHTML = txt; el.hidden = false;
     });
   }
 
@@ -381,7 +515,7 @@
   });
 
   /* ---------- mapa de satélite ---------- */
-  var mapa = null, camadaFundo = null, camadaDados = null, fundoMapa = ler("iara-fundo", "esri");
+  var mapa = null, camadaFundo = null, camadaDados = null, terrMapa = null, fundoMapa = ler("iara-fundo", "esri");
   var GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/{camada}/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.{ext}";
   var FUNDOS = [["esri", "Satélite"], ["nasa", "NASA, ontem"], ["calor", "Calor, NASA"]];
 
@@ -406,7 +540,7 @@
     camadaFundo = fundoDe(fundoMapa).addTo(mapa);
     $("#mapa-data").textContent = fundoMapa === "esri" ? "Imagem de satélite de alta resolução. A data varia de lugar para lugar."
       : fundoMapa === "nasa" ? "Imagem do satélite Suomi NPP, da NASA, de " + ontem().split("-").reverse().join("/") + ". Mostra nuvens e fumaça do dia."
-      : "Pontos vermelhos: fogo ativo visto pelo satélite da NASA em " + ontem().split("-").reverse().join("/") + ". Quadrados laranja: focos do INPE no mês.";
+      : "Pontos vermelhos: fogo ativo visto pelo satélite da NASA em " + ontem().split("-").reverse().join("/") + ". Quadrados laranja: focos do INPE nas últimas " + janelaFogo + " horas.";
   }
   function desenharMapa() {
     segmento($("#mapa-fundo"), FUNDOS.map(function (f, i) { return [i, f[1]]; }), FUNDOS.map(function (f) { return f[0]; }).indexOf(fundoMapa), function (v) {
@@ -414,6 +548,7 @@
     });
     var sem = $("#mapa-sem");
     if (!navigator.onLine) { sem.textContent = "Sem internet agora. O mapa aparece quando o celular conectar."; sem.hidden = false; return; }
+    if (mapa && terrMapa && redesenho) { desenharCamadas(); return; }
     sem.hidden = true;
     carregarLeaflet().then(function () {
       var centro = lugar ? [lugar.lat, lugar.lon] : [-3.4, -60.5];
@@ -422,31 +557,35 @@
         mapa.attributionControl.setPrefix(false);
       } else { mapa.invalidateSize(); mapa.setView(centro, mapa.getZoom()); }
       trocarFundo();
-      return Promise.all([dados("focos"), dados("territorios")]);
-    }).then(function (r) {
+      return dados("territorios");
+    }).then(function (T) { terrMapa = T; desenharCamadas(); })
+      .catch(function () { sem.textContent = "Não deu para abrir o mapa. Confira a internet e tente de novo."; sem.hidden = false; });
+  }
+  function desenharCamadas() {
+      var T = terrMapa;
       if (camadaDados) mapa.removeLayer(camadaDados);
       camadaDados = L.layerGroup().addTo(mapa);
       var c = mapa.getCenter(), g = 1.2;
-      r[1].forEach(function (t) {
+      T.forEach(function (t) {
         var b = t.b;
         if (b[2] < c.lat - g * 2 || b[0] > c.lat + g * 2 || b[3] < c.lng - g * 2 || b[1] > c.lng + g * 2) return;
         L.polygon(t.p.map(function (anel) { return anel.map(function (p) { return [p[1], p[0]]; }); }), { color: "#8fd6a6", weight: 2, fillOpacity: 0.08, interactive: false }).addTo(camadaDados);
       });
-      r[0].forEach(function (f) {
-        if (f[2] !== mesFogo || Math.abs(f[0] - c.lat) > g || Math.abs(f[1] - c.lng) > g) return;
-        var s = 0.02;
-        L.rectangle([[f[0] - s, f[1] - s], [f[0] + s, f[1] + s]], { color: "#5a1e08", weight: 1, fillColor: "#f07a45", fillOpacity: 0.9 })
-          .bindTooltip(n(f[3]) + (f[3] === 1 ? " foco" : " focos") + " em " + MESES[mesFogo - 1]).addTo(camadaDados);
+      var desde = Date.now() - janelaFogo * 36e5;
+      vivo.focos.forEach(function (f) {
+        if (f.t < desde || Math.abs(f.lat - c.lat) > g || Math.abs(f.lon - c.lng) > g) return;
+        var s = 0.009;
+        L.rectangle([[f.lat - s, f.lon - s], [f.lat + s, f.lon + s]], { color: "#5a1e08", weight: 1, fillColor: "#f07a45", fillOpacity: 0.9 })
+          .bindTooltip("Foco de calor visto " + diaHora(f.t)).addTo(camadaDados);
       });
       IARA.ESTACOES.forEach(function (e) {
         L.circleMarker([e.lat, e.lon], { radius: 7, color: "#fff", weight: 2, fillColor: "#5aa7c9", fillOpacity: 1 })
-          .bindTooltip(e.nome + ": " + m(e.cm) + " m", { className: "mapa-rotulo" }).addTo(camadaDados);
+          .bindTooltip(e.nome + ": " + (e.cm == null ? "sem medição agora" : m(e.cm) + " m"), { className: "mapa-rotulo" }).addTo(camadaDados);
       });
       if (lugar) {
         L.circleMarker([lugar.lat, lugar.lon], { radius: 8, color: "#102019", weight: 4, fillColor: "#fff", fillOpacity: 1 })
           .bindTooltip(lugar.nome, { permanent: true, direction: "right", offset: [10, 0], className: "mapa-rotulo" }).addTo(camadaDados);
       }
-    }).catch(function () { sem.textContent = "Não deu para abrir o mapa. Confira a internet e tente de novo."; sem.hidden = false; });
   }
 
   /* ---------- mais ---------- */
@@ -481,17 +620,18 @@
 
   /* ---------- telas ---------- */
   var TELAS = ["inicio", "rio", "fogo", "mapa", "denunciar", "mais"];
-  var rolarAte = null;
+  var rolarAte = null, redesenho = false;
   function desenharTudo() { rota(); }
   function ocultarIcones() { $$("i.ph:not([aria-label])").forEach(function (i) { i.setAttribute("aria-hidden", "true"); }); }
 
-  function rota() {
+  function rota(semRolar) {
+    redesenho = semRolar === true;
     var partes = (location.hash || "#inicio").slice(1).split("/");
     var tela = TELAS.indexOf(partes[0]) >= 0 ? partes[0] : "inicio", sub = partes[1];
     TELAS.forEach(function (t) { $("#" + t).hidden = t !== tela; });
     document.body.dataset.tela = tela;
     var titulo = $("#topo-titulo");
-    titulo.textContent = tela === "inicio" ? "IARA" : (tela === "mais" && sub && IARA.GUIAS.some(function (g) { return g.id === sub; }) ? "Guia sem internet" : $("#" + tela).dataset.titulo);
+    titulo.textContent = tela === "inicio" ? "IARA" : (tela === "mais" && sub && IARA.GUIAS.some(function (g) { return g.id === sub; }) ? "Guia" : $("#" + tela).dataset.titulo);
     titulo.classList.toggle("so-leitor", tela === "inicio");
     var detalhe = sub && sub !== "telefones" && !/^(guias|cursos|funai|beneficios)$/.test(sub);
     $(".voltar-topo").setAttribute("href", detalhe ? "#" + tela : "#inicio");
@@ -506,16 +646,19 @@
     if (tela === "mais") desenharMais(sub);
     ocultarIcones();
     var alvo = rolarAte && $(rolarAte);
-    if (alvo) window.scrollTo(0, alvo.getBoundingClientRect().top + window.scrollY - 90); else window.scrollTo(0, 0);
+    if (!redesenho) { if (alvo) window.scrollTo(0, alvo.getBoundingClientRect().top + window.scrollY - 90); else window.scrollTo(0, 0); }
+    redesenho = false;
   }
   if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-  window.addEventListener("hashchange", rota);
+  window.addEventListener("hashchange", function () { rota(); });
 
   /* ---------- eventos ---------- */
   document.addEventListener("click", function (ev) {
     var a = ev.target.closest("[data-acao]");
     if (a && a.dataset.acao === "gps") pedirGps();
     if (a && a.dataset.acao === "escolher") abrirFolha();
+    if (a && a.dataset.acao === "atualizar") atualizar();
+    if (a && a.dataset.acao === "tour") abrirTour();
     var sit = ev.target.closest("#situacoes button"); if (sit) location.hash = "denunciar/" + sit.dataset.id;
     var est = ev.target.closest("#lista-estacoes button");
     if (est) { estacaoSel = est.dataset.id; guardar("iara-estacao", estacaoSel); desenharRio(); window.scrollTo({ top: 0, behavior: "smooth" }); }
@@ -530,7 +673,7 @@
     var escuro = raiz.dataset.theme ? raiz.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
     raiz.dataset.theme = escuro ? "light" : "dark";
     try { localStorage.setItem("iara-tema", raiz.dataset.theme); } catch (e) {}
-    rota();
+    rota(true);
   });
   $("#btn-letra").addEventListener("click", function () {
     var g = raiz.dataset.letra === "grande";
@@ -544,11 +687,80 @@
   window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); pedidoInstalar = e; $("#li-instalar").hidden = false; });
   $("#btn-instalar").addEventListener("click", function () { if (pedidoInstalar) { pedidoInstalar.prompt(); pedidoInstalar = null; $("#li-instalar").hidden = true; } });
 
-  window.addEventListener("offline", function () { avisar("Sem internet. Rio, fogo, guias e anotações continuam funcionando."); });
+  /* ---------- só com internet ---------- */
+  window.addEventListener("offline", function () { semInternet(true); });
+  window.addEventListener("online", function () { atualizar(); });
+  /* volta para o app depois de um tempo: busca de novo */
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && vivo.quando && Date.now() - vivo.quando > 15 * 60000) atualizar();
+  });
+
+  /* ---------- tour da primeira vez ---------- */
+  var PASSOS = [
+    { tela: "inicio", icone: "hand-waving", titulo: "Para que serve o IARA",
+      texto: "O IARA mostra como está o rio e se tem fogo perto da sua comunidade, e diz onde denunciar e pedir ajuda. Os números vêm da ANA e do INPE e são buscados toda vez que você abre o app. Por isso ele precisa de internet." },
+    { tela: "inicio", aba: "inicio", icone: "house", titulo: "Início",
+      texto: "O resumo do seu lugar: a altura do rio na estação mais perto e quantos focos de fogo há a até 30 km. Os quadrados de Serviços levam para cada parte do app." },
+    { tela: "rio", aba: "rio", icone: "waves", titulo: "Rio",
+      texto: "A altura do rio medida pela ANA a cada 15 minutos, se subiu ou desceu desde ontem e quanto falta para a marca de seca ou de cheia. Dá para trocar de estação." },
+    { tela: "fogo", aba: "fogo", icone: "fire", titulo: "Fogo",
+      texto: "Os focos de calor vistos por satélite nas últimas 24 ou 48 horas, a até 10, 30 ou 50 km de você, e a que distância fica o mais perto." },
+    { tela: "mapa", icone: "globe-hemisphere-west", titulo: "Mapa de satélite",
+      texto: "A imagem de satélite do seu lugar, com os focos de fogo, as terras indígenas e as estações do rio. Abre pelo quadrado Mapa de satélite, no Início." },
+    { tela: "denunciar", aba: "denunciar", icone: "megaphone", titulo: "Denunciar",
+      texto: "Escolha o que está acontecendo, como garimpo, pesca ilegal ou invasão de terra, e veja os passos e os canais oficiais: Ibama, MPF, Funai e Disque 100. Dá para anotar tudo antes." },
+    { tela: "mais", aba: "mais", icone: "list", titulo: "Mais",
+      texto: "Guias de cheia, seca, fogo e fumaça, cursos gratuitos, serviços da Funai e benefícios como o seguro-defeso. Aqui também muda o tema, aumenta a letra e abre este tour de novo." },
+    { tela: "inicio", icone: "map-pin", titulo: "Onde você está?",
+      texto: "Com o seu lugar, o app mostra o rio e o fogo perto de você. A localização fica guardada só neste celular." }
+  ];
+  var passo = 0;
+  function abrirTour() {
+    fecharFolha(); passo = 0;
+    $("#tour").hidden = false; raiz.classList.add("em-tour");
+    $("#tour-pontos").innerHTML = PASSOS.map(function () { return "<span></span>"; }).join("");
+    mostrarPasso();
+  }
+  function mostrarPasso() {
+    var p = PASSOS[passo], ultimo = passo === PASSOS.length - 1;
+    if ((location.hash || "#inicio").slice(1) !== p.tela) location.hash = p.tela;
+    $$(".abas a").forEach(function (a) { a.classList.toggle("tour-alvo", a.dataset.aba === p.aba); });
+    $("#tour-icone").className = "ph ph-" + p.icone;
+    $("#tour-conta").textContent = (passo + 1) + " de " + PASSOS.length;
+    $("#tour-titulo").textContent = p.titulo;
+    $("#tour-texto").textContent = p.texto;
+    $$("#tour-pontos span").forEach(function (sp, i) { sp.className = i === passo ? "atual" : ""; });
+    $("#tour-seguir").innerHTML = ultimo ? (lugar ? "Começar" : '<i class="ph ph-map-pin" aria-hidden="true"></i>Escolher lugar') : "Próximo";
+    $("#tour-voltar").hidden = passo === 0;
+    $("#tour-pular").hidden = ultimo;
+    $("#tour-seguir").focus();
+  }
+  function fecharTour(escolher) {
+    $("#tour").hidden = true; raiz.classList.remove("em-tour");
+    $$(".abas a").forEach(function (a) { a.classList.remove("tour-alvo"); });
+    guardar("iara-tour", 1);
+    if (location.hash !== "#inicio") location.hash = "inicio";
+    if (escolher && !lugar) abrirFolha();
+  }
+  $("#tour-seguir").addEventListener("click", function () { if (passo === PASSOS.length - 1) fecharTour(true); else { passo++; mostrarPasso(); } });
+  $("#tour-voltar").addEventListener("click", function () { if (passo > 0) { passo--; mostrarPasso(); } });
+  $("#tour-pular").addEventListener("click", function () { fecharTour(false); });
+  document.addEventListener("keydown", function (e) {
+    if ($("#tour").hidden) return;
+    if (e.key === "Escape") fecharTour(false);
+    if (e.key === "ArrowRight") $("#tour-seguir").click();
+    if (e.key === "ArrowLeft" && !$("#tour-voltar").hidden) $("#tour-voltar").click();
+  });
 
   rota();
+  atualizar();
+  /* o navegador rola até a seção do #endereço depois de carregar; volta para o topo */
+  window.addEventListener("load", function () { setTimeout(function () { window.scrollTo(0, 0); }, 0); });
+  if (!ler("iara-tour", 0)) abrirTour();
 
-  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+  /* O app antigo guardava tudo para usar sem internet. Agora não guarda mais: tira o que ficou. */
+  if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+    navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); }).catch(function () {});
+    if (window.caches) caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); }).catch(function () {});
   }
 })();

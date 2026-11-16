@@ -28,12 +28,12 @@ pagina = pagina.replace('<link rel="manifest" href="manifest.webmanifest">\n', '
 pagina = pagina.replace('<link rel="stylesheet" href="vendor/phosphor/style.css">', "<style>" + icones + "</style>")
 pagina = pagina.replace('<link rel="stylesheet" href="css/app.css">', "<style>" + css + "</style>\n<style>" + ler("vendor/leaflet/leaflet.css") + "</style>")
 pagina = re.sub(r'(src|href)="(img/[^"]+)"', lambda m: '%s="%s"' % (m.group(1), data_url(m.group(2))), pagina)
-dados = "".join("<script>" + ler("dados/%s.js" % n) + "</script>\n" for n in ["focos", "risco", "deter", "territorios"])
+dados = "".join("<script>" + ler("dados/%s.js" % n) + "</script>\n" for n in ["territorios"])
 pagina = pagina.replace('<script src="js/base.js"></script>',
                         "<script>" + ler("vendor/leaflet/leaflet.js") + "</script>\n" + dados + "<script>" + ler("js/base.js") + "</script>")
 pagina = pagina.replace('<script src="js/app.js"></script>', "<script>" + ler("js/app.js") + "</script>")
-# sem service worker dentro do visualizador
-pagina = pagina.replace('"serviceWorker" in navigator &&', 'false &&')
+# dentro do visualizador não mexe em service worker
+pagina = pagina.replace('if ("serviceWorker" in navigator &&', 'if (false &&')
 assert 'src="js/' not in pagina and 'href="css/' not in pagina
 
 moldura = """<!doctype html>
@@ -58,9 +58,10 @@ moldura = """<!doctype html>
 <div class="texto">
   <h1>IARA no celular</h1>
   <p>Este é o app de verdade, rodando dentro de uma moldura de celular. Clique como se fosse o dedo.</p>
-  <p>Comece por "Usar minha localização" ou escolha uma cidade, por exemplo Tefé ou Lábrea.</p>
-  <p>O mapa de satélite precisa de internet. O resto funciona sem.</p>
+  <p>Na primeira vez abre um tour que mostra cada aba. Depois escolha uma cidade, por exemplo Tefé ou Lábrea.</p>
+  <p>O app precisa de internet: o nível do rio vem da ANA e os focos de fogo vêm do INPE, buscados na hora.</p>
   <button type="button" onclick="var f=document.getElementById('app');f.srcdoc=f.srcdoc">Recomeçar</button>
+  <button type="button" onclick="try{localStorage.removeItem('iara-tour')}catch(e){};var f=document.getElementById('app');f.srcdoc=f.srcdoc">Ver o tour de novo</button>
 </div>
 </body>
 </html>

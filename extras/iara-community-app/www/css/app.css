@@ -271,3 +271,40 @@ body[data-tela="inicio"] .topo-linha { padding-left: 6px; }
 .leaflet-control-attribution { font-size: 10px; }
 .leaflet-tooltip.mapa-rotulo { background: rgb(16 32 25 / 0.85); color: #e6eee8; border: 0; border-radius: 4px; box-shadow: none; font-size: 12px; padding: 2px 6px; }
 .leaflet-tooltip.mapa-rotulo::before { display: none; }
+
+/* sem internet: o app só funciona conectado */
+.sem-net { position: fixed; inset: 0; z-index: 1050; display: grid; place-items: center; padding: calc(24px + var(--seg-top)) 20px calc(24px + var(--seg-baixo)); background: var(--fundo); }
+.sem-net-caixa { width: 100%; max-width: 420px; }
+.sem-net-icone { font-size: 2.6rem; color: var(--apagado); }
+.sem-net h2 { font-size: 1.55rem; margin: 10px 0 8px; }
+.sem-net p { margin: 0 0 20px; }
+.bloqueado body { overflow: hidden; }
+
+/* tour da primeira vez */
+.tour-fundo { position: fixed; inset: 0; z-index: 1100; background: rgb(5 12 8 / 0.62); }
+.em-tour .abas { z-index: 1101; pointer-events: none; }
+.em-tour .abas a { opacity: 0.35; }
+.em-tour .abas a.tour-alvo { opacity: 1; color: var(--tinta); font-weight: 700; }
+.em-tour .abas a.tour-alvo .ph { color: var(--agua); }
+.em-tour .abas a.tour-alvo::after { content: ""; position: absolute; inset: 5px 8%; border: 2px solid var(--agua); border-radius: var(--r); }
+.em-tour .abas a[aria-current="page"]:not(.tour-alvo)::before { display: none; }
+.tour-cartao {
+  position: fixed; z-index: 1102; left: 12px; right: 12px; bottom: calc(var(--abas-h) + var(--seg-baixo) + 12px);
+  margin: 0 auto; max-width: 460px; padding: 16px 16px 14px; border-radius: var(--r);
+  background: var(--superficie); color: var(--tinta); border: 1px solid var(--linha);
+  box-shadow: 0 10px 30px rgb(5 12 8 / 0.35);
+}
+.tour-cabeca { display: flex; align-items: center; gap: 10px; }
+.tour-cabeca .ph { font-size: 1.6rem; color: var(--agua); }
+.tour-conta { flex: 1; font-size: 0.85rem; color: var(--apagado); font-variant-numeric: tabular-nums; }
+.tour-cabeca .link-texto { padding: 6px 0; }
+.tour-cartao h2 { font-size: 1.35rem; margin: 8px 0 6px; }
+.tour-cartao p { margin: 0; }
+.tour-rodape { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+.tour-pontos { flex: 1; display: flex; gap: 5px; }
+.tour-pontos span { width: 7px; height: 7px; border-radius: 50%; background: var(--linha); }
+.tour-pontos span.atual { background: var(--agua); width: 18px; border-radius: 4px; }
+.tour-rodape .btn { min-height: 46px; padding: 8px 16px; }
+.tour-rodape .btn:not(.btn-cheio) { background: none; border: 1px solid var(--linha); color: var(--tinta); }
+#tour-voltar[hidden] { display: none; }
+.rodape-dados .link-texto { padding: 4px 0; font-size: 0.8rem; }
