@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "IARA | Rio, fogo e direitos na Amazônia",
+  "short_name": "IARA",
+  "description": "Nível do rio, fogo perto de casa, onde denunciar e cursos gratuitos para comunidades ribeirinhas.",
+  "lang": "pt-BR",
+  "start_url": "./#inicio",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef3ee",
+  "theme_color": "#102019",
+  "icons": [
+    { "src": "img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Nível do rio", "url": "./index.html#rio" },
+    { "name": "Fazer uma denúncia", "url": "./index.html#denunciar" }
+  ]
+}
