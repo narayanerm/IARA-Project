@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useMap } from 'react-map-gl/maplibre'
 import { useI18n } from '@/lib/i18n'
-import { useApp, useCaseVideo, useCaseVideoActive } from '@/lib/store'
+import { useCaseVideo, useCaseVideoActive } from '@/lib/store'
 import type { RegionId } from '@/lib/types'
 import './caseVideo.css'
 
@@ -41,13 +41,14 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
   const [muted, setMuted] = useState(false)
   const video = VIDEOS[region]
 
+  // Closing only closes: it never opens or switches a case, so whatever screen is behind the video stays as it was.
+  // Idempotent: a double click on skip, Esc repeated, or ended/error right after a skip do nothing the second time.
+  const closedRef = useRef(false)
   const done = useCallback(
     (failed = false) => {
-      // Asked for after the tour (Mining): continue into that case. From the header button the case is already open.
-      const app = useApp.getState()
-      const wasRequested = useCaseVideo.getState().requested === region
+      if (closedRef.current) return
+      closedRef.current = true
       close(region, !failed && playedRef.current)
-      if (wasRequested && !(app.aoiActive && app.activeRegion === region)) app.setActiveRegion(region)
     },
     [close, region]
   )

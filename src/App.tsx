@@ -83,12 +83,9 @@ export default function App() {
           <Tutorial
             key={`${tourInCase}-${tourRun}`}
             steps={tourInCase ? TOUR.slice(2) : TOUR}
-            onClose={() => {
-              setTutorialOn(false)
-              // After the Mining tour, its voiced video plays, then the Mining case opens on the main map.
-              const video = useCaseVideo.getState()
-              if (!video.seen.YANO) video.playCaseVideo('YANO')
-            }}
+            // Closing the tour does not ask for a video by itself: if Mining is open (and its video unseen),
+            // the usual open-case rule plays it once the tour is gone; on any other screen nothing plays.
+            onClose={() => setTutorialOn(false)}
           />
         )}
       </main>
