@@ -3,7 +3,7 @@ import { ArrowLeft, Play } from 'lucide-react'
 import { CASES, CASE_ORDER, type CaseStudy } from '@/data/cases'
 import { useApp, type CaseTab, useCaseVideo, useCaseVideoActive } from '@/lib/store'
 import { useT, type TKey } from '@/lib/i18n'
-import { CaseAlerts } from './CaseAlerts'
+import { CaseLeanAlerts } from './CaseFloodAlerts'
 import { CaseSar, useCasePoint } from './CaseSar'
 import { CaseSeries } from './CaseSeries'
 import { CaseFlowOutlook } from './CaseFlowOutlook'
@@ -17,7 +17,7 @@ type Tab = CaseTab
 const TABS: Array<{ id: Tab; label: TKey }> = [
   { id: 'overview', label: 'case.tab.overview' },
   { id: 'timeline', label: 'case.tab.timeline' },
-  { id: 'alerts', label: 'case.tab.alerts' },
+  { id: 'forecast', label: 'case.tab.forecast' },
 ]
 
 /**
@@ -121,11 +121,7 @@ function CasePanel({ c, onForecastMapChange }: { c: CaseStudy; onForecastMapChan
             <CaseSar c={c} />
           </>
         )}
-        {tab === 'alerts' && (
-          <CaseAlerts c={c} forecast={
-            c.id !== 'YANO' && <CaseForecasts kind={c.id === 'ENCH' ? 'flood' : 'drought'} bounds={bounds} onMapChange={onForecastMapChange} />
-          } />
-        )}
+        {tab === 'forecast' && <CaseLeanAlerts c={c} />}
       </div>
     </aside>
   )

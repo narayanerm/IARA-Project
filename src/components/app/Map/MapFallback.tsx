@@ -499,7 +499,7 @@ function buildAffectedPopupHtml(p: AffectedAreaProps): string {
   return `
     <div style="min-width:200px; font-family:Inter,sans-serif;">
       <div style="font-weight:600; margin-bottom:4px;">${p.label}</div>
-      <div style="font-size:11px; color:#888; font-family:Inter,sans-serif; text-transform:uppercase;">${kindLabel} · ${p.year}</div>
+      <div style="font-size:11px; color:#888; font-family:monospace; text-transform:uppercase;">${kindLabel} · ${p.year}</div>
       <div style="font-size:16px; font-weight:600; margin-top:6px; color:${affectedAreaColor(p.kind)};">
         ${p.area_km2.toLocaleString(localeNow)} km²
       </div>

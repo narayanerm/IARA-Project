@@ -15,6 +15,7 @@ Usage: python3 scripts/analysis/build-nisar-mosaic.py
 """
 
 import json
+import netrc
 import os
 import re
 import sys
@@ -26,6 +27,48 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
+from scipy.ndimage import gaussian_filter
+
+try:
+    import requests  # optional: enables Earthdata Login for authenticated KMLs
+except ImportError:
+    requests = None
+
+# Earthdata Login session for authenticated KML fetches. Older NISAR processing
+# versions (P05023) return HTML login pages for their _LATLON.kml sidecar; with
+# a valid Bearer token (env EDL_TOKEN or file ~/.edl_token) or a ~/.netrc entry
+# for urs.earthdata.nasa.gov we get the real KML.
+def _load_edl_token():
+    tok = os.environ.get("EDL_TOKEN", "").strip()
+    if tok:
+        return tok
+    p = Path.home() / ".edl_token"
+    if p.exists():
+        return p.read_text().strip()
+    return None
+
+def _build_earthdata_session():
+    if requests is None:
+        return None
+    sess = requests.Session()
+    sess.headers.update({"User-Agent": "IARA-mosaic-build/1.0"})
+    token = _load_edl_token()
+    if token:
+        sess.headers["Authorization"] = f"Bearer {token}"
+        print("[auth] Earthdata Login enabled via Bearer token")
+        return sess
+    try:
+        creds = netrc.netrc().authenticators("urs.earthdata.nasa.gov")
+    except (FileNotFoundError, netrc.NetrcParseError):
+        return None
+    if not creds:
+        return None
+    user, _, pwd = creds
+    sess.auth = (user, pwd)
+    print(f"[auth] Earthdata Login enabled for {user}")
+    return sess
+
+EARTHDATA_SESSION = _build_earthdata_session()
 
 # ---------- Case config ----------
 # CASE env var picks the AOI (default: YANO). Each entry drives the ASF query bbox,
@@ -39,17 +82,19 @@ CASES = {
         "out_stem": "yanomami-nisar-mosaic",
     },
     "ENCH": {
-        # Urban Manaus + confluence. Padded search bbox so edge scenes come in.
-        "search_bbox": (-60.6, -3.5, -59.4, -2.7),
-        "polygon_file": None,                          # no clip, just render rectangle
-        "render_bbox": (-60.4, -3.4, -59.5, -2.8),
+        # Manaus municipio bbox (IBGE 1302603): -60.80 -3.22 -59.20 -1.95.  Escala
+        # ampla igual YANO/SECA — NISAR L-band (~170 m/px) resolve features ribeirinhas
+        # (Rio Negro, Solimões, Encontro das Águas, florestas inundáveis) com nitidez.
+        "search_bbox": (-61.0, -3.4, -59.0, -1.75),
+        "polygon_file": None,
+        "render_bbox": (-60.9, -3.3, -59.1, -1.85),
         "out_stem": "manaus-nisar-mosaic",
     },
     "SECA": {
-        # Manaquiri (Lago Janauacá and surroundings).
-        "search_bbox": (-60.9, -3.8, -60.0, -3.0),
+        # Manaquiri municipio (IBGE 1302553) bbox: -61.16 -4.18 -60.18 -3.31.
+        "search_bbox": (-61.3, -4.3, -60.1, -3.2),
         "polygon_file": None,
-        "render_bbox": (-60.7, -3.7, -60.1, -3.2),
+        "render_bbox": (-61.2, -4.2, -60.2, -3.3),
         "out_stem": "manaquiri-nisar-mosaic",
     },
 }
@@ -71,6 +116,23 @@ PER_CELL = 999                                    # effectively "all scenes" —
 POL_FILTER = "DHDH"
 DARK_RGB_SUM = 36                                 # opaque pixels below this → NODATA
 EDGE_ERODE_PX = 1                                 # final alpha erosion radius
+CROP_EDGE_PX = 96                                 # trim px off each side of every scene
+                                                  # before composite — kills NISAR swath
+                                                  # dark fringe without threshold heuristics.
+                                                  # Aggressive: prefers an older neighbor's
+                                                  # interior pixels over a newer scene's edge
+                                                  # pixels (which carry the antenna-gain
+                                                  # taper and radiometric noise).
+# Color normalization percentiles (robust to bright/dark outliers).
+# Each scene is stretched so its LUMINANCE (p_lo, p_hi) matches the global
+# median. One scalar gain is applied to all RGB channels together — this
+# preserves the HH/HV ratio (the physical color signature of NISAR DHDH false-
+# color), which per-channel normalization destroyed.
+NORM_PCT = (2.0, 98.0)
+# Alpha feathering radius (sigma for gaussian blur on alpha). Smooths the
+# scene-to-scene transition so adjacent scenes blend continuously instead of
+# hard-switching at the swath edge.
+ALPHA_FEATHER_SIGMA = 4.0
 # LATLON_BUFFER is now the FALLBACK when KML download fails. Primary path reads
 # the exact LATLON bbox from each scene's _LATLON.kml sidecar (~571 bytes each).
 LATLON_BUFFER = 0.12
@@ -91,7 +153,11 @@ LON_SHIFT_DEG = 0.0
 # TI_BBOX is computed from the actual FUNAI polygon at script start (see _compute_ti_bbox).
 # Hardcoding it caused a ~125 km cut at the southern edge of Yanomami.
 TI_BBOX = None                                    # set by _compute_ti_bbox() at main()
-OUTPUT_WIDTH = 2560                               # long-axis pixels (balance quality vs file size)
+# NISAR browse PNGs are ~1965 px over ~3° (~650 px/° source density).  Cap canvas
+# at ~1300 px/° (2× source Nyquist) so we don't upsample and blur — small case
+# bboxes used to render at 13× source → visibly fuzzy.
+OUTPUT_WIDTH_MAX = 2560
+OUTPUT_WIDTH_PER_DEG = 1300
 DOWNLOAD_PARALLEL = 8
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -233,8 +299,21 @@ import time
 
 
 def _retryable_get_bytes(url):
-    """Download a small resource with retries + browser User-Agent (CloudFront
-    401s the default Python-urllib UA)."""
+    """Download a small resource with retries. Uses Earthdata Login if a session
+    is configured (reads ~/.netrc), else anonymous CloudFront access."""
+    if EARTHDATA_SESSION is not None:
+        last_err = None
+        for attempt in range(KML_MAX_RETRIES):
+            try:
+                r = EARTHDATA_SESSION.get(url, timeout=HTTP_TIMEOUT_S, allow_redirects=True)
+                r.raise_for_status()
+                return r.content
+            except Exception as e:
+                last_err = e
+                if attempt < KML_MAX_RETRIES - 1:
+                    time.sleep(1.5 * (2 ** attempt))
+                    continue
+                raise
     last_err = None
     for attempt in range(KML_MAX_RETRIES):
         try:
@@ -295,11 +374,19 @@ def fetch_kml_bboxes(scenes):
         kml_path = CACHE_DIR / f"{name}_LATLON.kml"
         text = None
         if kml_path.exists() and kml_path.stat().st_size > 100:
-            text = kml_path.read_text()
-        elif scene.get("_kml"):
+            # Reject corrupt cache (previously Earthdata login HTML was saved as .kml,
+            # falling through silently to the WKT fallback with ~13 km position error).
+            cached = kml_path.read_text()
+            if cached.lstrip().startswith("<kml") or "LatLonQuad" in cached:
+                text = cached
+            else:
+                kml_path.unlink(missing_ok=True)
+        if text is None and scene.get("_kml"):
             try:
                 data = _retryable_get_bytes(scene["_kml"])
                 text = data.decode()
+                if "<kml" not in text[:200] and "LatLonQuad" not in text:
+                    return False  # server returned login HTML or empty response
                 kml_path.write_text(text)
             except Exception:
                 return False  # will fall back to WKT bbox
@@ -363,6 +450,22 @@ def erode_alpha(alpha, k):
     return a
 
 
+def crop_edges(arr, bbox, k):
+    """Trim k px off each side and shrink bbox proportionally so geo-alignment stays correct.
+    NISAR browse PNGs have a dark antenna-gain fringe at swath edges that no luminance
+    threshold catches reliably; cropping the raster + its bbox together is deterministic
+    and cheap since passes overlap enough to cover the trimmed strip."""
+    if k <= 0:
+        return arr, bbox
+    h, w = arr.shape[:2]
+    if h <= 2 * k or w <= 2 * k:
+        return arr, bbox
+    sw, ss, se, sn = bbox
+    px_lon = (se - sw) / w
+    px_lat = (sn - ss) / h
+    return arr[k:-k, k:-k], (sw + k * px_lon, ss + k * px_lat, se - k * px_lon, sn - k * px_lat)
+
+
 def clean_scene(arr):
     """Kill dark-opaque fringe + erode alpha. Returns cleaned RGBA array."""
     rgb_sum = arr[:, :, :3].astype(np.int32).sum(axis=2)
@@ -373,75 +476,88 @@ def clean_scene(arr):
     return arr
 
 
-def scene_rgb_stats(arr):
-    """Per-channel (mean, std) over valid opaque pixels. None if too few."""
+def scene_luma_percentiles(arr):
+    """Scalar (p_lo, p_hi) on luminance over valid opaque pixels. None if too few.
+    Scalar on luma (not per-channel) is the key: one gain for all 3 channels keeps
+    the HH/HV ratio intact, so DHDH false-color scenes don't drift between green-
+    dominant and purple-dominant tints after normalization."""
     valid = arr[:, :, 3] == 255
     if valid.sum() < 2000:
         return None
     rgb = arr[:, :, :3][valid].astype(np.float32)
-    return rgb.mean(axis=0), rgb.std(axis=0) + 1e-3
+    luma = rgb.mean(axis=1)
+    return (
+        float(np.percentile(luma, NORM_PCT[0])),
+        float(np.percentile(luma, NORM_PCT[1])),
+    )
 
 
-def compute_target_stats(paths):
-    """Scan every scene once to get a global reference (mean, std) per channel.
-    This is what each scene gets rebalanced to before compositing — kills the
-    'each ASF browse uses its own min/max' seam problem."""
-    print(f"      Scanning {len(paths)} scenes for global color reference…")
-    stats = []
+def compute_target_percentiles(paths):
+    """Scan every scene to get a global (target_lo, target_hi) luminance reference.
+    Scalar — same stretch applied to every scene, preserving per-scene color ratio."""
+    print(f"      Scanning {len(paths)} scenes for global luma percentile reference…")
+    pairs = []
     for i, path in enumerate(paths):
         if path is None:
             continue
         try:
             arr = np.array(Image.open(path).convert("RGBA"))
             arr = clean_scene(arr)
-            st = scene_rgb_stats(arr)
-            if st is not None:
-                stats.append(st)
+            p = scene_luma_percentiles(arr)
+            if p is not None:
+                pairs.append(p)
         except Exception:
             pass
         if (i + 1) % 50 == 0:
             print(f"        scanned {i+1}/{len(paths)}")
-    if not stats:
+    if not pairs:
         return None, None
-    # Median is robust to the occasional pathological scene
-    means = np.array([s[0] for s in stats])
-    stds = np.array([s[1] for s in stats])
-    target_mean = np.median(means, axis=0)
-    target_std = np.median(stds, axis=0)
-    print(f"      Target RGB mean: {target_mean.round(1).tolist()}, std: {target_std.round(1).tolist()}")
-    return target_mean, target_std
+    los = np.array([p[0] for p in pairs], dtype=np.float32)
+    his = np.array([p[1] for p in pairs], dtype=np.float32)
+    target_lo = float(np.median(los))
+    target_hi = float(np.median(his))
+    print(f"      Target luma p{NORM_PCT[0]:.0f}: {target_lo:.1f}, p{NORM_PCT[1]:.0f}: {target_hi:.1f}")
+    return target_lo, target_hi
 
 
-def rebalance(arr, target_mean, target_std):
-    """Rescale RGB so this scene's per-channel distribution matches the global
-    target. Classic Reinhard color transfer, applied per channel. Alpha unchanged."""
-    if target_mean is None or target_std is None:
+def rebalance(arr, target_lo, target_hi):
+    """Apply ONE scalar gain+offset to all 3 RGB channels so scene luminance
+    percentiles match the global (target_lo, target_hi). Preserves HH/HV color
+    ratio because R/G/B are scaled together, not independently. Alpha unchanged."""
+    if target_lo is None or target_hi is None:
         return arr
-    st = scene_rgb_stats(arr)
-    if st is None:
+    p = scene_luma_percentiles(arr)
+    if p is None:
         return arr
-    src_mean, src_std = st
+    src_lo, src_hi = p
+    src_range = max(src_hi - src_lo, 1e-3)
+    tgt_range = target_hi - target_lo
+    scale = tgt_range / src_range
+    offset = target_lo - src_lo * scale
     rgb = arr[:, :, :3].astype(np.float32)
-    rebalanced = (rgb - src_mean) * (target_std / src_std) + target_mean
-    rebalanced = np.clip(rebalanced, 0, 255)
+    rebalanced = np.clip(rgb * scale + offset, 0, 255)
     arr[:, :, :3] = rebalanced.astype(np.uint8)
     return arr
 
 
 def composite(scenes, paths):
     print(f"[4/6] Compositing mosaic")
-    target_mean, target_std = compute_target_stats(paths)
+    target_lo, target_hi = compute_target_percentiles(paths)
     w, s, e, n = TI_BBOX
     lng_span = e - w
     lat_span = n - s
     aspect = lng_span / lat_span
+    # Canvas matches source density (~1300 px/°) but is clamped so huge bboxes
+    # don't produce absurd files. Prevents upsampling-induced blur for small cases.
+    long_side_deg = max(lng_span, lat_span)
+    long_side_px = min(OUTPUT_WIDTH_MAX, int(round(long_side_deg * OUTPUT_WIDTH_PER_DEG)))
     if aspect >= 1:
-        out_w = OUTPUT_WIDTH
-        out_h = int(round(OUTPUT_WIDTH / aspect))
+        out_w = long_side_px
+        out_h = int(round(long_side_px / aspect))
     else:
-        out_h = OUTPUT_WIDTH
-        out_w = int(round(OUTPUT_WIDTH * aspect))
-    print(f"      Canvas: {out_w}×{out_h}  (TI bbox {TI_BBOX})")
+        out_h = long_side_px
+        out_w = int(round(long_side_px * aspect))
+    print(f"      Canvas: {out_w}×{out_h}  (TI bbox {TI_BBOX}, {long_side_deg:.2f}° long side)")
 
     out = np.zeros((out_h, out_w, 4), dtype=np.uint8)
 
@@ -455,8 +571,9 @@ def composite(scenes, paths):
         try:
             img = Image.open(path).convert("RGBA")
             arr = np.array(img)
+            arr, scene["_bbox"] = crop_edges(arr, scene["_bbox"], CROP_EDGE_PX)
             arr = clean_scene(arr)
-            arr = rebalance(arr, target_mean, target_std)
+            arr = rebalance(arr, target_lo, target_hi)
             # Rebalance CAN leave previously-bright pixels looking dark after the
             # linear remap — those were still alpha=255 and now show up as a black
             # fringe along the swath edge. Re-apply the dark→transparent pass +
@@ -501,12 +618,26 @@ def composite(scenes, paths):
             )
             sub_arr = np.array(sub_img)
 
-            # Alpha-weighted "newest wins": where sub.alpha > 0, overwrite;
-            # elsewhere keep what's already there.
-            mask = sub_arr[:, :, 3] > 0
-            if mask.any():
+            # Feather alpha so adjacent scenes blend continuously instead of
+            # hard-switching at the swath edge — kills the visible seam line.
+            if ALPHA_FEATHER_SIGMA > 0 and sub_arr.shape[0] > 2 and sub_arr.shape[1] > 2:
+                feathered = gaussian_filter(
+                    sub_arr[:, :, 3].astype(np.float32), sigma=ALPHA_FEATHER_SIGMA
+                )
+                sub_arr[:, :, 3] = np.clip(feathered, 0, 255).astype(np.uint8)
+
+            # Alpha-weighted blend: new scene mixes with existing canvas by its own
+            # alpha. Replaces the old hard "newest wins" overwrite, which exposed
+            # radiometric mismatch at the boundary as a visible line.
+            if (sub_arr[:, :, 3] > 0).any():
                 slice_out = out[dy:dy_e, dx:dx_e]
-                slice_out[mask] = sub_arr[mask]
+                a = sub_arr[:, :, 3:4].astype(np.float32) / 255.0
+                sub_rgb = sub_arr[:, :, :3].astype(np.float32)
+                dst_rgb = slice_out[:, :, :3].astype(np.float32)
+                blended_rgb = sub_rgb * a + dst_rgb * (1.0 - a)
+                blended_a = np.maximum(slice_out[:, :, 3], sub_arr[:, :, 3])
+                slice_out[:, :, :3] = blended_rgb.astype(np.uint8)
+                slice_out[:, :, 3] = blended_a
                 out[dy:dy_e, dx:dx_e] = slice_out
 
             date = scene["startTime"][:10]

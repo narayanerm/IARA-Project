@@ -22,7 +22,7 @@ const BANDS: Array<{ id: Band; label: string; color: string }> = [
 ]
 
 // Balloon over each card: full name, then a plain-language description in the site language.
-const DESC: Record<Band | 'radd', { title: { pt: string; en: string }; pt: string; en: string }> = {
+const DESC: Record<Band | 'radd' | 'ench' | 'seca', { title: { pt: string; en: string }; pt: string; en: string }> = {
   nisar: {
     title: { pt: 'NISAR L-band · λ 24 cm', en: 'NISAR L-band · λ 24 cm' },
     pt: 'Onda longa que atravessa a copa e chega ao chão e aos troncos. Mostra onde a floresta foi aberta, mesmo com nuvens.',
@@ -42,6 +42,16 @@ const DESC: Record<Band | 'radd', { title: { pt: string; en: string }; pt: strin
     title: { pt: 'Alertas RADD', en: 'RADD alerts' },
     pt: 'Perda de floresta detectada pelo radar do Sentinel-1, de 2020 até hoje. Cada ponto é um alerta.',
     en: 'Forest loss detected by Sentinel-1 radar, from 2020 to today. Each dot is an alert.',
+  },
+  ench: {
+    title: { pt: 'Marcas da cheia · JRC GSW', en: 'Flood extent · JRC GSW' },
+    pt: 'Pixels que viram água na cheia, do JRC Global Surface Water (JRC, 30 m, 1984–2020). Fonte oficial da UE.',
+    en: 'Pixels that turned to water at the flood peak, from JRC Global Surface Water (30 m, 1984–2020). Official EU source.',
+  },
+  seca: {
+    title: { pt: 'Retração dos lagos · JRC GSW', en: 'Lake retraction · JRC GSW' },
+    pt: 'Anel sazonal dos lagos que desaparece na estiagem, do JRC Global Surface Water (JRC, 30 m, 1984–2020).',
+    en: 'Seasonal ring of lakes that vanishes during drought, from JRC Global Surface Water (30 m, 1984–2020).',
   },
 }
 
@@ -78,8 +88,43 @@ function RaddThumb() {
     </svg>
   )
 }
+
+/* Drawn thumbnail for the ENCH flood overlay: same layout as RADD, dots in blue. */
+function EnchThumb() {
+  const cells = [
+    [10, 12], [14, 12], [14, 16], [30, 8], [34, 10], [22, 30], [26, 30], [26, 34], [40, 26],
+    [8, 38], [12, 42], [36, 40], [40, 40], [44, 44], [18, 22], [46, 14],
+  ]
+  return (
+    <svg viewBox="0 0 56 56" className="h-full w-full">
+      <rect width="56" height="56" fill="#16241d" />
+      <path d="M0 34 C12 30 20 40 32 34 S50 22 56 26" stroke="#2b7ea6" strokeWidth="3" fill="none" opacity="0.7" />
+      {cells.map(([x, y], i) => (
+        <rect key={i} x={x} y={y} width="4" height="4" fill="#5AA7C9" opacity={0.65 + (i % 3) * 0.12} />
+      ))}
+    </svg>
+  )
+}
+
+/* Drawn thumbnail for the SECA drought overlay: same layout as RADD, dots in yellow. */
+function SecaThumb() {
+  const cells = [
+    [10, 12], [14, 12], [14, 16], [30, 8], [34, 10], [22, 30], [26, 30], [26, 34], [40, 26],
+    [8, 38], [12, 42], [36, 40], [40, 40], [44, 44], [18, 22], [46, 14],
+  ]
+  return (
+    <svg viewBox="0 0 56 56" className="h-full w-full">
+      <rect width="56" height="56" fill="#16241d" />
+      <path d="M0 34 C12 30 20 40 32 34 S50 22 56 26" stroke="#2b7ea6" strokeWidth="3" fill="none" opacity="0.7" />
+      {cells.map(([x, y], i) => (
+        <rect key={i} x={x} y={y} width="4" height="4" fill="#E0B64B" opacity={0.65 + (i % 3) * 0.12} />
+      ))}
+    </svg>
+  )
+}
 function Card({
   label,
+  sub,
   tipTitle,
   desc,
   alignRight = false,
@@ -89,6 +134,8 @@ function Card({
   children,
 }: {
   label: string
+  /** Optional source/attribution line shown under the label (e.g. "JRC GSW"). */
+  sub?: string
   tipTitle: string
   desc: string
   alignRight?: boolean
@@ -115,6 +162,11 @@ function Card({
       <span className={cn('text-[11px] font-bold leading-tight', active ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground')}>
         {label}
       </span>
+      {sub && (
+        <span className="text-[8.5px] font-mono uppercase tracking-wider leading-tight text-muted-foreground/80">
+          {sub}
+        </span>
+      )}
       {/* Balloon with a plain-language description, rising above the card on hover or keyboard focus. */}
       <span
         id={tipId}
@@ -146,8 +198,12 @@ export function YanomamiCaseControls() {
   const videoOn = useCaseVideoActive() !== null
   const band = useUi((s) => s.yanomamiBand)
   const raddOn = useUi((s) => s.yanomamiRaddOn)
+  const floodOn = useUi((s) => s.enchFloodOn)
+  const droughtOn = useUi((s) => s.secaDroughtOn)
   const setBand = useUi((s) => s.setYanomamiBand)
   const toggleRadd = useUi((s) => s.toggleYanomamiRadd)
+  const toggleFlood = useUi((s) => s.toggleEnchFlood)
+  const toggleDrought = useUi((s) => s.toggleSecaDrought)
   // Open by default (and again on every case change); the tile toggles it.
   const [open, setOpen] = useState(true)
   useEffect(() => setOpen(true), [activeRegion])
@@ -172,8 +228,14 @@ export function YanomamiCaseControls() {
   if (!aoiActive || videoOn) return null
 
   const showGarimpoOverlays = activeRegion === 'YANO'
+  const showFloodOverlay = activeRegion === 'ENCH'
+  const showDroughtOverlay = activeRegion === 'SECA'
   const current = BANDS.find((b) => b.id === band)
-  const overlays = (showGarimpoOverlays ? [raddOn && 'RADD'] : []).filter(Boolean)
+  const overlays = [
+    showGarimpoOverlays && raddOn && 'RADD',
+    showFloodOverlay && floodOn && (lang === 'pt' ? 'Cheia' : 'Flood'),
+    showDroughtOverlay && droughtOn && (lang === 'pt' ? 'Seca' : 'Drought'),
+  ].filter(Boolean)
   const panelName = lang === 'pt' ? 'Camadas SAR' : 'SAR layers'
   const tileLabel = current ? current.label : panelName
 
@@ -253,6 +315,22 @@ export function YanomamiCaseControls() {
             <span className="mx-1 mt-2 h-[44px] w-px shrink-0 bg-white/12" aria-hidden="true" />
             <Card label="RADD" tipTitle={DESC.radd.title[lang]} desc={DESC.radd[lang]} alignRight color="#FF4D6D" active={raddOn} onClick={toggleRadd}>
               <RaddThumb />
+            </Card>
+          </>
+        )}
+        {showFloodOverlay && (
+          <>
+            <span className="mx-1 mt-2 h-[44px] w-px shrink-0 bg-white/12" aria-hidden="true" />
+            <Card label={lang === 'pt' ? 'Cheia' : 'Flood'} sub="JRC GSW" tipTitle={DESC.ench.title[lang]} desc={DESC.ench[lang]} alignRight color="#5AA7C9" active={floodOn} onClick={toggleFlood}>
+              <EnchThumb />
+            </Card>
+          </>
+        )}
+        {showDroughtOverlay && (
+          <>
+            <span className="mx-1 mt-2 h-[44px] w-px shrink-0 bg-white/12" aria-hidden="true" />
+            <Card label={lang === 'pt' ? 'Seca' : 'Drought'} sub="JRC GSW" tipTitle={DESC.seca.title[lang]} desc={DESC.seca[lang]} alignRight color="#E97A4B" active={droughtOn} onClick={toggleDrought}>
+              <SecaThumb />
             </Card>
           </>
         )}

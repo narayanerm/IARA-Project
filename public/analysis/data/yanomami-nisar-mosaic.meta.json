@@ -7,12 +7,13 @@
   ],
   "width": 2560,
   "height": 2304,
-  "scenesComposited": 199,
+  "scenesComposited": 191,
   "perCell": 999,
   "dateRange": [
     "2026-06-18",
     "2026-11-06"
   ],
-  "buildDate": "2026-11-15T02:15:19+00:00",
-  "source": "NISAR L2 GCOV \u00b7 NASA/ISRO \u00b7 ASF DAAC"
+  "buildDate": "2026-11-15T22:54:08+00:00",
+  "source": "NISAR L2 GCOV \u00b7 NASA/ISRO \u00b7 ASF DAAC",
+  "pipeline": "opencv.detail (GAIN_BLOCKS + MultiBandBlender)"
 }

@@ -2,7 +2,9 @@ import type { RegionId } from '@/lib/types'
 
 // The three focused case studies. Historical figures name their sources alongside the values.
 
-export type L = { pt: string; en: string }
+export type Ref = { label: string; url: string }
+
+export type L = { pt: string; en: string; refs?: Ref[] }
 export type RiskLevel = 'critical' | 'high' | 'watch'
 export type PainIcon = 'health' | 'water' | 'forest' | 'home' | 'boat' | 'food' | 'fish' | 'fire' | 'road' | 'people'
 
@@ -10,12 +12,14 @@ export interface CaseStat {
   value: string
   label: L
   source: string
+  refs?: Ref[]
 }
 
 export interface CasePain {
   icon: PainIcon
   title: L
   body: L
+  refs?: Ref[]
 }
 
 export interface SeriesPoint {
@@ -26,6 +30,16 @@ export interface SeriesPoint {
   note: L
   /** Dates for the radar before/after pair; omitted when no satellite covers that year. */
   sar?: { before: string; after: string }
+  /** Visible-light (true colour) scenes for the before/after slider: previous low water and the flood. */
+  optical?: { before: OpticalScene; after: OpticalScene }
+}
+
+/** One Landsat or Sentinel-2 scene on Microsoft Planetary Computer. */
+export interface OpticalScene {
+  collection: 'landsat-c2-l2' | 'sentinel-2-l2a'
+  id: string
+  date: string
+  platform: string
 }
 
 export interface SeriesThreshold {
@@ -43,6 +57,10 @@ export interface CaseSeries {
   /** Which direction is worse: floods and mining grow, droughts sink. */
   worse: 'high' | 'low'
   points: SeriesPoint[]
+  /** Year shown first on the timeline (defaults to the latest point). */
+  defaultYear?: number
+  /** Latest reading of the measured quantity, for the alerts tab (drought case). */
+  latest?: StageReading
   thresholds: SeriesThreshold[]
   source: { label: string; url: string }
   footnote: L
@@ -84,6 +102,15 @@ export interface StagePeak {
   approx?: boolean
 }
 
+/** One published reading at a river gauge. */
+export interface StageReading {
+  value: number
+  date: string
+  trend: 'rising' | 'falling' | 'steady'
+  source: string
+  url: string
+}
+
 export interface StageThreshold {
   value: number
   label: string
@@ -106,6 +133,8 @@ export interface RiverStage {
     url: string
   }
   sources: Array<{ label: string; url: string }>
+  /** Latest published reading at the gauge (static: no live feed reaches the app). */
+  latest?: StageReading
 }
 
 export interface CaseStudy {
@@ -116,7 +145,7 @@ export interface CaseStudy {
   outline: CaseOutline
   /** IBGE municipality code for the live census figure, when the case is a municipality. */
   ibgeCode?: number
-  meta: Array<{ label: L; value: L }>
+  meta: Array<{ label: L; value: L; refs?: Ref[] }>
   /** Short theme word and the full "analysis of" label used on the entry cards. */
   theme: L
   analysis: L
@@ -134,6 +163,8 @@ export interface CaseStudy {
   hotspots: Hotspot[]
   hotspotsNote: L
   sarBbox: [number, number, number, number]
+  /** Tighter box for the visible-light slider (one Landsat/Sentinel-2 tile must cover it). */
+  opticalBbox?: [number, number, number, number]
   sarReading: L
   sources: Array<{ label: string; url: string }>
   questions: L[]
@@ -235,6 +266,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       digits: 0,
       domain: [0, 6500],
       worse: 'high',
+      // The record year opens the timeline.
+      defaultYear: 2022,
       points: [
         {
           year: 2018,
@@ -295,53 +328,85 @@ export const CASES: Record<RegionId, CaseStudy> = {
         en: 'The pace has fallen since 2023, but the fronts remain active and keep moving.',
       },
     },
+    // Yanomami communities ranked by distance to the nearest DETER mineração polygon
+    // (2019-2026 catalogue, 683 polygons; haversine from each polo-base centroid to
+    // every polygon centroid, pick the minimum). Top 5 shown here.
+    //
+    // Village coordinates (approximate ± ~1 km) and selection sourced from:
+    //  - Hutukara "Yanomami Sob Ataque" 2022 and 2023 reports (ISA/Hutukara)
+    //  - SESAI DSEI-Y polo-base cadastre (public)
+    //  - ISA Povos Indígenas do Brasil fichas
+    //
+    // Risk levels derived offline from the distance tier:
+    //  - critical: < 15 km   (Homoxi — 10.7 km, mining epicentre of 2023 crisis)
+    //  - high:     < 20 km   (Xitei 16.2 km, Surucucu 16.3 km)
+    //  - watch:    < 30 km   (Watoriki 20.6 km, Marari 23.0 km)
     hotspots: [
       {
-        id: 'uraricoera',
-        name: 'Rio Uraricoera',
-        center: [-62.9, 3.45],
+        id: 'homoxi',
+        name: 'Homoxi',
+        center: [-63.76, 2.43],
         level: 'critical',
         note: {
-          pt: 'Principal corredor de balsas e dragas dentro da terra.',
-          en: 'Main corridor of barges and dredges inside the land.',
+          pt: 'Frente de garimpo a 10,7 km — epicentro da crise humanitária 2022-2023.',
+          en: 'Mining front 10.7 km away — epicentre of the 2022-2023 humanitarian crisis.',
         },
         approx: true,
       },
       {
-        id: 'homoxi',
-        name: 'Homoxi',
-        center: [-63.5, 2.53],
-        level: 'critical',
-        note: {
-          pt: 'Frente documentada de 2019 a 2023 no alto rio Mucajaí.',
-          en: 'Front documented from 2019 to 2023 on the upper Mucajaí river.',
-        },
-      },
-      {
-        id: 'mucajai',
-        name: 'Alto Mucajaí',
-        center: [-63.65, 2.42],
-        labelLeft: true,
-        level: 'high',
-        note: { pt: 'Poços e dragas ao longo do rio.', en: 'Pits and dredges along the river.' },
-      },
-      {
         id: 'xitei',
         name: 'Xitei',
-        center: [-63.87, 2.6],
+        center: [-62.64, 2.42],
         level: 'high',
         note: {
-          pt: 'Região de aldeias cercada por novas clareiras.',
-          en: 'Village area surrounded by new clearings.',
+          pt: 'Serra do Parima; alerta DETER a 16,2 km (mar/2023).',
+          en: 'Parima range; nearest DETER alert 16.2 km (Mar 2023).',
+        },
+        approx: true,
+      },
+      {
+        id: 'surucucu',
+        name: 'Surucucu',
+        center: [-63.60, 2.78],
+        level: 'high',
+        note: {
+          pt: 'Polo-base de alta altitude; alerta a 16,3 km (fev/2024).',
+          en: 'Highland polo-base; alert 16.3 km (Feb 2024).',
+        },
+        approx: true,
+      },
+      {
+        id: 'watoriki',
+        name: 'Watoriki',
+        center: [-63.59, 1.17],
+        labelLeft: true,
+        level: 'watch',
+        note: {
+          pt: 'Aldeia de Davi Kopenawa no Demini; alerta a 20,6 km (ago/2023).',
+          en: 'Davi Kopenawa\'s community in Demini; alert 20.6 km (Aug 2023).',
+        },
+        approx: true,
+      },
+      {
+        id: 'marari',
+        name: 'Marari',
+        center: [-64.32, 1.55],
+        labelLeft: true,
+        level: 'watch',
+        note: {
+          pt: 'Polo-base do oeste; alerta mais próximo a 23 km (ago/2021).',
+          en: 'Western polo-base; nearest alert 23 km (Aug 2021).',
         },
         approx: true,
       },
     ],
     hotspotsNote: {
-      pt: 'Os alertas do DETER (INPE) aparecem no mapa quase em tempo real, em vermelho.',
-      en: 'DETER alerts (INPE) show on the map in near real time, in red.',
+      pt: 'Comunidades ranqueadas por distância ao alerta DETER mineração mais próximo (2019-2026). Coordenadas aproximadas; fontes Hutukara, SESAI DSEI-Y, ISA.',
+      en: 'Communities ranked by distance to the nearest DETER mining alert (2019-2026). Approximate coordinates; sources Hutukara, SESAI DSEI-Y, ISA.',
     },
-    sarBbox: [-63.85, 2.3, -63.2, 2.75],
+    sarBbox: [-64.1, 2.3, -63.6, 2.8],
+    // Homoxi and the upper Mucajaí: one Landsat/Sentinel-2 scene and the NISAR frames cover it whole.
+    opticalBbox: [-63.75, 2.35, -63.4, 2.6],
     sarReading: {
       pt: 'Floresta espalha o sinal do radar e aparece clara. Solo exposto e água de cava devolvem pouco sinal: a clareira surge como mancha escura, mesmo sob nuvem.',
       en: 'Forest scatters the radar signal and looks bright. Bare soil and pit water return little signal: the clearing shows up as a dark patch, even under cloud.',
@@ -402,8 +467,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
     place: { pt: 'Manaus urbana e região', en: 'Urban Manaus and surroundings' },
     placeShort: 'Manaus',
     color: '#4DA3F7',
-    camera: { center: [-60.0, -3.1], zoom: 11 },
-    cover: { center: [-60.0, -3.11], zoom: 12 },
+    camera: { center: [-60.0, -2.6], zoom: 9 },
+    cover: { center: [-60.0, -2.6], zoom: 9.5 },
     outline: { kind: 'ibge', code: 1302603 },
     ibgeCode: 1302603,
     meta: [
@@ -482,51 +547,140 @@ export const CASES: Record<RegionId, CaseStudy> = {
       digits: 2,
       domain: [26, 30.5],
       worse: 'high',
+      // The record flood opens the timeline: the clearest before/after for both the visible and the radar images.
+      defaultYear: 2021,
       points: [
         {
           year: 2009,
           value: 29.77,
           date: '2009-07-01',
           note: { pt: 'Supera a cheia de 1953 e abre a série de extremos.', en: 'Tops the 1953 flood and opens the run of extremes.' },
-          sar: { before: '2008-11-01', after: '2009-07-01' },
+          sar: { before: '2008-09-07', after: '2009-07-01' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_20080907_02_T1', date: '2008-09-07', platform: 'Landsat 5' },
+            after: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_20090708_02_T1', date: '2009-07-08', platform: 'Landsat 5' },
+          },
         },
         {
-          year: 2012,
-          value: 29.97,
-          date: '2012-05-29',
-          note: { pt: 'Novo recorde, 34 dias acima de 29,69 m.', en: 'New record, 34 days above 29.69 m.' },
-          sar: { before: '2011-11-01', after: '2012-05-29' },
+          year: 2014,
+          value: 29.5,
+          date: '2014-07-03',
+          note: { pt: 'Acima da cota de inundação severa (29 m).', en: 'Above the severe flood stage (29 m).' },
+          sar: { before: '2013-10-23', after: '2014-07-03' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20131023_02_T1', date: '2013-10-23', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20140706_02_T1', date: '2014-07-06', platform: 'Landsat 8' },
+          },
+        },
+        {
+          year: 2017,
+          value: 29.0,
+          date: '2017-06-15',
+          note: { pt: 'Chegou à cota de inundação severa.', en: 'Reached the severe flood stage.' },
+          sar: { before: '2016-12-24', after: '2017-06-15' },
+          optical: {
+            before: { collection: 'sentinel-2-l2a', id: 'S2A_MSIL2A_20161224T142322_R010_T20MRB_20210214T001928', date: '2016-12-24', platform: 'Sentinel-2A' },
+            after: { collection: 'sentinel-2-l2a', id: 'S2B_MSIL2A_20170717T142319_R010_T20MRB_20210210T103259', date: '2017-07-17', platform: 'Sentinel-2B' },
+          },
+        },
+        {
+          year: 2018,
+          value: 28.38,
+          date: '2018-06-15',
+          note: { pt: 'Inundação, abaixo da cota severa.', en: 'Flooding, below the severe stage.' },
+          sar: { before: '2017-11-03', after: '2018-06-15' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20171103_02_T1', date: '2017-11-03', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20180615_02_T1', date: '2018-06-15', platform: 'Landsat 8' },
+          },
+        },
+        {
+          year: 2019,
+          value: 29.42,
+          date: '2019-06-24',
+          note: { pt: 'Acima da cota de inundação severa (29 m).', en: 'Above the severe flood stage (29 m).' },
+          sar: { before: '2018-10-21', after: '2019-06-24' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20181021_02_T1', date: '2018-10-21', platform: 'Landsat 8' },
+            after: { collection: 'sentinel-2-l2a', id: 'S2B_MSIL2A_20190727T142049_R010_T20MRB_20201106T033508', date: '2019-07-27', platform: 'Sentinel-2B' },
+          },
+        },
+        {
+          year: 2020,
+          value: 28.52,
+          date: '2020-06-15',
+          note: { pt: 'Inundação, abaixo da cota severa.', en: 'Flooding, below the severe stage.' },
+          sar: { before: '2019-11-25', after: '2020-06-15' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20191125_02_T1', date: '2019-11-25', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20200706_02_T1', date: '2020-07-06', platform: 'Landsat 8' },
+          },
         },
         {
           year: 2021,
           value: 30.02,
           date: '2021-06-16',
           note: { pt: 'Maior cheia da história: 58 dias acima de 29,69 m.', en: 'Largest flood on record: 58 days above 29.69 m.' },
-          sar: { before: '2020-11-01', after: '2021-06-16' },
+          sar: { before: '2020-10-26', after: '2021-06-16' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20201026_02_T1', date: '2020-10-26', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20210709_02_T1', date: '2021-07-09', platform: 'Landsat 8' },
+          },
         },
         {
           year: 2022,
           value: 29.75,
           date: '2022-06-22',
           note: { pt: 'Quarta maior, um ano depois do recorde.', en: 'Fourth largest, one year after the record.' },
-          sar: { before: '2021-11-01', after: '2022-06-22' },
+          sar: { before: '2021-12-28', after: '2022-06-22' },
+          optical: {
+            before: { collection: 'sentinel-2-l2a', id: 'S2A_MSIL2A_20211228T141741_R010_T20MRB_20230125T080922', date: '2021-12-28', platform: 'Sentinel-2A' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20220525_02_T1', date: '2022-05-25', platform: 'Landsat 8' },
+          },
         },
         {
           year: 2023,
           value: 28.3,
           date: '2023-06-20',
-          note: {
-            pt: 'Cheia comum, seguida pela pior seca até então: 15,60 m de diferença no mesmo ano.',
-            en: 'Ordinary flood, followed by the worst drought until then: a 15.60 m swing in one year.',
+          note: { pt: 'Cheia comum, seguida pela pior seca até então: 15,60 m de diferença no mesmo ano.', en: 'Ordinary flood, followed by the worst drought until then: a 15.60 m swing in one year.' },
+          sar: { before: '2022-10-08', after: '2023-06-20' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20221008_02_T1', date: '2022-10-08', platform: 'Landsat 9' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20230629_02_T1', date: '2023-06-29', platform: 'Landsat 8' },
           },
-          sar: { before: '2022-11-01', after: '2023-06-20' },
         },
         {
           year: 2024,
           value: 26.85,
           date: '2024-06-20',
           note: { pt: 'Rio abaixo da cota de inundação, em ano de seca recorde.', en: 'River below flood stage, in a record drought year.' },
-          sar: { before: '2023-11-01', after: '2024-06-20' },
+          sar: { before: '2023-10-11', after: '2024-06-20' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20231011_02_T1', date: '2023-10-11', platform: 'Landsat 9' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20240717_02_T1', date: '2024-07-17', platform: 'Landsat 8' },
+          },
+        },
+        {
+          year: 2025,
+          value: 29.04,
+          date: '2025-07-05',
+          note: { pt: 'Leitura parcial: passou de 29 m em julho.', en: 'Partial reading: above 29 m in July.' },
+          sar: { before: '2024-10-29', after: '2025-07-05' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20241029_02_T1', date: '2024-10-29', platform: 'Landsat 9' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20250805_02_T1', date: '2025-08-05', platform: 'Landsat 8' },
+          },
+        },
+        {
+          year: 2026,
+          value: 28.5,
+          date: '2026-06-30',
+          note: { pt: 'Leitura parcial: cerca de 28,50 m no fim de junho.', en: 'Partial reading: about 28.50 m at the end of June.' },
+          sar: { before: '2025-09-22', after: '2026-06-30' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20250922_02_T1', date: '2025-09-22', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20260731_02_T1', date: '2026-07-31', platform: 'Landsat 9' },
+          },
         },
       ],
       thresholds: [
@@ -535,8 +689,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       ],
       source: OLIVEIRA_2025,
       footnote: {
-        pt: 'Anos de destaque da série. Máximas de 2023 e 2024 calculadas a partir da amplitude anual do estudo.',
-        en: 'Highlight years of the series. 2023 and 2024 peaks derived from the annual range in the study.',
+        pt: 'Máximas de 2023 e 2024 calculadas a partir da amplitude anual do estudo; 2017–2020 segundo o Porto de Manaus.',
+        en: '2023 and 2024 peaks derived from the annual range in the study; 2017–2020 from the Porto de Manaus.',
       },
     },
     risk: {
@@ -597,7 +751,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       pt: 'Pontos de atenção marcados a partir de registros das cheias de 2021 e 2022.',
       en: 'Watch points placed from records of the 2021 and 2022 floods.',
     },
-    sarBbox: [-60.3, -3.3, -59.75, -2.95],
+    sarBbox: [-60.2, -3.3, -59.8, -2.9],
+    opticalBbox: [-60.14, -3.2, -59.86, -3.02],
     sarReading: {
       pt: 'Água lisa funciona como espelho e não devolve sinal ao radar: aparece preta. Comparando a seca com a cheia, a área preta que cresce é a área alagada.',
       en: 'Smooth water acts like a mirror and returns no signal to the radar: it looks black. Comparing low and high water, the black area that grows is the flooded area.',
@@ -664,7 +819,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
       },
     ],
     riverStage: {
-      station: 'Rio Negro · Porto de Manaus (ANA 14990000)',
+      station: 'Rio Negro · Porto de Manaus',
       stationUrl: 'https://www.sgb.gov.br/sace/amazonas/ultimo_boletim.php',
       thresholds: [
         { value: 27.0, label: 'Alerta' },
@@ -674,9 +829,15 @@ export const CASES: Record<RegionId, CaseStudy> = {
       peaks: [
         { year: 1953, value: 29.69, date: '1953-06-09' },
         { year: 2009, value: 29.77, date: '2009-07-01' },
-        { year: 2012, value: 29.97, date: '2012-05-29' },
+        { year: 2014, value: 29.5, date: '2014-07-03' },
+        { year: 2017, value: 29.0, date: '2017-06' },
+        { year: 2018, value: 28.38, date: '2018-06' },
+        { year: 2019, value: 29.42, date: '2019-06-24' },
+        { year: 2020, value: 28.52, date: '2020-06' },
         { year: 2021, value: 30.02, date: '2021-06-16' },
         { year: 2022, value: 29.75, date: '2022-06-22' },
+        { year: 2023, value: 28.3, date: '2023-06-20' },
+        { year: 2024, value: 26.85, date: '2024-06-20' },
         { year: 2025, value: 29.04, date: '2025-07-05', approx: true },
         { year: 2026, value: 28.5, date: '2026-06-30', approx: true },
       ],
@@ -693,8 +854,15 @@ export const CASES: Record<RegionId, CaseStudy> = {
       sources: [
         { label: 'SGB · Alerta Hidrológico do Amazonas', url: 'https://www.sgb.gov.br/sace/amazonas/ultimo_boletim.php' },
         { label: 'Oliveira (2025) · cheias e secas extremas 1902–2024', url: 'https://static.even3.com/anais/1211771.pdf' },
-        { label: 'ANA · HidroWeb (estação 14990000)', url: 'https://www.snirh.gov.br/hidroweb/' },
+        { label: 'ANA · HidroWeb', url: 'https://www.snirh.gov.br/hidroweb/' },
       ],
+      latest: {
+        value: 16.59,
+        date: '2026-10-27',
+        trend: 'falling',
+        source: 'Porto de Manaus, via NC News',
+        url: 'https://ncnews.com.br/2026/10/27/rio-negro-baixa-2-metros-fica-abaixo/',
+      },
     },
   },
 
@@ -705,7 +873,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
     place: { pt: 'Ribeirinhos de Manaquiri e região', en: 'Riverside Manaquiri and surroundings' },
     placeShort: 'Manaquiri',
     color: '#F2C14E',
-    camera: { center: [-60.39, -3.45], zoom: 10.3 },
+    camera: { center: [-60.67, -3.75], zoom: 9.2 },
     cover: { center: [-60.4, -3.47], zoom: 11 },
     outline: { kind: 'ibge', code: 1302553 },
     ibgeCode: 1302553,
@@ -785,6 +953,15 @@ export const CASES: Record<RegionId, CaseStudy> = {
       digits: 2,
       domain: [11, 18.5],
       worse: 'low',
+      // The record drought opens the timeline.
+      defaultYear: 2024,
+      latest: {
+        value: 16.59,
+        date: '2026-10-27',
+        trend: 'falling',
+        source: 'Porto de Manaus, via NC News',
+        url: 'https://ncnews.com.br/2026/10/27/rio-negro-baixa-2-metros-fica-abaixo/',
+      },
       points: [
         {
           year: 1963,
@@ -793,11 +970,25 @@ export const CASES: Record<RegionId, CaseStudy> = {
           note: { pt: 'A maior seca do século XX. Sem imagem de satélite nessa época.', en: 'The worst drought of the 20th century. No satellite imagery back then.' },
         },
         {
+          year: 1997,
+          value: 14.34,
+          note: { pt: 'Abaixo de 15 m, uma das quatro vezes em 50 anos.', en: 'Below 15 m, one of four times in 50 years.' },
+          sar: { before: '1997-06-21', after: '1997-10-27' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_19970621_02_T1', date: '1997-06-21', platform: 'Landsat 5' },
+            after: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_19971027_02_T1', date: '1997-10-27', platform: 'Landsat 5' },
+          },
+        },
+        {
           year: 2010,
           value: 13.63,
           date: '2010-10-24',
           note: { pt: 'Primeiro recorde em 47 anos, por um centímetro.', en: 'First record in 47 years, by one centimetre.' },
           sar: { before: '2010-06-20', after: '2010-10-24' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_20100727_02_T1', date: '2010-07-27', platform: 'Landsat 5' },
+            after: { collection: 'landsat-c2-l2', id: 'LT05_L2SP_231062_20101031_02_T1', date: '2010-10-31', platform: 'Landsat 5' },
+          },
         },
         {
           year: 2023,
@@ -808,6 +999,10 @@ export const CASES: Record<RegionId, CaseStudy> = {
             en: 'The river drops below 13 m for the first time. 40 days of extreme drought.',
           },
           sar: { before: '2023-06-20', after: '2023-10-26' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20230629_02_T1', date: '2023-06-29', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC09_L2SP_231062_20231027_02_T1', date: '2023-10-27', platform: 'Landsat 9' },
+          },
         },
         {
           year: 2024,
@@ -818,6 +1013,10 @@ export const CASES: Record<RegionId, CaseStudy> = {
             en: 'A new record one year later. 50 days of extreme drought.',
           },
           sar: { before: '2024-06-20', after: '2024-10-09' },
+          optical: {
+            before: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20240818_02_T1', date: '2024-08-18', platform: 'Landsat 8' },
+            after: { collection: 'landsat-c2-l2', id: 'LC08_L2SP_231062_20241021_02_T1', date: '2024-10-21', platform: 'Landsat 8' },
+          },
         },
       ],
       thresholds: [
@@ -827,8 +1026,8 @@ export const CASES: Record<RegionId, CaseStudy> = {
       ],
       source: OLIVEIRA_2025,
       footnote: {
-        pt: 'As quatro secas extremas da série histórica (cota igual ou abaixo de 13,64 m).',
-        en: 'The four extreme droughts in the record (level at or below 13.64 m).',
+        pt: 'As quatro secas extremas da série histórica (cota igual ou abaixo de 13,64 m), mais 1997, entre as dez menores cotas já medidas (SGB).',
+        en: 'The four extreme droughts in the record (level at or below 13.64 m), plus 1997, among the ten lowest levels ever measured (SGB).',
       },
     },
     risk: {
@@ -876,7 +1075,9 @@ export const CASES: Record<RegionId, CaseStudy> = {
       pt: 'Comunidades do cadastro do IBGE, classificadas pela distância até a sede e pela dependência de lago.',
       en: 'Communities from the IBGE register, ranked by distance to town and reliance on a lake.',
     },
-    sarBbox: [-60.65, -3.65, -60.1, -3.25],
+    sarBbox: [-60.6, -3.7, -60.1, -3.2],
+    // The lakes of Andiroba, Jutaí, Barro Alto and Janauacá in one Landsat scene.
+    opticalBbox: [-60.55, -3.6, -60.15, -3.3],
     sarReading: {
       pt: 'Água aparece preta no radar. Na seca, o preto dos lagos encolhe e dá lugar ao cinza do leito exposto: dá para medir quantos km² de espelho d’água sumiram.',
       en: 'Water looks black on radar. In a drought the black of the lakes shrinks into the grey of the exposed bed: you can measure how many km² of open water are gone.',

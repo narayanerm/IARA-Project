@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { ProductLayer, RegionId, SubsidencePolygon } from './types'
 import type { NisarProduct } from './nisar'
 
-export type CaseTab = 'overview' | 'timeline' | 'alerts'
+export type CaseTab = 'overview' | 'timeline' | 'forecast'
 
 interface AppState {
   activeRegion: RegionId
@@ -156,6 +156,10 @@ interface UiState {
   yanomamiRaddOn: boolean
   /** YANO case: show DETER mineração polygons as a map overlay. */
   yanomamiDeterOn: boolean
+  /** ENCH case: show NASA GIBS MODIS flood overlay. */
+  enchFloodOn: boolean
+  /** SECA case: show NASA GIBS SMAP soil moisture overlay. */
+  secaDroughtOn: boolean
   toggleSatellite: () => void
   toggleRelief: () => void
   setRightOpen: (v: boolean) => void
@@ -167,6 +171,10 @@ interface UiState {
   setYanomamiBand: (b: 'nisar' | 'sband' | 's1c' | null) => void
   toggleYanomamiRadd: () => void
   toggleYanomamiDeter: () => void
+  toggleEnchFlood: () => void
+  toggleSecaDrought: () => void
+  /** Turn every case overlay off at once (SAR band + RADD + DETER + GIBS flood/drought). */
+  clearCaseOverlays: () => void
 }
 
 export const useUi = create<UiState>((set, get) => ({
@@ -181,6 +189,8 @@ export const useUi = create<UiState>((set, get) => ({
   yanomamiBand: null,
   yanomamiRaddOn: false,
   yanomamiDeterOn: false,
+  enchFloodOn: false,
+  secaDroughtOn: false,
   toggleSatellite: () => set({ satelliteOn: !get().satelliteOn }),
   toggleRelief: () => set({ reliefOn: !get().reliefOn }),
   setRightOpen: (v) => set({ rightOpen: v }),
@@ -192,6 +202,16 @@ export const useUi = create<UiState>((set, get) => ({
   setYanomamiBand: (b) => set({ yanomamiBand: b }),
   toggleYanomamiRadd: () => set({ yanomamiRaddOn: !get().yanomamiRaddOn }),
   toggleYanomamiDeter: () => set({ yanomamiDeterOn: !get().yanomamiDeterOn }),
+  toggleEnchFlood: () => set({ enchFloodOn: !get().enchFloodOn }),
+  toggleSecaDrought: () => set({ secaDroughtOn: !get().secaDroughtOn }),
+  clearCaseOverlays: () =>
+    set({
+      yanomamiBand: null,
+      yanomamiRaddOn: false,
+      yanomamiDeterOn: false,
+      enchFloodOn: false,
+      secaDroughtOn: false,
+    }),
 }))
 
 /* ------------------------------------------------------------------ */

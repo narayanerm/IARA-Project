@@ -1,166 +1,223 @@
 #!/usr/bin/env node
-// Composites every Sentinel-1 browse image into a single mosaic PNG covering the
-// TI Yanomami bbox. Mirror of build-alos-mosaic.mjs — with the same alpha-mask
-// trick that drops NODATA / border black pixels so neighbour scenes bleed through.
+// Builds a Sentinel-1 C-band mosaic for a case by compositing server-side RTC crops
+// from Microsoft Planetary Computer. True 10 m/px resolution (vs. ~270 m/px of
+// the ASF browse JPGs we used before).
 //
-// Usage: npm run data:sentinel1:mosaic
+// Pipeline:
+//  1. STAC search on PC for sentinel-1-rtc scenes over the case bbox
+//  2. Pick N latest scenes (dedup by date)
+//  3. For each, GET the server-cropped PNG at the case bbox (vv backscatter in dB)
+//  4. Composite with sharp (newest wins)
+//
+// Usage: CASE=ENCH node scripts/analysis/build-sentinel1-mosaic.mjs
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs'
+import { Readable } from 'node:stream'
 import sharp from 'sharp'
 
 const CASE = (process.env.CASE || 'YANO').toUpperCase()
 const CASES = {
   YANO: {
     bbox: { minLon: -66.5, minLat: -0.5, maxLon: -61.0, maxLat: 4.5 },
-    browseDir: 'sentinel1-browse',
-    catalog: 'sentinel1-catalog.json',
     outStem: 'sentinel1-yanomami-mosaic',
+    datetime: '2024-01-01/2026-11-15',
+    cropWidth: 4000, // bbox is 5.5° → 150 m/px; 2000 would be 305 m/px (too coarse for garimpo)
   },
   ENCH: {
-    bbox: { minLon: -60.4, minLat: -3.4, maxLon: -59.5, maxLat: -2.8 },
-    browseDir: 'sentinel1-browse-manaus',
-    catalog: 'sentinel1-manaus-catalog.json',
+    bbox: { minLon: -60.9, minLat: -3.3, maxLon: -59.1, maxLat: -1.85 },
     outStem: 'sentinel1-manaus-mosaic',
+    datetime: '2023-01-01/2026-11-15',
+    cropWidth: 2000,
   },
   SECA: {
-    bbox: { minLon: -60.7, minLat: -3.7, maxLon: -60.1, maxLat: -3.2 },
-    browseDir: 'sentinel1-browse-manaquiri',
-    catalog: 'sentinel1-manaquiri-catalog.json',
+    bbox: { minLon: -61.2, minLat: -4.2, maxLon: -60.2, maxLat: -3.3 },
     outStem: 'sentinel1-manaquiri-mosaic',
+    datetime: '2023-01-01/2026-11-15',
+    cropWidth: 2000,
   },
 }
-if (!CASES[CASE]) { console.error(`unknown CASE=${CASE}`); process.exit(2) }
+if (!CASES[CASE]) {
+  console.error(`unknown CASE=${CASE}`)
+  process.exit(2)
+}
 const _CFG = CASES[CASE]
 
+const PC_STAC = 'https://planetarycomputer.microsoft.com/api/stac/v1/search'
+const PC_DATA = 'https://planetarycomputer.microsoft.com/api/data/v1'
+
 const OUT = 'public/analysis/data'
-const CATALOG = `${OUT}/${_CFG.catalog}`
-const BROWSE_DIR = `${OUT}/${_CFG.browseDir}`
+const CACHE_DIR = `/tmp/s1_rtc_cache_${CASE.toLowerCase()}`
+mkdirSync(CACHE_DIR, { recursive: true })
 
-const YANO = _CFG.bbox
-const OUT_W = 3000
-const OUT_H = 3000
+const PER_ORBIT_MAX = 30 // newest scenes to keep per sat:relative_orbit — guarantees every track contributes
+const SEARCH_HARD_CAP = 3000 // upper bound on paginated STAC results
 
-function wktBbox(wkt) {
-  const m = wkt.match(/^POLYGON\s*\(\((.+)\)\)$/i)
-  if (!m) return null
-  const pairs = m[1].split(/\),\s*\(/)[0].split(',').map((p) => p.trim().split(/\s+/).map(Number))
-  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity
-  for (const [lon, lat] of pairs) {
-    if (Number.isNaN(lon) || Number.isNaN(lat)) continue
-    if (lon < w) w = lon
-    if (lon > e) e = lon
-    if (lat < s) s = lat
-    if (lat > n) n = lat
+function cropSize(bbox, width) {
+  const { minLon: w, minLat: s, maxLon: e, maxLat: n } = bbox
+  const k = Math.cos((((s + n) / 2) * Math.PI) / 180)
+  return { width, height: Math.round((width * (n - s)) / ((e - w) * k)) }
+}
+
+async function searchPC(bbox, datetime, hardCap = SEARCH_HARD_CAP) {
+  const { minLon: w, minLat: s, maxLon: e, maxLat: n } = bbox
+  const body = {
+    collections: ['sentinel-1-rtc'],
+    intersects: {
+      type: 'Polygon',
+      coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]],
+    },
+    datetime,
+    limit: 1000,
   }
-  return { w, s, e, n }
+  const all = []
+  let token
+  while (all.length < hardCap) {
+    const req = token ? { ...body, token } : body
+    const res = await fetch(PC_STAC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    })
+    if (!res.ok) throw new Error(`PC STAC ${res.status}`)
+    const j = await res.json()
+    all.push(...(j.features || []))
+    const next = (j.links || []).find((l) => l.rel === 'next')
+    const nextToken = next?.body?.token
+    if (!nextToken || nextToken === token) break
+    token = nextToken
+  }
+  return all
+}
+
+function cropUrl(itemId, bbox, width) {
+  const { height } = cropSize(bbox, width)
+  const { minLon: w, minLat: s, maxLon: e, maxLat: n } = bbox
+  const q = new URLSearchParams({
+    collection: 'sentinel-1-rtc',
+    item: itemId,
+    assets: 'vv',
+    expression: '10*log10(vv)',
+    asset_as_band: 'True',
+    rescale: '-22,0',
+  })
+  return `${PC_DATA}/item/bbox/${w},${s},${e},${n}/${width}x${height}.png?${q}`
+}
+
+async function downloadCrop(scene, bbox) {
+  const cache = `${CACHE_DIR}/${scene.id}.png`
+  if (existsSync(cache) && readFileSync(cache).length > 10 * 1024) return cache
+  const url = cropUrl(scene.id, bbox, _CFG.cropWidth)
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`crop ${res.status}`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  writeFileSync(cache, buf)
+  return cache
+}
+
+// PC crops come as LA (Luminance + Alpha) with alpha=0 where the scene footprint
+// doesn't cover the bbox. Trust that alpha channel — our old RGB threshold was
+// nuking genuinely-dark water pixels (Rio Negro ~-22 dB) as NODATA.
+async function tileWithAlpha(path) {
+  return sharp(path).ensureAlpha().toColorspace('srgb').png().toBuffer()
 }
 
 async function main() {
-  if (!existsSync(CATALOG)) throw new Error(`run npm run data:sentinel1 first — ${CATALOG} missing`)
-  const catalog = JSON.parse(readFileSync(CATALOG, 'utf8'))
-  console.log(`[input] ${catalog.length} scenes in catalog`)
+  console.log(`[case ${CASE}] bbox ${JSON.stringify(_CFG.bbox)}  (${_CFG.datetime})`)
+  const scenes = await searchPC(_CFG.bbox, _CFG.datetime)
+  console.log(`[search] ${scenes.length} S1 RTC scenes on Planetary Computer`)
+  if (!scenes.length) throw new Error('no scenes')
 
-  const lngSpan = YANO.maxLon - YANO.minLon
-  const latSpan = YANO.maxLat - YANO.minLat
-  const lngPx = OUT_W / lngSpan
-  const latPx = OUT_H / latSpan
+  // Dedupe by (s1:datatake_id, slice_number). Covers all orbits — using
+  // sat:relative_orbit as the dedup key collapses the catalog to ~3 tracks and
+  // misses scenes that cover specific bbox corners.
+  const byKey = new Map()
+  for (const f of scenes) {
+    const dt = f.properties['s1:datatake_id'] ?? f.id
+    const slice = f.properties['s1:slice_number'] ?? ''
+    const key = `${dt}|${slice}`
+    if (!byKey.has(key)) byKey.set(key, f)
+  }
+  // Group by relative_orbit and keep the newest PER_ORBIT_MAX of each.
+  // Picking globally-newest biases toward the last 1-2 months, which for a
+  // bbox wider than a single S1 swath leaves tracks that didn't revisit
+  // recently completely missing — the symptom was the SE/NE corners of the
+  // YANO bbox showing up nearly empty.
+  const byOrbit = new Map()
+  for (const f of byKey.values()) {
+    const o = f.properties['sat:relative_orbit']
+    const bucket = byOrbit.get(o) || []
+    bucket.push(f)
+    byOrbit.set(o, bucket)
+  }
+  const ordered = []
+  for (const bucket of byOrbit.values()) {
+    bucket.sort((a, b) => a.properties.datetime.localeCompare(b.properties.datetime))
+    ordered.push(...bucket.slice(-PER_ORBIT_MAX))
+  }
+  ordered.sort((a, b) => a.properties.datetime.localeCompare(b.properties.datetime))
+  const perOrbit = [...byOrbit.entries()].map(([o, b]) => `${o}:${Math.min(b.length, PER_ORBIT_MAX)}`).join(' ')
+  console.log(`[pick] ${ordered.length} scenes across ${byOrbit.size} relative_orbits (${perOrbit})`)
 
-  // DESCENDING only. S1 over Amazônia is overwhelmingly DESC (65 vs 24 ASC), and
-  // the ASC scenes that don't geographically overlap any DESC scene show up as
-  // "orphan" patches with different look direction/texture — visually jarring.
-  // Drop ASC entirely and accept coverage gaps at the bbox corners (outside TI).
-  const ordered = catalog
-    .filter((c) => c.flightDirection === 'DESCENDING')
-    .sort((a, b) => a.startTime.localeCompare(b.startTime))
-  console.log(`[filter] DESCENDING only: ${ordered.length}/${catalog.length}`)
+  const { width: outW, height: outH } = cropSize(_CFG.bbox, _CFG.cropWidth)
+  console.log(`[canvas] ${outW}x${outH} (10 m/px nominal)`)
 
+  // Download crops. PC Data API crops server-side so each PNG is already in our target bbox.
   const composites = []
-  let skipped = 0
-  const t0 = Date.now()
-
+  let ok = 0, fail = 0
   for (let i = 0; i < ordered.length; i++) {
-    const c = ordered[i]
-    const bbox = wktBbox(c.wkt)
-    if (!bbox) { skipped++; continue }
-    const clipW = Math.max(bbox.w, YANO.minLon)
-    const clipE = Math.min(bbox.e, YANO.maxLon)
-    const clipS = Math.max(bbox.s, YANO.minLat)
-    const clipN = Math.min(bbox.n, YANO.maxLat)
-    if (clipW >= clipE || clipS >= clipN) { skipped++; continue }
-
-    const dx = Math.round((clipW - YANO.minLon) * lngPx)
-    const dyTop = Math.round((YANO.maxLat - clipN) * latPx)
-    const dWidth = Math.round((clipE - clipW) * lngPx)
-    const dHeight = Math.round((clipN - clipS) * latPx)
-    if (dWidth < 2 || dHeight < 2) { skipped++; continue }
-
-    const fname = c.granuleName + (c.localBrowse?.endsWith('.png') ? '.png' : '.jpg')
-    const path = c.localBrowse ? `${OUT}/${c.localBrowse}` : `${BROWSE_DIR}/${fname}`
-    if (!existsSync(path)) { skipped++; continue }
-
+    const s = ordered[i]
     try {
-      const meta = await sharp(path).metadata()
-      const sw = meta.width, sh = meta.height
-      const bLng = bbox.e - bbox.w, bLat = bbox.n - bbox.s
-      const sxL = Math.round(((clipW - bbox.w) / bLng) * sw)
-      const sxR = Math.round(((clipE - bbox.w) / bLng) * sw)
-      const syT = Math.round(((bbox.n - clipN) / bLat) * sh)
-      const syB = Math.round(((bbox.n - clipS) / bLat) * sh)
-      const srcW = Math.max(1, sxR - sxL)
-      const srcH = Math.max(1, syB - syT)
-
-      // Desaturate + mild speckle blur, then normalize.
-      const { data, info } = await sharp(path)
-        .extract({ left: sxL, top: syT, width: srcW, height: srcH })
-        .resize(dWidth, dHeight, { fit: 'fill', kernel: 'lanczos3' })
-        .modulate({ saturation: 0 })
-        .blur(0.8)
-        .normalize({ lower: 2, upper: 98 })
-        .ensureAlpha()
-        .raw()
-        .toBuffer({ resolveWithObject: true })
-
-      // S1 browse quicklook has dark fringes at swath edges; threshold kills them so
-      // overlapping revisits of the same cell fill in cleanly.
-      // Strict threshold — only pure-black NODATA borders get killed, not dark but
-      // valid forest/shadow pixels. The grayscale+normalize step already pushed valid
-      // data away from 0, so a tight threshold is enough to catch margins.
-      for (let p = 0; p < data.length; p += 4) {
-        const r = data[p], g = data[p + 1], b = data[p + 2]
-        if (r < 6 && g < 6 && b < 6) data[p + 3] = 0
-      }
-      const buf = await sharp(data, { raw: info }).png().toBuffer()
-      composites.push({ input: buf, left: dx, top: dyTop })
+      const path = await downloadCrop(s, _CFG.bbox)
+      const buf = await tileWithAlpha(path)
+      composites.push({ input: buf, left: 0, top: 0 })
+      ok++
     } catch (e) {
-      skipped++
-      console.warn('  skip', c.granuleName, e.message)
+      fail++
     }
-
-    if ((i + 1) % 25 === 0) process.stdout.write(`  ${i + 1}/${ordered.length}\r`)
+    if ((i + 1) % 10 === 0 || i === ordered.length - 1) {
+      process.stdout.write(`  ${i + 1}/${ordered.length}  (ok=${ok} fail=${fail})\r`)
+    }
   }
   process.stdout.write('\n')
-  console.log(`[prep] ${composites.length} tiles ready · ${skipped} skipped · ${((Date.now() - t0) / 1000).toFixed(1)}s`)
 
-  const BATCH = 60
+  // Batch composite so sharp doesn't allocate the whole stack.
+  const BATCH = 20
   let canvas = sharp({
-    create: { width: OUT_W, height: OUT_H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+    create: { width: outW, height: outH, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
   })
   for (let i = 0; i < composites.length; i += BATCH) {
     const chunk = composites.slice(i, i + BATCH)
     const buf = await canvas.composite(chunk).png().toBuffer()
     canvas = sharp(buf)
-    process.stdout.write(`  composite batch ${Math.min(i + BATCH, composites.length)}/${composites.length}\r`)
+    process.stdout.write(`  composite ${Math.min(i + BATCH, composites.length)}/${composites.length}\r`)
   }
   process.stdout.write('\n')
 
   const outPng = `${OUT}/${_CFG.outStem}.png`
   await canvas.png({ compressionLevel: 9 }).toFile(outPng)
   const size = (await sharp(outPng).metadata()).size || 0
-  console.log(`[write] ${outPng} · ${OUT_W}x${OUT_H} · ${(size / 1024 / 1024).toFixed(1)} MB`)
+  console.log(`[write] ${outPng} · ${outW}x${outH} · ${(size / 1024 / 1024).toFixed(1)} MB`)
 
-  const bounds = { north: YANO.maxLat, south: YANO.minLat, west: YANO.minLon, east: YANO.maxLon }
+  const b = _CFG.bbox
+  const bounds = { north: b.maxLat, south: b.minLat, west: b.minLon, east: b.maxLon }
   writeFileSync(`${OUT}/${_CFG.outStem}.bounds.json`, JSON.stringify(bounds, null, 2))
   console.log(`[write] ${OUT}/${_CFG.outStem}.bounds.json`)
+
+  const dateRange = [
+    ordered[0].properties.datetime.slice(0, 10),
+    ordered.at(-1).properties.datetime.slice(0, 10),
+  ]
+  writeFileSync(
+    `${OUT}/${_CFG.outStem}.meta.json`,
+    JSON.stringify({
+      bbox: [b.minLon, b.minLat, b.maxLon, b.maxLat],
+      width: outW,
+      height: outH,
+      scenesComposited: ok,
+      dateRange,
+      source: 'Sentinel-1 RTC · Microsoft Planetary Computer (10 m/px σ⁰ in dB)',
+    }, null, 2)
+  )
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

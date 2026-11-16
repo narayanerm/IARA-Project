@@ -18,7 +18,7 @@ type Args = Record<string, unknown>
 type Executor = (args: Args) => Promise<unknown> | unknown
 
 const CASE_IDS = CASE_ORDER as string[]
-const CASE_TABS: CaseTab[] = ['overview', 'timeline', 'alerts']
+const CASE_TABS: CaseTab[] = ['overview', 'timeline', 'forecast']
 const PANEL_TABS: RightTab[] = ['chat', 'nisar', 'meta']
 const SAR_LAYERS: ProductLayer[] = ['amplitude', 'coherence', 'interferogram', 'displacement', 'change']
 // Rough Amazon box: keeps a wrong coordinate from sending the camera to the ocean.
@@ -189,7 +189,7 @@ const EXECUTORS: Record<string, Executor> = {
     openCase(h.caseId)
     await waitForArrival()
     const st = app()
-    st.setCaseTab('alerts')
+    st.setCaseTab('forecast')
     st.setHotspot(h.id)
     st.requestFlyTo(h.center, Math.max(CASES[h.caseId].camera.zoom + 1.5, 10))
     return { ok: true, case: h.caseId, hotspot: h.name, level: h.level }
