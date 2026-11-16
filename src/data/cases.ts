@@ -324,51 +324,81 @@ export const CASES: Record<RegionId, CaseStudy> = {
         en: 'The pace has fallen since 2023, but the fronts remain active and keep moving.',
       },
     },
+    // Yanomami communities ranked by distance to the nearest DETER mineração polygon
+    // (2019-2026 catalogue, 683 polygons; haversine from each polo-base centroid to
+    // every polygon centroid, pick the minimum). Top 5 shown here.
+    //
+    // Village coordinates (approximate ± ~1 km) and selection sourced from:
+    //  - Hutukara "Yanomami Sob Ataque" 2022 and 2023 reports (ISA/Hutukara)
+    //  - SESAI DSEI-Y polo-base cadastre (public)
+    //  - ISA Povos Indígenas do Brasil fichas
+    //
+    // Risk levels derived offline from the distance tier:
+    //  - critical: < 15 km   (Homoxi — 10.7 km, mining epicentre of 2023 crisis)
+    //  - high:     < 20 km   (Xitei 16.2 km, Surucucu 16.3 km)
+    //  - watch:    < 30 km   (Watoriki 20.6 km, Marari 23.0 km)
     hotspots: [
       {
-        id: 'uraricoera',
-        name: 'Rio Uraricoera',
-        center: [-62.9, 3.45],
+        id: 'homoxi',
+        name: 'Homoxi',
+        center: [-63.76, 2.43],
         level: 'critical',
         note: {
-          pt: 'Principal corredor de balsas e dragas dentro da terra.',
-          en: 'Main corridor of barges and dredges inside the land.',
+          pt: 'Frente de garimpo a 10,7 km — epicentro da crise humanitária 2022-2023.',
+          en: 'Mining front 10.7 km away — epicentre of the 2022-2023 humanitarian crisis.',
         },
         approx: true,
       },
       {
-        id: 'homoxi',
-        name: 'Homoxi',
-        center: [-63.5, 2.53],
-        level: 'critical',
-        note: {
-          pt: 'Frente documentada de 2019 a 2023 no alto rio Mucajaí.',
-          en: 'Front documented from 2019 to 2023 on the upper Mucajaí river.',
-        },
-      },
-      {
-        id: 'mucajai',
-        name: 'Alto Mucajaí',
-        center: [-63.65, 2.42],
-        labelLeft: true,
-        level: 'high',
-        note: { pt: 'Poços e dragas ao longo do rio.', en: 'Pits and dredges along the river.' },
-      },
-      {
         id: 'xitei',
         name: 'Xitei',
-        center: [-63.87, 2.6],
+        center: [-62.64, 2.42],
         level: 'high',
         note: {
-          pt: 'Região de aldeias cercada por novas clareiras.',
-          en: 'Village area surrounded by new clearings.',
+          pt: 'Serra do Parima; alerta DETER a 16,2 km (mar/2023).',
+          en: 'Parima range; nearest DETER alert 16.2 km (Mar 2023).',
+        },
+        approx: true,
+      },
+      {
+        id: 'surucucu',
+        name: 'Surucucu',
+        center: [-63.60, 2.78],
+        level: 'high',
+        note: {
+          pt: 'Polo-base de alta altitude; alerta a 16,3 km (fev/2024).',
+          en: 'Highland polo-base; alert 16.3 km (Feb 2024).',
+        },
+        approx: true,
+      },
+      {
+        id: 'watoriki',
+        name: 'Watoriki',
+        center: [-63.59, 1.17],
+        labelLeft: true,
+        level: 'watch',
+        note: {
+          pt: 'Aldeia de Davi Kopenawa no Demini; alerta a 20,6 km (ago/2023).',
+          en: 'Davi Kopenawa\'s community in Demini; alert 20.6 km (Aug 2023).',
+        },
+        approx: true,
+      },
+      {
+        id: 'marari',
+        name: 'Marari',
+        center: [-64.32, 1.55],
+        labelLeft: true,
+        level: 'watch',
+        note: {
+          pt: 'Polo-base do oeste; alerta mais próximo a 23 km (ago/2021).',
+          en: 'Western polo-base; nearest alert 23 km (Aug 2021).',
         },
         approx: true,
       },
     ],
     hotspotsNote: {
-      pt: 'Os alertas do DETER (INPE) aparecem no mapa quase em tempo real, em vermelho.',
-      en: 'DETER alerts (INPE) show on the map in near real time, in red.',
+      pt: 'Comunidades ranqueadas por distância ao alerta DETER mineração mais próximo (2019-2026). Coordenadas aproximadas; fontes Hutukara, SESAI DSEI-Y, ISA.',
+      en: 'Communities ranked by distance to the nearest DETER mining alert (2019-2026). Approximate coordinates; sources Hutukara, SESAI DSEI-Y, ISA.',
     },
     sarBbox: [-64.1, 2.3, -63.6, 2.8],
     // Homoxi and the upper Mucajaí: one Landsat/Sentinel-2 scene and the NISAR frames cover it whole.

@@ -1,0 +1,41 @@
+{
+  "train": {
+    "split": "train",
+    "n": 472500,
+    "positives": 4339,
+    "pr_auc": 0.3164927362046539,
+    "roc_auc": 0.9310269805476052,
+    "brier": 0.07179581817938416,
+    "recall_at_top_5pct": 0.7964968886840286,
+    "precision_at_top_5pct": 0.1462857142857143
+  },
+  "test": {
+    "split": "test",
+    "n": 157500,
+    "positives": 1706,
+    "pr_auc": 0.156743372241877,
+    "roc_auc": 0.7969810541743876,
+    "brier": 0.08026571602463703,
+    "recall_at_top_5pct": 0.5181711606096131,
+    "precision_at_top_5pct": 0.11225396825396826
+  },
+  "horizon": "1 year ahead",
+  "n_features": 11,
+  "feature_names": [
+    "srtm_elev",
+    "srtm_slope",
+    "s1_vv_p50",
+    "s1_vv_p10",
+    "s1_vv_p90",
+    "s1_vh_p50",
+    "s1_vh_std",
+    "hansen_cum_buffer",
+    "dist_prior_loss_km",
+    "chirps_year",
+    "year_norm"
+  ],
+  "device": "cuda",
+  "pos_weight": 107.89605899976954,
+  "target": "Hansen GFC v1.12 forest loss within next calendar year",
+  "notes": "RADD alerts bulk download requires auth; Hansen used as NASA-aligned (Landsat) target."
+}

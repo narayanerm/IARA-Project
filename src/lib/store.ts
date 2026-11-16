@@ -173,6 +173,8 @@ interface UiState {
   toggleYanomamiDeter: () => void
   toggleEnchFlood: () => void
   toggleSecaDrought: () => void
+  /** Turn every case overlay off at once (band + RADD + DETER + GIBS flood/drought). */
+  clearCaseOverlays: () => void
 }
 
 export const useUi = create<UiState>((set, get) => ({
@@ -202,4 +204,12 @@ export const useUi = create<UiState>((set, get) => ({
   toggleYanomamiDeter: () => set({ yanomamiDeterOn: !get().yanomamiDeterOn }),
   toggleEnchFlood: () => set({ enchFloodOn: !get().enchFloodOn }),
   toggleSecaDrought: () => set({ secaDroughtOn: !get().secaDroughtOn }),
+  clearCaseOverlays: () =>
+    set({
+      yanomamiBand: null,
+      yanomamiRaddOn: false,
+      yanomamiDeterOn: false,
+      enchFloodOn: false,
+      secaDroughtOn: false,
+    }),
 }))

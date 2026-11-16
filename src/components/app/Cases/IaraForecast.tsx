@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ChevronDown, Loader2 } from 'lucide-react'
 import {
   Area,
   Bar,
@@ -17,8 +17,10 @@ import {
   YAxis,
 } from 'recharts'
 
-import type { CaseStudy } from '@/data/cases'
+import { RISK_COLOR, type CaseStudy, type RiskLevel } from '@/data/cases'
 import { useI18n } from '@/lib/i18n'
+import { useApp, useUi } from '@/lib/store'
+import { useCaseCriticalRisk } from '@/lib/useCaseCriticalRisk'
 import {
   useIaraForecast,
   type EnchForecast,
@@ -59,6 +61,11 @@ const COPY = {
     loading: 'Carregando previsão…',
     error: 'Previsão indisponível no momento.',
     trainedAt: 'Treinado em 15.11.2026 · RTX 5090',
+    atRiskTitle: 'Comunidades em risco',
+    atRiskSubtitle: 'Mesmos pontos destacados no mapa, ranqueados pelo modelo.',
+    levelLabel: { critical: 'Crítico', high: 'Alto', watch: 'Atenção' } as Record<RiskLevel, string>,
+    modelDetailsOpen: 'Esconder detalhes do modelo',
+    modelDetailsClosed: 'Mostrar detalhes do modelo',
     yanoHero: 'Área prevista de desmate',
     yanoHorizon: (yr: number) => `no próximo ano (${yr})`,
     yanoBuckets: { critical: 'Crítico', high: 'Alto', moderate: 'Moderado' },
@@ -104,6 +111,11 @@ const COPY = {
     loading: 'Loading forecast…',
     error: 'Forecast unavailable right now.',
     trainedAt: 'Trained on 2026-11-15 · RTX 5090',
+    atRiskTitle: 'At-risk communities',
+    atRiskSubtitle: 'Same points highlighted on the map, ranked by the model.',
+    levelLabel: { critical: 'Critical', high: 'High', watch: 'Watch' } as Record<RiskLevel, string>,
+    modelDetailsOpen: 'Hide model details',
+    modelDetailsClosed: 'Show model details',
     yanoHero: 'Predicted deforestation area',
     yanoHorizon: (yr: number) => `next year (${yr})`,
     yanoBuckets: { critical: 'Critical', high: 'High', moderate: 'Moderate' },
@@ -168,22 +180,133 @@ export function IaraForecastPanel({ c }: { c: CaseStudy }) {
         <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">{copy.modelText[c.id]}</p>
       </header>
 
+      {/* Headline: the map pins in sentence form. Simple, no jargon.
+          Matches the forecast-driven CaseMarkers so the panel and the map agree. */}
+      <AtRiskList c={c} copy={copy} />
+
+      {/* Model detail: the previous panel body (hero numbers, charts, metrics)
+          is now opt-in. Collapsed by default so the main view stays didactic. */}
       {loading ? (
         <p className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground">
           <Loader2 className="h-3 w-3 animate-spin" /> {copy.loading}
         </p>
       ) : error || !fc.data || !ext.data ? (
         <p className="text-[12.5px] text-muted-foreground">{copy.error}</p>
-      ) : fc.data.kind === 'YANO' && ext.data.meta.kind === 'YANO' ? (
-        <YanoBlock forecast={fc.data} extent={ext.data.meta} copy={copy} />
-      ) : fc.data.kind === 'ENCH' && ext.data.meta.kind === 'ENCH' ? (
-        <EnchBlock forecast={fc.data} extent={ext.data.meta} copy={copy} />
-      ) : fc.data.kind === 'SECA' && ext.data.meta.kind === 'SECA' ? (
-        <SecaBlock forecast={fc.data} extent={ext.data.meta} copy={copy} />
-      ) : null}
-
-      <p className="font-mono text-[10.5px] text-muted-foreground">{copy.trainedAt}</p>
+      ) : (
+        <ModelDetails
+          openLabel={copy.modelDetailsOpen}
+          closedLabel={copy.modelDetailsClosed}
+        >
+          {fc.data.kind === 'YANO' && ext.data.meta.kind === 'YANO' ? (
+            <YanoBlock forecast={fc.data} extent={ext.data.meta} copy={copy} />
+          ) : fc.data.kind === 'ENCH' && ext.data.meta.kind === 'ENCH' ? (
+            <EnchBlock forecast={fc.data} extent={ext.data.meta} copy={copy} />
+          ) : fc.data.kind === 'SECA' && ext.data.meta.kind === 'SECA' ? (
+            <SecaBlock forecast={fc.data} extent={ext.data.meta} copy={copy} />
+          ) : null}
+          <p className="font-mono text-[10.5px] text-muted-foreground">{copy.trainedAt}</p>
+        </ModelDetails>
+      )}
     </section>
+  )
+}
+
+function AtRiskList({ c, copy }: { c: CaseStudy; copy: ReturnType<typeof useCopy> }) {
+  const lang = useI18n((s) => s.lang)
+  const risks = useCaseCriticalRisk(c.id)
+  const hotspotId = useApp((s) => s.hotspotId)
+  const setHotspot = useApp((s) => s.setHotspot)
+  const requestFlyTo = useApp((s) => s.requestFlyTo)
+  const clearCaseOverlays = useUi((s) => s.clearCaseOverlays)
+  // Sort by the model's own urgency score so the panel's order matches "most
+  // critical first" without assuming a specific ordering in cases.ts.
+  const rows = c.hotspots
+    .map((h) => ({ h, r: risks?.[h.id] }))
+    .sort((a, b) => (a.r?.score ?? Number.POSITIVE_INFINITY) - (b.r?.score ?? Number.POSITIVE_INFINITY))
+
+  // Zoom in close enough to see the community clearly but not so close that the
+  // basemap loses context. Clamp so a small case bbox doesn't blow past 13.
+  const focusZoom = Math.min(13, c.camera.zoom + 2.5)
+
+  return (
+    <div className="space-y-2">
+      <div>
+        <div className="text-[13px] font-semibold text-foreground">{copy.atRiskTitle}</div>
+        <div className="text-[11.5px] text-muted-foreground">{copy.atRiskSubtitle}</div>
+      </div>
+      <ul className="space-y-1.5">
+        {rows.map(({ h, r }) => {
+          const level: RiskLevel = r?.level ?? h.level
+          const insight = r?.insight[lang]
+          const active = hotspotId === h.id
+          return (
+            <li key={h.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  clearCaseOverlays()
+                  setHotspot(h.id)
+                  requestFlyTo(h.center, focusZoom)
+                }}
+                aria-pressed={active}
+                className={`group flex w-full flex-col items-stretch rounded-md border px-2.5 py-2 text-left transition-colors ${
+                  active
+                    ? 'border-border bg-secondary'
+                    : 'border-border/60 bg-background/40 hover:border-border hover:bg-background/70'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: RISK_COLOR[level] }}
+                  />
+                  <span className="text-[12.5px] font-semibold text-foreground">{h.name}</span>
+                  <span
+                    className="ml-auto font-mono text-[9.5px] uppercase tracking-wider"
+                    style={{ color: RISK_COLOR[level] }}
+                  >
+                    {copy.levelLabel[level]}
+                  </span>
+                </div>
+                {insight && (
+                  <p className="mt-1 text-[11.5px] leading-snug text-foreground/80">{insight}</p>
+                )}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+function ModelDetails({
+  openLabel,
+  closedLabel,
+  children,
+}: {
+  openLabel: string
+  closedLabel: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="rounded-md border border-border/60 bg-background/30">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11.5px] font-mono uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronDown
+          className="h-3.5 w-3.5 transition-transform"
+          style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+        />
+        {open ? openLabel : closedLabel}
+      </button>
+      {open && <div className="space-y-3 border-t border-border/60 px-3 py-3">{children}</div>}
+    </div>
   )
 }
 
