@@ -425,7 +425,7 @@ export const CASES: Record<RegionId, CaseStudy> = {
         title: 'Yanomami Sob Ataque: garimpo ilegal avança 309% em quatro anos',
         outlet: 'Hutukara Associação Yanomami',
         date: '2022-04',
-        url: 'https://hutukara.org/wp-content/uploads/2022/04/YanomamiSobAtaque-2022.pdf',
+        url: 'https://hutukarayanomami.org/',
         summary: 'Relatório da organização indígena com cartografia das frentes de garimpo e impacto em saúde, baseado em SAR e campo.',
       },
       {
