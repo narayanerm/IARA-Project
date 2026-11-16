@@ -57,7 +57,7 @@ moldura = """<!doctype html>
 <div class="aparelho"><iframe id="app" title="App de apoio do IARA" srcdoc="__APP__"></iframe></div>
 <div class="texto">
   <h1>App de apoio do IARA</h1>
-  <p>A parte principal do projeto IARA é o site. Este é o app de apoio, para quem mora na beira do rio, rodando dentro de uma moldura de celular. Clique como se fosse o dedo.</p>
+  <p>A parte principal do projeto IARA é o site, em <a href="https://iara.earth" target="_blank" rel="noopener" style="color:#8fd6a6">iara.earth</a>. Este é o app de apoio, para quem mora na beira do rio, rodando dentro de uma moldura de celular. Clique como se fosse o dedo.</p>
   <p>Na primeira vez abre um tour que mostra cada aba. Depois escolha uma cidade, por exemplo Tefé ou Lábrea.</p>
   <p>O app precisa de internet: o nível do rio vem da ANA e os focos de fogo vêm do INPE, buscados na hora.</p>
   <button type="button" onclick="var f=document.getElementById('app');f.srcdoc=f.srcdoc">Recomeçar</button>
