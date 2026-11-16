@@ -82,9 +82,54 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
   }, [finish])
 
   // The page behind stays visible: the map just stops moving while the video plays (nothing repaints behind it).
+  // The glass rim shows that page blurred. A live backdrop-filter would redo the blur on every video frame (half the
+  // frames dropped in testing), so the still map is snapshotted once, blurred once here, and used as the rim's image.
+  const [glass, setGlass] = useState<{ img: string; w: number; h: number } | null>(null)
   useEffect(() => {
-    mapRef?.getMap().stop()
+    const m = mapRef?.getMap()
+    if (!m) return
+    m.stop()
+    const grab = () => {
+      try {
+        const src = m.getCanvas()
+        const w = src.clientWidth
+        const h = src.clientHeight
+        const c = document.createElement('canvas')
+        c.width = Math.max(1, Math.round(w / 4))
+        c.height = Math.max(1, Math.round(h / 4))
+        const ctx = c.getContext('2d')
+        if (!ctx) return
+        ctx.filter = 'blur(4px) saturate(150%)'
+        ctx.drawImage(src, 0, 0, c.width, c.height)
+        setGlass({ img: c.toDataURL('image/jpeg', 0.7), w, h })
+      } catch {
+        /* no snapshot: the rim stays a plain tinted glass */
+      }
+    }
+    m.once('render', grab)
+    m.triggerRepaint()
+    return () => {
+      m.off('render', grab)
+    }
   }, [mapRef])
+
+  // Line the snapshot up with the page behind the rim (the map fills #app).
+  const [glassPos, setGlassPos] = useState('0px 0px')
+  useEffect(() => {
+    const place = () => {
+      const app = (document.getElementById('app') ?? document.body).getBoundingClientRect()
+      const f = frameRef.current?.getBoundingClientRect()
+      if (f) setGlassPos(`${Math.round(app.left - f.left)}px ${Math.round(app.top - f.top)}px`)
+    }
+    place()
+    // Again once the card's entrance animation has settled.
+    const id = window.setTimeout(place, 650)
+    window.addEventListener('resize', place)
+    return () => {
+      window.clearTimeout(id)
+      window.removeEventListener('resize', place)
+    }
+  }, [glass])
 
   // Start only once the browser can play through without stalling (the poster shows meanwhile). Autoplay with
   // sound; browsers that block it get a muted start and a "turn sound on" button.
@@ -190,6 +235,16 @@ function CaseVideoPlayer({ region }: { region: RegionId }) {
   return createPortal(
     <div ref={rootRef} className="case-video" role="dialog" aria-label={video.title}>
       <div ref={frameRef} className="case-video-frame">
+        {/* Glass rim behind the video, painted with the pre-blurred snapshot of the page. */}
+        <div
+          className="case-video-glass"
+          aria-hidden="true"
+          style={
+            glass
+              ? { backgroundImage: `url(${glass.img})`, backgroundSize: `${glass.w}px ${glass.h}px`, backgroundPosition: glassPos }
+              : undefined
+          }
+        />
         <video
           ref={videoRef}
           src={video.src}
