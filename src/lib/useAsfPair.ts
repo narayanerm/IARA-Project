@@ -35,6 +35,23 @@ function closestTo(date: string, list: AsfGranule[]): AsfGranule | null {
   })
 }
 
+// Scene footprint is a SAR parallelogram; just testing the axis-aligned bbox of its
+// outer ring is enough for the slider's purpose (if the ring's lon/lat spread
+// contains the sarBbox, every pixel of the sarBbox falls inside the acquisition).
+function footprintContains(g: AsfGranule, bbox: [number, number, number, number]): boolean {
+  const ring = g.footprint?.coordinates?.[0] as number[][] | undefined
+  if (!ring || ring.length < 3) return false
+  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity
+  for (const [lon, lat] of ring) {
+    if (lon < w) w = lon
+    if (lon > e) e = lon
+    if (lat < s) s = lat
+    if (lat > n) n = lat
+  }
+  const pad = 0.01
+  return w - pad <= bbox[0] && s - pad <= bbox[1] && e + pad >= bbox[2] && n + pad >= bbox[3]
+}
+
 // Returns a matched before/after pair that share the SAME relativeOrbit (path) and frame,
 // so the geographic footprint is identical. Falls back to unconstrained match if no overlap.
 export function useAsfPair(
@@ -63,7 +80,7 @@ export function useAsfPair(
 
       for (const { platform, processingLevel } of PAIR_CHAIN) {
         try {
-          const [beforeList, afterList] = await Promise.all([
+          const [rawBefore, rawAfter] = await Promise.all([
             searchGranules(
               { platform, processingLevel, bbox, start: bw.start, end: bw.end, maxResults: 40 },
               { signal: ctrl.signal }
@@ -74,6 +91,15 @@ export function useAsfPair(
             ),
           ])
           if (cancelled) return
+          // Filter to scenes whose footprint FULLY contains the sarBbox.  ASF's
+          // search is "intersects"; a scene grazing the bbox corner passes the
+          // query but shows a truncated image in the slider.  Fall back to the
+          // raw list only if nothing in the band fully covers the bbox (next
+          // platform in the chain gets a chance).
+          const beforeFull = rawBefore.filter((g) => footprintContains(g, bbox))
+          const afterFull = rawAfter.filter((g) => footprintContains(g, bbox))
+          const beforeList = beforeFull.length ? beforeFull : rawBefore
+          const afterList = afterFull.length ? afterFull : rawAfter
           if (!beforeList.length || !afterList.length) continue
 
           const afterByFrame = new Map<string, AsfGranule[]>()

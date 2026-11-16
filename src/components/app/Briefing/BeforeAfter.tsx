@@ -12,6 +12,10 @@ interface Props {
   // Each side has its own image bbox (may differ for SAR granules on different orbits).
   beforeBbox: Bbox
   afterBbox: Bbox
+  // Optional focus crop: show only this bbox out of each scene, instead of the whole thing.
+  // Without it the slider would display the entire ~3° × 3° SAR granule, where real
+  // features look tiny — garimpo, floods and dry lakes become unreadable.
+  focusBbox?: Bbox
   // Affected-area polygons overlay on both frames (projected to the per-frame bbox).
   affected?: FeatureCollection<Polygon, AffectedAreaProps>
 }
@@ -23,6 +27,7 @@ export function BeforeAfter({
   afterLabel,
   beforeBbox,
   afterBbox,
+  focusBbox,
   affected,
 }: Props) {
   const [pos, setPos] = useState(50)
@@ -46,12 +51,12 @@ export function BeforeAfter({
       onMouseLeave={() => setDragging(false)}
       onTouchMove={(e) => onMove(e.touches[0].clientX)}
     >
-      <Frame url={afterUrl} bbox={afterBbox} affected={affected} className="absolute inset-0" />
+      <Frame url={afterUrl} bbox={afterBbox} focus={focusBbox} affected={affected} className="absolute inset-0" />
       <div
         className="absolute inset-0 overflow-hidden"
         style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
       >
-        <Frame url={beforeUrl} bbox={beforeBbox} affected={affected} className="absolute inset-0" />
+        <Frame url={beforeUrl} bbox={beforeBbox} focus={focusBbox} affected={affected} className="absolute inset-0" />
       </div>
 
       <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[11px] font-mono backdrop-blur-sm z-10">
@@ -87,21 +92,36 @@ export function BeforeAfter({
 function Frame({
   url,
   bbox,
+  focus,
   affected,
   className,
 }: {
   url: string
   bbox: Bbox
+  focus?: Bbox
   affected?: FeatureCollection<Polygon, AffectedAreaProps>
   className?: string
 }) {
   const [minLon, minLat, maxLon, maxLat] = bbox
-  const vbW = 1000
-  const vbH = Math.max(300, Math.round((vbW * (maxLat - minLat)) / (maxLon - minLon || 0.001)))
+  const sceneW = maxLon - minLon || 0.001
+  const sceneH = maxLat - minLat || 0.001
+  // Scene is drawn on a 1000×H viewBox, with viewBox clipped to `focus` when
+  // provided — SVG `image` + viewBox gives us pan+zoom for free without
+  // computing CSS transforms by hand.
+  const imgW = 1000
+  const imgH = Math.max(300, Math.round((imgW * sceneH) / sceneW))
+  const [vbX, vbY, vbW, vbH] = focus
+    ? [
+        ((focus[0] - minLon) / sceneW) * imgW,
+        ((maxLat - focus[3]) / sceneH) * imgH,
+        ((focus[2] - focus[0]) / sceneW) * imgW,
+        ((focus[3] - focus[1]) / sceneH) * imgH,
+      ]
+    : [0, 0, imgW, imgH]
 
   const project = ([lon, lat]: number[]): [number, number] => {
-    const x = ((lon - minLon) / (maxLon - minLon)) * vbW
-    const y = vbH - ((lat - minLat) / (maxLat - minLat)) * vbH
+    const x = ((lon - minLon) / sceneW) * imgW
+    const y = imgH - ((lat - minLat) / sceneH) * imgH
     return [x, y]
   }
 
@@ -128,24 +148,18 @@ function Frame({
 
   return (
     <div className={className}>
-      <img
-        src={url}
-        alt=""
-        draggable={false}
-        className="w-full h-full object-cover"
-        referrerPolicy="no-referrer"
-      />
-      {affected && (
-        <svg
-          viewBox={`0 0 ${vbW} ${vbH}`}
-          preserveAspectRatio="none"
-          className="absolute inset-0 w-full h-full pointer-events-none"
-        >
-          {affected.features.map((f, i) => {
+      <svg
+        viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+        preserveAspectRatio="xMidYMid slice"
+        className="absolute inset-0 h-full w-full"
+      >
+        <image href={url} x={0} y={0} width={imgW} height={imgH} preserveAspectRatio="none" />
+        {affected &&
+          affected.features.map((f, i) => {
             const c = colorFor(f.properties.kind)
             const isOriginal = f.properties.kind === 'drought-original'
             return (
-              <g key={i}>
+              <g key={i} style={{ pointerEvents: 'none' }}>
                 <path
                   d={path(f as Feature<Polygon, AffectedAreaProps>)}
                   fill={c}
@@ -182,8 +196,7 @@ function Frame({
               </g>
             )
           })}
-        </svg>
-      )}
+      </svg>
     </div>
   )
 }

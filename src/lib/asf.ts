@@ -132,8 +132,13 @@ function normalize(r: AsfGranuleRaw): AsfGranule | null {
     sizeMB: r.sizeMB,
     downloadUrl: r.downloadUrl,
     vertexUrl: `https://search.asf.alaska.edu/#/?zoom=8&granule=${encodeURIComponent(r.granuleName)}`,
+    // Prefer the full-resolution LATLON.png (~1965×1922 for NISAR; a few MB) over the
+    // _LATLON_thumbnail.png (100×100 — unusable when the slider crops a small focus box).
     browseUrl:
-      r.browse?.find((u) => u.endsWith('_LATLON_thumbnail.png')) ?? r.browse?.[0] ?? null,
+      r.browse?.find((u) => u.endsWith('_LATLON.png')) ??
+      r.browse?.find((u) => u.endsWith('_LATLON_thumbnail.png')) ??
+      r.browse?.[0] ??
+      null,
     thumbUrl: r.thumb ?? null,
     footprint,
   }

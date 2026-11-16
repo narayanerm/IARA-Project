@@ -186,7 +186,25 @@ export function RaddCompare({
         <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
           <Side bbox={bbox} year={before} radd={raddOn} />
         </div>
-        <div className="absolute inset-y-0 w-0.5 bg-white/90" style={{ left: `${pos}%` }} />
+        <div
+          className="pointer-events-none absolute inset-y-0 z-10 w-[2px] bg-white/90 shadow-[0_0_8px_rgba(255,255,255,0.6)]"
+          style={{ left: `calc(${pos}% - 1px)` }}
+        />
+        <button
+          type="button"
+          onMouseDown={(ev) => {
+            ev.stopPropagation()
+            setDrag(true)
+          }}
+          onTouchStart={() => setDrag(true)}
+          aria-label="arrastar"
+          className="absolute top-1/2 z-10 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize place-items-center rounded-full bg-white shadow-lg"
+          style={{ left: `${pos}%` }}
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-black" fill="none">
+            <path d="M8 6L4 12L8 18M16 6L20 12L16 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
         <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 font-mono text-[11px] text-white">
           {before}
         </span>

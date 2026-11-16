@@ -7,10 +7,12 @@ export const REGIONS: Region[] = [
     phenomenon: 'mining',
     phenomenonLabel: 'Garimpo',
     anchorCity: 'Homoxi · Roraima',
-    // Mining fronts in the Roraima side of the land (Uraricoera, Homoxi, Mucajaí)
-    bbox: [-64.2, 2.1, -62.6, 3.7],
-    center: [-63.38, 2.92],
-    zoom: 8.2,
+    // Full Yanomami TI (FUNAI polygon) — spans from Roraima down into Amazonas.
+    // Previous bbox covered only the Roraima mining frontier, so the camera opened
+    // off-center with the southern (Amazonas) half of the land out of frame.
+    bbox: [-66.63, -0.47, -61.18, 4.43],
+    center: [-63.9, 1.98],
+    zoom: 7,
     tagline:
       'L-band penetra copa. Clareira de solo exposto = queda abrupta de backscatter.',
     isAnchor: true,
@@ -37,10 +39,11 @@ export const REGIONS: Region[] = [
     phenomenon: 'drought',
     phenomenonLabel: 'Seca',
     anchorCity: 'Manaquiri · AM',
-    // Manaquiri lakes (Andiroba and neighbours), 2023-24 record droughts
-    bbox: [-60.65, -3.65, -60.1, -3.25],
-    center: [-60.39, -3.45],
-    zoom: 10.3,
+    // Manaquiri municipality (IBGE 1302553) full extent — the hotspots cluster in the NE of
+    // the land, so using the hotspot-only bbox made the camera open on a corner.
+    bbox: [-61.16, -4.18, -60.18, -3.31],
+    center: [-60.67, -3.75],
+    zoom: 9.2,
     tagline:
       'Retração de corpos d\'água ao longo do tempo. Área hidrográfica como sinal de estresse.',
     isAnchor: false,

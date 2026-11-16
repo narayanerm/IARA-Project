@@ -78,6 +78,33 @@ export function CaseSar({ c, yearPicker }: { c: CaseStudy; yearPicker?: boolean 
   )
 }
 
+// Sentinel-1 browse on ASF is in SAR acquisition geometry (tilted parallelogram),
+// not a lat/lon rectangle — cropping it with a lat/lon viewBox returns the wrong
+// patch.  Microsoft Planetary Computer serves the RTC-corrected scene cropped to
+// any bbox at any resolution.  We just need to translate the ASF granule name to
+// the PC item id (strip trailing CRC token, append `_rtc`).
+function asfToPcRtcId(asfName: string): string {
+  const parts = asfName.split('_')
+  parts[parts.length - 1] = 'rtc'
+  return parts.join('_')
+}
+
+function sentinel1CropUrl(itemId: string, bbox: [number, number, number, number]): string {
+  const [w, s, e, n] = bbox
+  const width = 1200
+  const k = Math.cos((((s + n) / 2) * Math.PI) / 180)
+  const height = Math.max(1, Math.round((width * (n - s)) / ((e - w) * k)))
+  const q = new URLSearchParams({
+    collection: 'sentinel-1-rtc',
+    item: itemId,
+    assets: 'vv',
+    expression: '10*log10(vv)',
+    asset_as_band: 'True',
+    rescale: '-22,0',
+  })
+  return `https://planetarycomputer.microsoft.com/api/data/v1/item/bbox/${w},${s},${e},${n}/${width}x${height}.png?${q}`
+}
+
 function Pair({ c, before, after }: { c: CaseStudy; before: string; after: string }) {
   const t = useT()
   const pair = useAsfPair(c.sarBbox, before, after, 45)
@@ -94,15 +121,30 @@ function Pair({ c, before, after }: { c: CaseStudy; before: string; after: strin
     )
   }
 
+  const isS1 = pair.platform === 'Sentinel-1'
+  const beforeUrl = hasSar
+    ? isS1
+      ? sentinel1CropUrl(asfToPcRtcId(pair.before!.id), c.sarBbox)
+      : pair.before!.browseUrl!
+    : worldviewSnapshot(before, c.sarBbox)
+  const afterUrl = hasSar
+    ? isS1
+      ? sentinel1CropUrl(asfToPcRtcId(pair.after!.id), c.sarBbox)
+      : pair.after!.browseUrl!
+    : worldviewSnapshot(after, c.sarBbox)
+  const beforeBbox = hasSar && !isS1 ? polygonBbox(pair.before!.footprint as Polygon) : c.sarBbox
+  const afterBbox = hasSar && !isS1 ? polygonBbox(pair.after!.footprint as Polygon) : c.sarBbox
+
   return (
     <>
       <BeforeAfter
-        beforeUrl={hasSar ? pair.before!.browseUrl! : worldviewSnapshot(before, c.sarBbox)}
-        afterUrl={hasSar ? pair.after!.browseUrl! : worldviewSnapshot(after, c.sarBbox)}
+        beforeUrl={beforeUrl}
+        afterUrl={afterUrl}
         beforeLabel={label(hasSar ? pair.before : null, before)}
         afterLabel={label(hasSar ? pair.after : null, after)}
-        beforeBbox={hasSar ? polygonBbox(pair.before!.footprint as Polygon) : c.sarBbox}
-        afterBbox={hasSar ? polygonBbox(pair.after!.footprint as Polygon) : c.sarBbox}
+        beforeBbox={beforeBbox}
+        afterBbox={afterBbox}
+        focusBbox={isS1 ? undefined : c.sarBbox}
       />
       <p className="text-[11.5px] leading-snug text-muted-foreground">
         {hasSar && pair.platform

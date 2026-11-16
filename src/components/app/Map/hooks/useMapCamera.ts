@@ -39,7 +39,11 @@ export function casePadding(el: HTMLElement) {
 // every watch zone stays in the free part of the map.
 function caseCamera(m: MapLibreMap, region: Region) {
   const padding = casePadding(m.getContainer())
-  const pts = CASES[region.id].hotspots.map((h) => h.center)
+  // Hotspots + region.bbox corners: fitting hotspots alone opens on a corner when hotspots
+  // cluster in part of the territory (SECA: all hotspots in the NE of Manaquiri).
+  const pts: Array<[number, number]> = CASES[region.id].hotspots.map((h) => h.center)
+  const [bbW, bbS, bbE, bbN] = region.bbox
+  pts.push([bbW, bbS], [bbE, bbN])
   const lons = pts.map((p) => p[0])
   const lats = pts.map((p) => p[1])
   const merc = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / (2 * Math.PI)

@@ -49,6 +49,15 @@ const RADD_TILE =
 
 const DETER_URL = '/analysis/data/deter-mineracao-regional-2019-2026.geojson'
 
+// ENCH / SECA ground-truth overlays are pre-rendered from JRC Global Surface Water
+// transitions (v1.4, 30 m, 1984-2020). Sparse pixel marks on transparent RGBA so
+// they stack over any basemap like RADD does. See scripts/analysis/build-water-
+// change-overlays.py for the pixel-class → color mapping.
+const ENCH_FLOOD_URL = '/analysis/data/ench-flood-marks.png'
+const ENCH_FLOOD_BBOX: Bbox4 = [-60.9, -3.3, -59.1, -1.85]
+const SECA_DROUGHT_URL = '/analysis/data/seca-drought-marks.png'
+const SECA_DROUGHT_BBOX: Bbox4 = [-61.2, -4.2, -60.2, -3.3]
+
 function corners([w, s, e, n]: Bbox4): [
   [number, number],
   [number, number],
@@ -68,6 +77,8 @@ export function YanomamiCaseLayers({ beforeId }: { beforeId?: string }) {
   const band = useUi((s) => s.yanomamiBand)
   const raddOn = useUi((s) => s.yanomamiRaddOn)
   const deterOn = useUi((s) => s.yanomamiDeterOn)
+  const floodOn = useUi((s) => s.enchFloodOn)
+  const droughtOn = useUi((s) => s.secaDroughtOn)
   const [deter, setDeter] = useState<FeatureCollection | null>(null)
 
   useEffect(() => {
@@ -122,6 +133,38 @@ export function YanomamiCaseLayers({ beforeId }: { beforeId?: string }) {
               'raster-contrast': 0.4,
               'raster-brightness-max': 0.85,
             }}
+          />
+        </Source>
+      )}
+
+      {activeRegion === 'ENCH' && floodOn && (
+        <Source
+          id="ench-flood-marks"
+          type="image"
+          url={ENCH_FLOOD_URL}
+          coordinates={corners(ENCH_FLOOD_BBOX)}
+        >
+          <Layer
+            id="ench-flood-marks-layer"
+            type="raster"
+            beforeId={beforeId}
+            paint={{ 'raster-opacity': 0.9, 'raster-fade-duration': 0 }}
+          />
+        </Source>
+      )}
+
+      {activeRegion === 'SECA' && droughtOn && (
+        <Source
+          id="seca-drought-marks"
+          type="image"
+          url={SECA_DROUGHT_URL}
+          coordinates={corners(SECA_DROUGHT_BBOX)}
+        >
+          <Layer
+            id="seca-drought-marks-layer"
+            type="raster"
+            beforeId={beforeId}
+            paint={{ 'raster-opacity': 0.9, 'raster-fade-duration': 0 }}
           />
         </Source>
       )}

@@ -6,8 +6,7 @@ import { CASES } from '@/data/cases'
 /**
  * Floating SAR band selector shown in every case. Three bands (NISAR L, NISAR S,
  * Sentinel-1 C) with pre-built mosaics per case. In the YANO (garimpo) case we
- * also show the two ground-truth overlays that stack on any band: RADD alerts
- * and DETER mineração.
+ * also show the RADD alerts ground-truth overlay that stacks on any band.
  * Positioned bottom-right, just above the HomeButton and the MapLibre attribution.
  */
 
@@ -24,15 +23,19 @@ export function YanomamiCaseControls() {
   const aoiActive = useApp((s) => s.aoiActive)
   const band = useUi((s) => s.yanomamiBand)
   const raddOn = useUi((s) => s.yanomamiRaddOn)
-  const deterOn = useUi((s) => s.yanomamiDeterOn)
+  const floodOn = useUi((s) => s.enchFloodOn)
+  const droughtOn = useUi((s) => s.secaDroughtOn)
   const setBand = useUi((s) => s.setYanomamiBand)
   const toggleRadd = useUi((s) => s.toggleYanomamiRadd)
-  const toggleDeter = useUi((s) => s.toggleYanomamiDeter)
+  const toggleFlood = useUi((s) => s.toggleEnchFlood)
+  const toggleDrought = useUi((s) => s.toggleSecaDrought)
 
   if (!aoiActive) return null
 
   const caseName = CASES[activeRegion].placeShort
   const showGarimpoOverlays = activeRegion === 'YANO'
+  const showFloodOverlay = activeRegion === 'ENCH'
+  const showDroughtOverlay = activeRegion === 'SECA'
 
   return (
     <div
@@ -75,53 +78,89 @@ export function YanomamiCaseControls() {
         )
       })}
 
-      {showGarimpoOverlays && (
+      {(showGarimpoOverlays || showFloodOverlay || showDroughtOverlay) && (
         <div className="border-t border-border/60 pt-1.5 mt-0.5 flex flex-col gap-1.5">
           <div className="text-[10.5px] font-mono uppercase tracking-wider text-muted-foreground">
             Sobreposições
           </div>
-          <button
-            type="button"
-            onClick={toggleRadd}
-            className={cn(
-              'flex items-start gap-2 rounded-md border px-2 py-1.5 text-left text-[11.5px] transition-colors w-full',
-              raddOn
-                ? 'bg-background text-foreground'
-                : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
-            )}
-            style={raddOn ? { borderColor: '#E3121F', background: '#E3121F20' } : undefined}
-          >
-            <span
-              className="mt-[3px] h-2.5 w-2.5 shrink-0 rounded-sm"
-              style={{
-                background: raddOn ? '#E3121F' : 'transparent',
-                boxShadow: 'inset 0 0 0 1px #E3121F',
-              }}
-            />
-            <span className="flex flex-col gap-0 leading-tight">
-              <span className="font-semibold">RADD alertas</span>
-              <span className="text-[9.5px] text-muted-foreground">S1-derivado · 2020→hoje</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={toggleDeter}
-            className={cn(
-              'flex items-start gap-2 rounded-md border px-2 py-1.5 text-left text-[11.5px] transition-colors w-full',
-              deterOn
-                ? 'border-white/80 bg-white/10 text-foreground'
-                : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <span
-              className="mt-[3px] h-2.5 w-2.5 shrink-0 rounded-sm"
-              style={{ background: deterOn ? '#ffffff' : 'transparent', boxShadow: 'inset 0 0 0 1px #ffffff' }}
-            />
-            <span className="flex flex-col gap-0 leading-tight">
-              <span className="font-semibold">DETER mineração</span>
-              <span className="text-[9.5px] text-muted-foreground">683 polígonos INPE · 2019-2026</span>
-            </span>
-          </button>
+
+          {showGarimpoOverlays && (
+            <button
+              type="button"
+              onClick={toggleRadd}
+              className={cn(
+                'flex items-start gap-2 rounded-md border px-2 py-1.5 text-left text-[11.5px] transition-colors w-full',
+                raddOn
+                  ? 'bg-background text-foreground'
+                  : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
+              )}
+              style={raddOn ? { borderColor: '#E3121F', background: '#E3121F20' } : undefined}
+            >
+              <span
+                className="mt-[3px] h-2.5 w-2.5 shrink-0 rounded-sm"
+                style={{
+                  background: raddOn ? '#E3121F' : 'transparent',
+                  boxShadow: 'inset 0 0 0 1px #E3121F',
+                }}
+              />
+              <span className="flex flex-col gap-0 leading-tight">
+                <span className="font-semibold">RADD alertas</span>
+                <span className="text-[9.5px] text-muted-foreground">S1-derivado · 2020→hoje</span>
+              </span>
+            </button>
+          )}
+
+          {showFloodOverlay && (
+            <button
+              type="button"
+              onClick={toggleFlood}
+              className={cn(
+                'flex items-start gap-2 rounded-md border px-2 py-1.5 text-left text-[11.5px] transition-colors w-full',
+                floodOn
+                  ? 'bg-background text-foreground'
+                  : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
+              )}
+              style={floodOn ? { borderColor: '#2E86DE', background: '#2E86DE20' } : undefined}
+            >
+              <span
+                className="mt-[3px] h-2.5 w-2.5 shrink-0 rounded-sm"
+                style={{
+                  background: floodOn ? '#2E86DE' : 'transparent',
+                  boxShadow: 'inset 0 0 0 1px #2E86DE',
+                }}
+              />
+              <span className="flex flex-col gap-0 leading-tight">
+                <span className="font-semibold">MODIS Flood (NASA GIBS)</span>
+                <span className="text-[9.5px] text-muted-foreground">3-day composite · May 15, 2024</span>
+              </span>
+            </button>
+          )}
+
+          {showDroughtOverlay && (
+            <button
+              type="button"
+              onClick={toggleDrought}
+              className={cn(
+                'flex items-start gap-2 rounded-md border px-2 py-1.5 text-left text-[11.5px] transition-colors w-full',
+                droughtOn
+                  ? 'bg-background text-foreground'
+                  : 'border-border/60 bg-background/40 text-muted-foreground hover:text-foreground'
+              )}
+              style={droughtOn ? { borderColor: '#E0B64B', background: '#E0B64B20' } : undefined}
+            >
+              <span
+                className="mt-[3px] h-2.5 w-2.5 shrink-0 rounded-sm"
+                style={{
+                  background: droughtOn ? '#E0B64B' : 'transparent',
+                  boxShadow: 'inset 0 0 0 1px #E0B64B',
+                }}
+              />
+              <span className="flex flex-col gap-0 leading-tight">
+                <span className="font-semibold">SMAP Soil Moisture (NASA GIBS)</span>
+                <span className="text-[9.5px] text-muted-foreground">L-band passive · Oct 15, 2024</span>
+              </span>
+            </button>
+          )}
         </div>
       )}
     </div>

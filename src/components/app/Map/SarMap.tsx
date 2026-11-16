@@ -26,6 +26,7 @@ import { TerrainSource } from './layers/TerrainSource'
 import { SatelliteLayer } from './layers/SatelliteLayer'
 import { CaseImageryLayer } from './layers/CaseImageryLayer'
 import { YanomamiCaseLayers } from './layers/YanomamiCaseLayers'
+import { CaseSarFocusBox } from './layers/CaseSarFocusBox'
 import { YanomamiCaseControls } from './overlays/YanomamiCaseControls'
 import { AmazonBiomeLayer } from './layers/AmazonBiomeLayer'
 import { GibsTrueColorLayer, GibsOverlayLayer } from './layers/GibsLayers'
@@ -164,6 +165,8 @@ export function SarMap({ forecast }: { forecast: ForecastMapProps | null }) {
         />
         {/* YANO case: NISAR mosaic + DETER mineração overlays (ported from yanomami-deforestation). */}
         <YanomamiCaseLayers beforeId={labelLayerId} />
+        {/* Thin dashed outline showing where the timeline's SAR slider gets its imagery. */}
+        <CaseSarFocusBox beforeId={labelLayerId} />
 
         <AmazonBiomeLayer />
 

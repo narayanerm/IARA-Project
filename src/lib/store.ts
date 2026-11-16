@@ -156,6 +156,10 @@ interface UiState {
   yanomamiRaddOn: boolean
   /** YANO case: show DETER mineração polygons as a map overlay. */
   yanomamiDeterOn: boolean
+  /** ENCH case: show NASA GIBS MODIS flood overlay (cheia 2024-05-15). */
+  enchFloodOn: boolean
+  /** SECA case: show NASA GIBS SMAP soil moisture overlay (seca 2024-10-15). */
+  secaDroughtOn: boolean
   toggleSatellite: () => void
   toggleRelief: () => void
   setRightOpen: (v: boolean) => void
@@ -167,6 +171,8 @@ interface UiState {
   setYanomamiBand: (b: 'nisar' | 'sband' | 's1c' | null) => void
   toggleYanomamiRadd: () => void
   toggleYanomamiDeter: () => void
+  toggleEnchFlood: () => void
+  toggleSecaDrought: () => void
 }
 
 export const useUi = create<UiState>((set, get) => ({
@@ -181,6 +187,8 @@ export const useUi = create<UiState>((set, get) => ({
   yanomamiBand: null,
   yanomamiRaddOn: false,
   yanomamiDeterOn: false,
+  enchFloodOn: false,
+  secaDroughtOn: false,
   toggleSatellite: () => set({ satelliteOn: !get().satelliteOn }),
   toggleRelief: () => set({ reliefOn: !get().reliefOn }),
   setRightOpen: (v) => set({ rightOpen: v }),
@@ -192,4 +200,6 @@ export const useUi = create<UiState>((set, get) => ({
   setYanomamiBand: (b) => set({ yanomamiBand: b }),
   toggleYanomamiRadd: () => set({ yanomamiRaddOn: !get().yanomamiRaddOn }),
   toggleYanomamiDeter: () => set({ yanomamiDeterOn: !get().yanomamiDeterOn }),
+  toggleEnchFlood: () => set({ enchFloodOn: !get().enchFloodOn }),
+  toggleSecaDrought: () => set({ secaDroughtOn: !get().secaDroughtOn }),
 }))
