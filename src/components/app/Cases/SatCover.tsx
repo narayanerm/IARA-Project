@@ -24,7 +24,10 @@ export const SatCover = memo(function SatCover({
   grid?: number
   className?: string
 }) {
-  const [tx, ty] = tileXY(center[0], center[1], zoom)
+  // Tile servers only have whole zoom levels: a fractional zoom (e.g. 10.5) asks for /10.5/x/y.jpg,
+  // which does not exist, and the card stays black. Round down so the still keeps the wider view.
+  const z = Math.floor(zoom)
+  const [tx, ty] = tileXY(center[0], center[1], z)
   const x0 = Math.round(tx) - grid / 2
   const y0 = Math.round(ty) - grid / 2
   const fx = (tx - x0) / grid
@@ -33,7 +36,7 @@ export const SatCover = memo(function SatCover({
   const tiles = []
   for (let j = 0; j < grid; j++) {
     for (let i = 0; i < grid; i++) {
-      const url = SATELLITE_TILES.replace('{z}', String(zoom))
+      const url = SATELLITE_TILES.replace('{z}', String(z))
         .replace('{x}', String(x0 + i))
         .replace('{y}', String(y0 + j))
       tiles.push(
